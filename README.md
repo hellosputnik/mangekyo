@@ -71,7 +71,7 @@ Canvas backing resolution uses device pixel ratio (capped at 3 for memory use). 
 
 Automated tests cover monotonic timing, pause/resume/background exclusion, duration caps, partial and abandoned sessions, recovery, local midnight boundaries, duplicate accounting, routine advancement, break transitions, invalid configuration, adaptive boundaries, exercise termination, IndexedDB round trips, snapshot isolation, and backup validation.
 
-Desktop browser checks cover start, pause, reload recovery and completion-to-rest transitions. A physical iPhone is still required to verify:
+Desktop browser checks cover start, pause, reload recovery, completion-to-rest transitions, update activation, and an offline reload plus response exercise with the production server stopped. The offline test caught and fixed static-asset cache misses caused by `Vary: Origin`; cached same-origin assets now ignore Vary during lookup. A physical iPhone is still required to verify:
 
 - Safari and installed Home Screen launches, airplane-mode cold starts, and update activation.
 - Rotation during an active session, dynamic browser bars, safe areas, zoom accessibility, and both small and large iPhone displays.
