@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { initialData } from "../engine/model";
+import { defaults, initialData } from "../engine/model";
 import { mergeBackup } from "./backup";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
@@ -59,4 +59,35 @@ it("round trips the selected language and accepts older backups without a langua
       preferences: { ...current.preferences, language: "invalid" },
     }),
   ).toThrow();
+});
+it("round trips mixed presets and still accepts legacy single-path sessions", () => {
+  const data = initialData();
+  data.sessions = [
+    {
+      id: "mixed",
+      kind: "pursuit",
+      eye: "Left",
+      configuration: { ...defaults },
+      startedAt: "2026-10-25T12:00:00Z",
+      endedAt: "2026-10-25T12:00:00Z",
+      status: "completed",
+      activeMilliseconds: 0,
+      slices: [],
+      trials: [],
+      difficulty: 0,
+    },
+  ];
+  expect(
+    mergeBackup(initialData(), JSON.parse(JSON.stringify(data))).sessions[0]
+      .configuration.pattern,
+  ).toBe("Mixed");
+  const legacy = structuredClone(data);
+  legacy.sessions[0].configuration.pattern = "Figure eight";
+  delete legacy.sessions[0].configuration.pursuitPreset;
+  expect(
+    mergeBackup(initialData(), legacy).sessions[0].configuration.pattern,
+  ).toBe("Figure eight");
+  const invalid = structuredClone(data);
+  invalid.sessions[0].configuration.pursuitPreset = "Invalid" as never;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
 });

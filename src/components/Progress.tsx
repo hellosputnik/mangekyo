@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { EyeSelector } from "./controls/EyeSelector";
+import { Icon } from "./Icon";
 import {
   names,
   localDate,
@@ -10,9 +13,11 @@ import { useI18n } from "../i18n/react";
 export function Progress({
   data,
   persist,
+  onPractice,
 }: {
   data: Data;
   persist: (data: Data) => void;
+  onPractice?: () => void;
 }) {
   const {
     t,
@@ -25,6 +30,8 @@ export function Progress({
     statusLabel,
     patternLabel,
   } = useI18n();
+  const [measurementEye, setMeasurementEye] = useState<Eye>("Left");
+  const [measurementSaved, setMeasurementSaved] = useState(false);
   const minutes = totalForDate(data) / 60000;
   const completed = data.sessions.filter(
     (session) => session.status === "completed",
@@ -83,7 +90,8 @@ export function Progress({
         <h2>{t("progress.byEye")}</h2>
         {(
           ["Left", "Right", "Both", ...Object.keys(names)] as (
-            Eye | ExerciseKind
+            | Eye
+            | ExerciseKind
           )[]
         ).map((key) => (
           <div className="history-row" key={key}>
@@ -119,41 +127,59 @@ export function Progress({
       <section className="panel">
         <h2>{t("progress.trend")}</h2>
         <p>{t("progress.trendNote")}</p>
-        {(["visual", "contrast"] as ExerciseKind[]).map((kind) => (
-          <div key={kind}>
-            <h3>{exerciseName(kind)}</h3>
-            <div className="trend">
-              {data.sessions
-                .filter(
-                  (session) => session.kind === kind && session.trials.length,
-                )
-                .slice(-8)
-                .map((session) => (
-                  <div key={session.id}>
-                    <span>{percent((accuracy(session) ?? 0) / 100)}</span>
-                    <div className="bar">
-                      <i style={{ height: accuracy(session) + "%" }} />
+        {!data.sessions.some((session) => session.trials.length) && (
+          <p className="empty-state">{t("progress.trendEmpty")}</p>
+        )}
+        {(["visual", "contrast"] as ExerciseKind[])
+          .filter((kind) =>
+            data.sessions.some(
+              (session) => session.kind === kind && session.trials.length,
+            ),
+          )
+          .map((kind) => (
+            <div key={kind}>
+              <h3>{exerciseName(kind)}</h3>
+              <div className="trend">
+                {data.sessions
+                  .filter(
+                    (session) => session.kind === kind && session.trials.length,
+                  )
+                  .slice(-8)
+                  .map((session) => (
+                    <div key={session.id}>
+                      <span>{percent((accuracy(session) ?? 0) / 100)}</span>
+                      <div className="bar">
+                        <i style={{ height: accuracy(session) + "%" }} />
+                      </div>
+                      <small>
+                        {t("progress.level", {
+                          level: number(session.difficulty + 1),
+                        })}
+                      </small>
+                      <small>
+                        {formatDate(session.startedAt, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </small>
                     </div>
-                    <small>
-                      {t("progress.level", {
-                        level: number(session.difficulty + 1),
-                      })}
-                    </small>
-                    <small>
-                      {formatDate(session.startedAt, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </small>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </section>
-      <section className="panel">
+      <section className="panel history-panel">
         <h2>{t("progress.history")}</h2>
-        {!data.sessions.length && <p>{t("progress.empty")}</p>}
+        {!data.sessions.length && (
+          <div className="empty-state">
+            <p>{t("progress.empty")}</p>
+            {onPractice && (
+              <button className="primary" onClick={onPractice}>
+                {t("practice.begin")}
+              </button>
+            )}
+          </div>
+        )}
         {data.sessions
           .slice()
           .reverse()
@@ -193,11 +219,18 @@ export function Progress({
             </details>
           ))}
       </section>
-      <section className="panel">
-        <h2>{t("progress.measurements")}</h2>
+      <details className="panel measurements-panel">
+        <summary>
+          <span>
+            {t("progress.measurements")}
+            {data.measurements.length > 0 &&
+              ` (${number(data.measurements.length)})`}
+          </span>
+          <Icon name="Chevron" />
+        </summary>
         <p>{t("progress.measurementNote")}</p>
         <form
-          className="settings-grid"
+          className="settings-grid measurement-form"
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
@@ -215,22 +248,20 @@ export function Progress({
               ],
             });
             event.currentTarget.reset();
+            setMeasurementEye("Left");
+            setMeasurementSaved(true);
           }}
         >
           <label>
             {t("progress.date")}
             <input name="date" type="date" required />
           </label>
-          <label>
-            {t("progress.eye")}
-            <select name="eye">
-              {(["Left", "Right", "Both"] as const).map((value) => (
-                <option key={value} value={value}>
-                  {eyeLabel(value)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EyeSelector
+            label={t("progress.eye")}
+            name="eye"
+            value={measurementEye}
+            onChange={setMeasurementEye}
+          />
           <label>
             {t("progress.method")}
             <input
@@ -249,13 +280,16 @@ export function Progress({
           </label>
           <button>{t("progress.saveMeasurement")}</button>
         </form>
+        <p className="save-status" role="status">
+          {measurementSaved ? t("progress.savedMeasurement") : ""}
+        </p>
         {data.measurements.map((measurement) => (
           <p key={measurement.id}>
             {formatDate(measurement.date)} · {eyeLabel(measurement.eye)} ·{" "}
             {measurement.method}: {measurement.value}
           </p>
         ))}
-      </section>
+      </details>
     </>
   );
 }

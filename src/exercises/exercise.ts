@@ -1,4 +1,5 @@
 import { type Configuration, type ExerciseKind } from "../engine/model";
+import { pursuitPoint } from "./pursuit";
 export interface Exercise {
   initialize(): void;
   update(seconds: number, level: number): void;
@@ -48,24 +49,11 @@ export class VisualExercise implements Exercise {
     const reachY = Math.max(0, height / 2 - radius - 20);
     let x = width / 2,
       y = height / 2;
-    const phase = this.seconds * settings.speed * Math.PI * 2;
     context.fillStyle = settings.foreground;
     context.strokeStyle = settings.foreground;
     context.globalAlpha = settings.contrast;
     if (this.kind === "pursuit") {
-      const complexity = settings.complexity;
-      const patterns: Record<string, [number, number]> = {
-        Horizontal: [Math.sin(phase), 0],
-        Vertical: [0, Math.sin(phase)],
-        Circle: [Math.cos(phase), Math.sin(phase)],
-        "Figure eight": [Math.sin(phase), Math.sin(phase * 2) * 0.75],
-        Wandering: [
-          Math.sin(phase * 0.73) * 0.65 +
-            Math.sin(phase * 1.13 * complexity) * 0.3,
-          Math.cos(phase * 0.57) * 0.65 + Math.sin(phase * 0.91) * 0.3,
-        ],
-      };
-      const point = patterns[settings.pattern] ?? patterns.Horizontal;
+      const point = pursuitPoint(settings, this.seconds);
       x += point[0] * reachX;
       y += point[1] * reachY;
       context.beginPath();

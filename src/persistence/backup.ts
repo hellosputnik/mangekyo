@@ -2,6 +2,7 @@ import {
   initialData,
   names,
   validate,
+  pursuitPatterns,
   type Data,
   type Session,
   type Routine,
@@ -56,9 +57,10 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   if (
-    !["Horizontal", "Vertical", "Circle", "Figure eight", "Wandering"].includes(
-      String(settings.pattern),
-    ) ||
+    !pursuitPatterns.some((pattern) => pattern === settings.pattern) ||
+    (settings.pursuitPreset !== undefined &&
+      settings.pursuitPreset !== "Custom" &&
+      !pursuitPatterns.some((pattern) => pattern === settings.pursuitPreset)) ||
     !["Opening", "Orientation", "Shape"].includes(String(settings.stimulus)) ||
     !["Grating", "Shape"].includes(String(settings.contrastStimulus)) ||
     typeof settings.tapConfirm !== "boolean" ||

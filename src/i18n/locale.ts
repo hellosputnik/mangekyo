@@ -56,6 +56,7 @@ const eyeKeys: Record<Eye, MessageKey> = {
   Both: "eye.Both",
 };
 const patternKeys: Record<Pattern, MessageKey> = {
+  Mixed: "pattern.Mixed",
   Horizontal: "pattern.Horizontal",
   Vertical: "pattern.Vertical",
   Circle: "pattern.Circle",
@@ -138,7 +139,19 @@ export function createLocalization(
       ? String(value)
       : new Intl.DateTimeFormat(locale, options).format(parsed);
   };
+  const duration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60),
+      remainder = seconds % 60;
+    if (!remainder && minutes) return `${number(minutes)} ${t("unit.minutes")}`;
+    if (!minutes)
+      return t("duration.onlySeconds", { seconds: number(remainder) });
+    return t("duration.both", {
+      minutes: number(minutes),
+      seconds: number(remainder),
+    });
+  };
   return {
+    duration,
     language,
     locale,
     t,

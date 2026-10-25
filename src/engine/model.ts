@@ -2,8 +2,17 @@ import type { LanguagePreference } from "../i18n/locale";
 
 export type ExerciseKind = "pursuit" | "saccades" | "visual" | "contrast";
 export type Eye = "Left" | "Right" | "Both";
-export type Pattern =
-  "Horizontal" | "Vertical" | "Circle" | "Figure eight" | "Wandering";
+export const motionPaths = [
+  "Horizontal",
+  "Vertical",
+  "Circle",
+  "Figure eight",
+  "Wandering",
+] as const;
+export const pursuitPatterns = ["Mixed", ...motionPaths] as const;
+export type MotionPath = (typeof motionPaths)[number];
+export type Pattern = (typeof pursuitPatterns)[number];
+export type PursuitPreset = Pattern | "Custom";
 export interface Configuration {
   duration: number;
   size: number;
@@ -11,6 +20,7 @@ export interface Configuration {
   contrast: number;
   complexity: number;
   pattern: Pattern;
+  pursuitPreset?: PursuitPreset;
   foreground: string;
   background: string;
   exposure: number;
@@ -27,7 +37,8 @@ export const defaults: Configuration = {
   speed: 0.16,
   contrast: 0.85,
   complexity: 1,
-  pattern: "Figure eight",
+  pattern: "Mixed",
+  pursuitPreset: "Mixed",
   foreground: "#ff8383",
   background: "#170f0f",
   exposure: 1.5,
@@ -62,6 +73,15 @@ export function validate(configuration: Configuration): Configuration {
     speed: bounded(configuration.speed, 0.02, 1, 0.16),
     contrast: bounded(configuration.contrast, 0.03, 1, 0.85),
     complexity: bounded(configuration.complexity, 1, 5, 1),
+    pattern: pursuitPatterns.includes(configuration.pattern)
+      ? configuration.pattern
+      : defaults.pattern,
+    pursuitPreset:
+      configuration.pursuitPreset === undefined ||
+      configuration.pursuitPreset === "Custom" ||
+      pursuitPatterns.includes(configuration.pursuitPreset)
+        ? configuration.pursuitPreset
+        : "Custom",
     exposure: bounded(configuration.exposure, 0.5, 10, 1.5),
     jumpPause: bounded(configuration.jumpPause, 0, 10, 0.5),
     jumpDistance: bounded(configuration.jumpDistance, 0.1, 1, 0.8),

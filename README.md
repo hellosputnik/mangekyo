@@ -54,11 +54,11 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 
 ## What works
 
-- Responsive practice dashboard, four Canvas exercises, dark training stage, safe-area padding, touch controls, portrait/landscape layouts.
-- Pursuit: horizontal, vertical, circle, figure-eight, smooth wandering; adjustable size, speed, contrast, complexity, colors, duration, and self-reported viewing distance.
+- Responsive practice dashboard, four Canvas exercises, dark training stage, safe-area padding, visual eye selection, glass-style navigation, touch controls, and portrait/landscape layouts. The glass treatment has opaque and reduced-motion accessibility fallbacks.
+- Pursuit: illustrated presets for horizontal, vertical, circular, figure-eight, and smooth wandering paths. The default five-minute Mixed session gives each path an equal share of active time, with smooth transitions. Custom exposes path, size, speed, contrast, complexity, colors, and self-reported viewing distance; duration is always adjustable. Pausing/recovery preserves the mix position.
 - Saccades: reproducible pseudo-random jumps, exposure/pause/distance controls, optional acknowledgement. No gaze measurement.
 - Visual response tasks: C-like opening, directional pattern, directional triangle; contrast tasks: localized gratings or circles. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.
-- 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; preset and custom durations. These are scheduling preferences, not treatment doses.
+- 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
 - Monotonic active timer; pause, resume, save early, skip/abandon, background interruption, explicit reload recovery.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
 - IndexedDB history, daily/weekly totals, eye/exercise breakdowns, recent accuracy/difficulty charts, and separately labeled professional measurements.
@@ -81,10 +81,11 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 - `src/engine/timer.ts`: React-independent active timing and bounded adaptive progression.
 - `src/engine/routines.ts`: routine and break transitions.
 - `src/exercises/exercise.ts`: common exercise lifecycle and Canvas stimulus renderer.
+- `src/exercises/pursuit.ts`: motion presets, active-time path selection, and continuous mixed-path transitions.
 - `src/persistence/`: IndexedDB snapshots and validated backup merging.
 - `src/analytics/`: deduplicated time aggregation and response metrics.
-- `src/components/Progress.tsx`: historical and professional measurement views.
-- `src/main.tsx`: application coordination, session lifecycle, controls, settings, and routines.
+- `src/components/`: focused practice, navigation, routine, and progress views; shared eye, duration, stepper, and switch controls in `controls/`.
+- `src/main.tsx`: application coordination, session lifecycle, and settings.
 
 Canvas backing resolution uses device pixel ratio (capped at 3 for memory use). Target settings are CSS pixels, not millimeters or calibrated visual angles. Viewing distance is recorded metadata, not an automatic calibration. Native adapters, eye tracking, cloud sync, and physical display calibration are intentionally absent.
 
