@@ -84,3 +84,7 @@ Desktop browser checks cover start, pause, reload recovery, completion-to-rest t
 Not clinically validated. No claim of curing amblyopia, improving acuity, or measuring eye movements. Display contrast and target size are uncalibrated. Improved task scores may reflect familiarity and do not establish improved eyesight. Follow qualified eye-care guidance for patching and frequency. Practice seated with comfortable brightness, never while driving/walking or doing hazardous tasks. Stop immediately if uncomfortable.
 
 Browser storage can be cleared or evicted. Export backups regularly. Do not train simultaneously in multiple tabs: the initial version uses a single local state snapshot and does not arbitrate concurrent writers. No native apps, accounts, cloud synchronization, gaze tracking, or clinical testing have been implemented.
+
+## Design skill
+
+The reusable Codex `$apple-design` port is included at `tools/skills/apple-design/`, with the original MIT license and upstream reference. It is installed for this user at `~/.agents/skills/apple-design`. See [the applied design audit](docs/apple-design-audit.md) for findings, changes, and verification limits.

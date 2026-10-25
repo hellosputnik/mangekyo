@@ -22,6 +22,7 @@ import { advanceRoutine, advanceBreak } from "./engine/routines";
 import { mergeBackup } from "./persistence/backup";
 import { Routines } from "./components/Routines";
 import { Progress } from "./components/Progress";
+import { Icon } from "./components/Icon";
 import "./style.css";
 const formatTime = (milliseconds: number) =>
   `${Math.floor(milliseconds / 60000)}:${String(Math.floor(milliseconds / 1000) % 60).padStart(2, "0")}`;
@@ -42,6 +43,7 @@ function App() {
   const [eye, setEye] = useState<Eye>("Left");
   const [configuration, setConfiguration] = useState(defaults);
   const [editing, setEditing] = useState(false);
+  const [customDuration, setCustomDuration] = useState(false);
   const [, refresh] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [update, setUpdate] = useState<ServiceWorker | null>(null);
@@ -182,7 +184,9 @@ function App() {
     persist(latest);
   };
   useEffect(() => {
+    if (!current) return;
     let frame = 0;
+    let lastInterfaceUpdate = 0;
     const draw = (now: number) => {
       const session = state.current.current;
       if (session) {
@@ -235,13 +239,25 @@ function App() {
             exercise.current.render(context, bounds.width, bounds.height);
           }
         }
-        refresh((value) => value + 1);
+        if (session.status === "running" && now - lastInterfaceUpdate >= 100) {
+          lastInterfaceUpdate = now;
+          refresh((value) => value + 1);
+        }
       }
-      frame = requestAnimationFrame(draw);
+      if (state.current.current?.status === "running") {
+        frame = requestAnimationFrame(draw);
+      }
     };
     frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    const resize = new ResizeObserver(() => {
+      if (state.current.current?.status !== "running") draw(performance.now());
+    });
+    if (canvas.current) resize.observe(canvas.current);
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+    };
+  }, [current?.id, current?.status]);
   useEffect(() => {
     if (
       !data.breakState ||
@@ -252,6 +268,7 @@ function App() {
     let previous = performance.now();
     let frame = 0;
     let saved = 0;
+    let lastInterfaceUpdate = 0;
     const tick = (now: number) => {
       const rest = state.current.breakState;
       if (!rest) return;
@@ -259,7 +276,10 @@ function App() {
       previous = now;
       if (!document.hidden) {
         rest.remaining = advanceBreak(rest.remaining, delta, false);
-        setData({ ...state.current });
+        if (now - lastInterfaceUpdate >= 200 || rest.remaining === 0) {
+          lastInterfaceUpdate = now;
+          setData({ ...state.current });
+        }
         if (now - saved > 1000) {
           saved = now;
           void save(state.current).catch(() =>
@@ -645,12 +665,16 @@ function App() {
                     <button
                       className={`exercise-card ${kind === item ? "selected" : ""}`}
                       key={item}
+                      aria-pressed={kind === item}
                       onClick={() => {
                         setKind(item);
                         setEditing(false);
                       }}
                     >
-                      <div className={`exercise-art art-${item}`}>
+                      <div
+                        className={`exercise-art art-${item}`}
+                        aria-hidden="true"
+                      >
                         <span>{["∞", "· ·", "C", "▥"][index]}</span>
                         <b>0{index + 1}</b>
                       </div>
@@ -694,44 +718,44 @@ function App() {
                       Duration
                       <select
                         value={
-                          [60, 120, 180, 300, 600, 900].includes(
-                            configuration.duration,
-                          )
-                            ? configuration.duration
-                            : "custom"
+                          customDuration ? "custom" : configuration.duration
                         }
-                        onChange={(event) =>
-                          setting(
-                            "duration",
-                            event.target.value === "custom"
-                              ? 240
-                              : Number(event.target.value),
-                          )
-                        }
+                        onChange={(event) => {
+                          const custom = event.target.value === "custom";
+                          setCustomDuration(custom);
+                          if (!custom)
+                            setting("duration", Number(event.target.value));
+                        }}
                       >
                         {[1, 2, 3, 5, 10, 15].map((value) => (
                           <option key={value} value={value * 60}>
-                            {value} minutes
+                            {value} {value === 1 ? "minute" : "minutes"}
                           </option>
                         ))}
                         <option value="custom">Custom</option>
                       </select>
                     </label>
-                    <label>
-                      Seconds
-                      <input
-                        type="number"
-                        min="10"
-                        max="3600"
-                        value={configuration.duration}
-                        onChange={(event) =>
-                          setting("duration", Number(event.target.value))
-                        }
-                      />
-                    </label>
+                    {customDuration && (
+                      <label>
+                        Custom duration (seconds)
+                        <input
+                          type="number"
+                          min="10"
+                          max="3600"
+                          value={configuration.duration}
+                          onChange={(event) =>
+                            setting("duration", Number(event.target.value))
+                          }
+                        />
+                      </label>
+                    )}
                   </div>
                   <div className="actions">
-                    <button onClick={() => setEditing(!editing)}>
+                    <button
+                      aria-expanded={editing}
+                      aria-controls="exercise-settings"
+                      onClick={() => setEditing(!editing)}
+                    >
                       {editing ? "Hide" : "Adjust"} exercise settings
                     </button>
                     <button
@@ -743,26 +767,28 @@ function App() {
                     </button>
                   </div>
                   {editing && (
-                    <div className="settings-grid">
-                      <label>
-                        Motion path
-                        <select
-                          value={configuration.pattern}
-                          onChange={(event) =>
-                            setting("pattern", event.target.value)
-                          }
-                        >
-                          {[
-                            "Horizontal",
-                            "Vertical",
-                            "Circle",
-                            "Figure eight",
-                            "Wandering",
-                          ].map((value) => (
-                            <option key={value}>{value}</option>
-                          ))}
-                        </select>
-                      </label>
+                    <div id="exercise-settings" className="settings-grid">
+                      {kind === "pursuit" && (
+                        <label>
+                          Motion path
+                          <select
+                            value={configuration.pattern}
+                            onChange={(event) =>
+                              setting("pattern", event.target.value)
+                            }
+                          >
+                            {[
+                              "Horizontal",
+                              "Vertical",
+                              "Circle",
+                              "Figure eight",
+                              "Wandering",
+                            ].map((value) => (
+                              <option key={value}>{value}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                       {(
                         [
                           ["size", "Target diameter (CSS px)", 8, 120, 1],
@@ -792,31 +818,45 @@ function App() {
                             1,
                           ],
                         ] as const
-                      ).map(([key, label, min, max, step]) => (
-                        <label key={key}>
-                          {label} · {configuration[key]}
+                      )
+                        .filter(([key]) => {
+                          if (key === "speed" || key === "complexity")
+                            return kind === "pursuit";
+                          if (
+                            key === "exposure" ||
+                            key === "jumpPause" ||
+                            key === "jumpDistance"
+                          )
+                            return kind === "saccades";
+                          return true;
+                        })
+                        .map(([key, label, min, max, step]) => (
+                          <label key={key}>
+                            {label} · {configuration[key]}
+                            <input
+                              type="range"
+                              min={min}
+                              max={max}
+                              step={step}
+                              value={configuration[key]}
+                              onChange={(event) =>
+                                setting(key, Number(event.target.value))
+                              }
+                            />
+                          </label>
+                        ))}
+                      {kind !== "contrast" && (
+                        <label>
+                          Target color
                           <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            step={step}
-                            value={configuration[key]}
+                            type="color"
+                            value={configuration.foreground}
                             onChange={(event) =>
-                              setting(key, Number(event.target.value))
+                              setting("foreground", event.target.value)
                             }
                           />
                         </label>
-                      ))}
-                      <label>
-                        Target color
-                        <input
-                          type="color"
-                          value={configuration.foreground}
-                          onChange={(event) =>
-                            setting("foreground", event.target.value)
-                          }
-                        />
-                      </label>
+                      )}
                       <label>
                         Background
                         <input
@@ -827,41 +867,49 @@ function App() {
                           }
                         />
                       </label>
-                      <label>
-                        Visual task
-                        <select
-                          value={configuration.stimulus}
-                          onChange={(event) =>
-                            setting("stimulus", event.target.value)
-                          }
-                        >
-                          {["Opening", "Orientation", "Shape"].map((value) => (
-                            <option key={value}>{value}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Contrast task
-                        <select
-                          value={configuration.contrastStimulus}
-                          onChange={(event) =>
-                            setting("contrastStimulus", event.target.value)
-                          }
-                        >
-                          <option>Grating</option>
-                          <option>Shape</option>
-                        </select>
-                      </label>
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={configuration.tapConfirm}
-                          onChange={(event) =>
-                            setting("tapConfirm", event.target.checked)
-                          }
-                        />
-                        Show saccade acknowledgement button
-                      </label>
+                      {kind === "visual" && (
+                        <label>
+                          Visual task
+                          <select
+                            value={configuration.stimulus}
+                            onChange={(event) =>
+                              setting("stimulus", event.target.value)
+                            }
+                          >
+                            {["Opening", "Orientation", "Shape"].map(
+                              (value) => (
+                                <option key={value}>{value}</option>
+                              ),
+                            )}
+                          </select>
+                        </label>
+                      )}
+                      {kind === "contrast" && (
+                        <label>
+                          Contrast task
+                          <select
+                            value={configuration.contrastStimulus}
+                            onChange={(event) =>
+                              setting("contrastStimulus", event.target.value)
+                            }
+                          >
+                            <option>Grating</option>
+                            <option>Shape</option>
+                          </select>
+                        </label>
+                      )}
+                      {kind === "saccades" && (
+                        <label className="check">
+                          <input
+                            type="checkbox"
+                            checked={configuration.tapConfirm}
+                            onChange={(event) =>
+                              setting("tapConfirm", event.target.checked)
+                            }
+                          />
+                          Show saccade acknowledgement button
+                        </label>
+                      )}
                     </div>
                   )}
                   <p className="fine">
@@ -885,8 +933,18 @@ function App() {
               </>
             )}
             {tab === "Progress" && <Progress data={data} persist={persist} />}
-            {tab === "Routines" && <Routines data={data} eye={eye} setEye={setEye} routine={routine} setRoutine={setRoutine} persist={persist} start={start}/>}
-{tab === "Settings" && (
+            {tab === "Routines" && (
+              <Routines
+                data={data}
+                eye={eye}
+                setEye={setEye}
+                routine={routine}
+                setRoutine={setRoutine}
+                persist={persist}
+                start={start}
+              />
+            )}
+            {tab === "Settings" && (
               <>
                 <section className="panel">
                   <h2>Schedule & comfort</h2>
@@ -1028,22 +1086,22 @@ function App() {
             <span>Small moments of focused practice.</span>
           </footer>
           <nav aria-label="Main navigation">
-            {[
-              ["Practice", "◉"],
-              ["Progress", "▥"],
-              ["Routines", "≋"],
-              ["Settings", "⚙"],
-            ].map(([label, icon]) => (
-              <button
-                aria-current={tab === label ? "page" : undefined}
-                className={tab === label ? "active" : ""}
-                key={label}
-                onClick={() => setTab(label)}
-              >
-                <span>{icon}</span>
-                {label}
-              </button>
-            ))}
+            {(["Practice", "Progress", "Routines", "Settings"] as const).map(
+              (label) => (
+                <button
+                  aria-current={tab === label ? "page" : undefined}
+                  className={tab === label ? "active" : ""}
+                  key={label}
+                  onClick={() => {
+                    setTab(label);
+                    window.scrollTo({ top: 0, behavior: "instant" });
+                  }}
+                >
+                  <Icon name={label} />
+                  {label}
+                </button>
+              ),
+            )}
           </nav>
         </>
       )}

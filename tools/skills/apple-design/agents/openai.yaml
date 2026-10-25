@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apple Design"
+  short_description: "Refine touch feedback, typography, and interface craft"
+  default_prompt: "Use $apple-design to audit this app and implement the most consequential interface improvements."
