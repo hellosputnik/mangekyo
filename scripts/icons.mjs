@@ -28,7 +28,7 @@ for (const size of [192, 512]) {
       const petal = Math.abs(Math.sin(angle * 4));
       const mark = radius < 0.28 && radius > 0.07 && petal > 0.38;
       const offset = y * (size * 4 + 1) + 1 + x * 4;
-      raw.set(mark ? [211, 227, 177, 255] : [16, 23, 19, 255], offset);
+      raw.set(mark ? [239, 83, 80, 255] : [23, 15, 15, 255], offset);
     }
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size);

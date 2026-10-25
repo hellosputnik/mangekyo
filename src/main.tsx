@@ -643,7 +643,7 @@ function App() {
                   <div
                     className="progress-ring"
                     style={{
-                      background: `conic-gradient(#ccdda7 ${Math.min(100, (minutes / data.preferences.goal) * 100)}%, #303d32 0)`,
+                      background: `conic-gradient(var(--accent) ${Math.min(100, (minutes / data.preferences.goal) * 100)}%, var(--surface-raised) 0)`,
                     }}
                   >
                     <span>
