@@ -16,11 +16,22 @@ npm run preview
 
 The production output is `dist/`. `npm run build` type-checks the application, builds fingerprinted assets, and generates an offline service worker from those exact assets. Development mode intentionally does not register the service worker. Icons are original procedural artwork; regenerate with `node scripts/icons.mjs`.
 
-## Static HTTPS deployment
+## GitHub Pages deployment
 
-Deploy the contents of `dist/` to the root of an HTTPS origin. For Cloudflare Pages, connect this repository, select no framework preset, set build command `npm ci && npm run build`, and output directory `dist`. Netlify uses the same command and directory. No environment variables or server functions are needed. For manual hosting, upload all of `dist`, including `sw.js`, icons, manifest, and `assets/`.
+The checked-in workflow at `.github/workflows/pages.yml` tests, builds, and publishes the app on pushes to `main`. Pull requests run the tests and build without deploying. It uses GitHub's Pages artifact deployment and requires no third-party hosting credentials.
 
-Use `Cache-Control: no-cache` for `index.html`, `sw.js`, and `manifest.webmanifest`; fingerprinted files in `assets/` can use immutable caching. Hosting below a subdirectory requires configuring Vite's `base` and rebuilding; root hosting is the supported default. Do not serve this PWA from a cross-origin iframe or a host that blocks service workers.
+1. Create a GitHub repository named `mangekyo` and push this source to its `main` branch.
+2. In repository **Settings → Pages → Build and deployment**, choose **GitHub Actions** as the source.
+3. Run **Deploy to GitHub Pages** from the Actions tab (or push another commit).
+4. Wait for the deploy job to succeed and open the URL reported by that job. A project named `mangekyo` normally uses `https://<owner>.github.io/mangekyo/`.
+
+GitHub Pages works with public repositories on GitHub Free; Pages from a private repository needs an eligible paid GitHub plan. The Pages site itself is normally public even when its source repository is private. See [GitHub's Pages workflow guidance](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+
+Vite emits relative asset URLs, so the same build works at the project path and at a custom-domain root. The manifest, install icons, and service worker resolve within that path. Offline caches are scoped per deployment path so updates do not delete another Pages project's caches on the same origin. GitHub controls HTTP caching headers; the app provides its own service-worker update prompt.
+
+To move existing history from the previous host, export a backup from **Settings → Export all data**, then import it on the new Pages URL. Browser storage belongs to each origin and does not transfer automatically.
+
+For other static hosts, upload all of `dist/`, including `sw.js`, the manifest, icons, and `assets/`. No backend or environment variables are required.
 
 ### iPhone installation
 
