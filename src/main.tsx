@@ -404,10 +404,11 @@ function App() {
             <span className="brand-mark">✳</span> mangekyo
             <span className="brand-caption">VISUAL PRACTICE</span>
           </a>
-          <span className="connection">
-            <i />
-            {offline ? "Offline · saved on device" : "On-device & private"}
-          </span>
+          {offline && (
+            <span className="connection" role="status">
+              Offline
+            </span>
+          )}
         </header>
       )}
       {error && (

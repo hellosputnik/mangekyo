@@ -137,12 +137,6 @@ header {
   gap: 0.5rem;
   align-items: center;
 }
-.connection i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-}
 .content {
   max-width: 1060px;
   margin: auto;
