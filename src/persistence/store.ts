@@ -1,4 +1,5 @@
 import { initialData, type Data } from "../engine/model";
+import { normalizeLanguagePreference } from "../i18n/locale";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("mangekyo", 1);
@@ -13,6 +14,11 @@ export async function load(): Promise<Data> {
     const request = transaction.objectStore("state").get("main");
     request.onsuccess = () => {
       const data = (request.result as Data | undefined) ?? initialData();
+      data.preferences = {
+        ...initialData().preferences,
+        ...data.preferences,
+        language: normalizeLanguagePreference(data.preferences?.language),
+      };
       if (data.current) data.current.status = "interrupted";
       resolve(data);
     };

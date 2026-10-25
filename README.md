@@ -42,6 +42,16 @@ For other static hosts, upload all of `dist/`, including `sw.js`, the manifest, 
 
 `localhost` is usable on the development computer. A LAN HTTP address is **not** sufficient for iPhone PWA installation/offline functionality; use HTTPS hosting.
 
+## Language
+
+Mangekyo supports English and Vietnamese. It reads the browser's ordered language preferences, chooses the first supported language, and falls back to English. Dates and numbers follow a matching regional locale when available. **Settings → Language / Ngôn ngữ** can override device language; the choice is saved in IndexedDB and included in backups.
+
+[Open in Vietnamese](https://hellosputnik.github.io/mangekyo/?lang=vi) for a direct Vietnamese entry point, including from an English-language browser. `?lang=en` also works. A manual language change removes the URL override, and `Use device language` restores automatic selection. Older data and backups without a language field remain compatible.
+
+Both language catalogs and the Vietnamese install manifest are cached for offline use. The interface, safety text, response controls, recovery, history, and settings are translated. User-entered routine names and professional measurement notes retain their original text. Stored exercise/eye identifiers and time accounting remain language-independent.
+
+Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` handles detection/formatting and `react.tsx` supplies the UI context. Tests check locale selection, translation/placeholder parity, regional formatting, stable option values, record preservation, and preference migration.
+
 ## What works
 
 - Responsive practice dashboard, four Canvas exercises, dark training stage, safe-area padding, touch controls, portrait/landscape layouts.

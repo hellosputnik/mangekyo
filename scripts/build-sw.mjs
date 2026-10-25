@@ -5,6 +5,7 @@ const files = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./manifest.vi.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
   ...(await readdir("dist/assets")).sort().map((file) => "./assets/" + file),

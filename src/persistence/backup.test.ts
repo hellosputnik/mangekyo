@@ -44,3 +44,19 @@ it("deduplicates routine records on repeated imports", () => {
   ];
   expect(mergeBackup(data, data).routines).toHaveLength(1);
 });
+it("round trips the selected language and accepts older backups without a language field", () => {
+  const current = initialData();
+  current.preferences.language = "vi";
+  expect(mergeBackup(initialData(), current).preferences.language).toBe("vi");
+  const { language: ignored, ...legacyPreferences } = initialData().preferences;
+  expect(
+    mergeBackup(current, { ...initialData(), preferences: legacyPreferences })
+      .preferences.language,
+  ).toBe("vi");
+  expect(() =>
+    mergeBackup(current, {
+      ...current,
+      preferences: { ...current.preferences, language: "invalid" },
+    }),
+  ).toThrow();
+});

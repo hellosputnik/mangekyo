@@ -13,6 +13,7 @@ beforeAll(async () => {
   for (const file of [
     "index.html",
     "manifest.webmanifest",
+    "manifest.vi.webmanifest",
     "icon-192.png",
     "icon-512.png",
     "assets/app.js",

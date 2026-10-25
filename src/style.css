@@ -1097,3 +1097,48 @@ nav::before {
     display: none;
   }
 }
+/* Leave room for translated labels and Vietnamese diacritics. */
+.language-settings {
+  max-width: 42rem;
+}
+.week > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.history-row {
+  gap: 1rem;
+}
+.history-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.history-row > strong {
+  flex-shrink: 0;
+}
+@media (orientation: landscape) and (max-height: 550px) {
+  .training-controls {
+    margin-top: 0.5rem;
+  }
+}
+@media (max-width: 700px) {
+  .rest {
+    padding: 1.5rem 1.25rem;
+  }
+  .rest-art {
+    font-size: 5rem;
+    line-height: 1.2;
+  }
+  .rest-clock {
+    margin: 1rem 0;
+    line-height: 1.2;
+  }
+  .rest .actions {
+    flex-direction: row;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .rest .actions button {
+    min-width: 0;
+    padding: 0.75rem 0.5rem;
+  }
+}

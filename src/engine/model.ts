@@ -1,3 +1,5 @@
+import type { LanguagePreference } from "../i18n/locale";
+
 export type ExerciseKind = "pursuit" | "saccades" | "visual" | "contrast";
 export type Eye = "Left" | "Right" | "Both";
 export type Pattern =
@@ -107,6 +109,7 @@ export interface RoutineRun {
   eye: Eye;
 }
 export interface Preferences {
+  language: LanguagePreference;
   goal: number;
   rest: number;
   manual: boolean;
@@ -138,6 +141,7 @@ export const initialData = (): Data => ({
   routines: [],
   run: null,
   preferences: {
+    language: "system",
     goal: 30,
     rest: 60,
     manual: false,

@@ -29,3 +29,14 @@ it("stores a snapshot unaffected by subsequent mutation", async () => {
   await saving;
   expect((await load()).preferences.goal).toBe(30);
 });
+it("restores the selected language and migrates old preferences to device language", async () => {
+  const data = initialData();
+  data.preferences.language = "vi";
+  await save(data);
+  expect((await load()).preferences.language).toBe("vi");
+  const { language: ignored, ...preferences } = data.preferences;
+  await save({ ...data, preferences } as ReturnType<typeof initialData>);
+  const migrated = await load();
+  expect(migrated.preferences.language).toBe("system");
+  expect(migrated.preferences.goal).toBe(data.preferences.goal);
+});

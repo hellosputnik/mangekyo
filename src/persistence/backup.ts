@@ -144,6 +144,16 @@ export function mergeBackup(current: Data, input: unknown): Data {
   const preferences = { ...initialData().preferences };
   if (input.preferences) {
     if (!record(input.preferences)) throw Error("Invalid preferences");
+    const language = input.preferences.language;
+    if (
+      language !== undefined &&
+      language !== "system" &&
+      language !== "en" &&
+      language !== "vi"
+    ) {
+      throw Error("Invalid language preference");
+    }
+    preferences.language = language ?? current.preferences.language ?? "system";
     for (const key of ["goal", "rest", "reminder"] as const) {
       const maximum = { goal: 240, rest: 3600, reminder: 60 }[key];
       if (!finite(input.preferences[key], key === "goal" ? 1 : 0, maximum))
