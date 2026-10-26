@@ -76,7 +76,10 @@ describe("tap challenge", () => {
       bestChain: 5,
     });
     expect(touchTargetDiameter(session)).toBeLessThan(initialSize);
-    expect(tapTimeLimit(session.configuration, 1)).toBeLessThan(deadline);
+    expect(tapTimeLimit(session.configuration, 1)).toBeLessThanOrEqual(
+      deadline,
+    );
+    expect(tapTimeLimit(session.configuration, 4)).toBeLessThan(deadline);
     expect(exercise.drainCues()).toEqual([{ kind: "level-up", level: 1 }]);
     expect(exercise.drainCues()).toEqual([]);
     expect(session.trials[0]).toMatchObject({
@@ -125,10 +128,12 @@ describe("tap challenge", () => {
     exercise.release(true);
     const recovered = structuredClone(session);
     recovered.status = "interrupted";
+    recovered.challenge!.version = 1;
     const renderer = new TouchExercise(recovered);
     renderer.initialize();
     renderer.setViewport(390, 500);
     expect(recovered.challenge).toMatchObject({
+      version: 2,
       streak: 0,
       chain: 0,
       highestLevel: 1,
@@ -147,7 +152,7 @@ describe("tap challenge", () => {
     expect(cues.filter((cue) => cue.kind === "mastered")).toHaveLength(1);
     expect(session.trials).toHaveLength(155);
     expect(exercise.toleranceRadius() * 2).toBeGreaterThanOrEqual(44);
-    expect(touchTargetDiameter(session)).toBeGreaterThanOrEqual(12);
+    expect(touchTargetDiameter(session)).toBeGreaterThanOrEqual(16);
     exercise.makeEasier();
     expect(session.difficulty).toBe(maximumTouchLevel - 1);
     expect(session.challenge?.highestLevel).toBe(maximumTouchLevel);
@@ -155,22 +160,56 @@ describe("tap challenge", () => {
   });
 });
 describe("following challenge", () => {
+  it("gives halfway encouragement at five seconds and waits for ten on-target seconds to advance", () => {
+    const { session, exercise } = setup("follow", 150, 300);
+    exercise.pointerDown(exercise.handlePoint());
+    session.activeMilliseconds = 5000;
+    exercise.sample();
+    expect(exercise.drainCues()).toEqual([{ kind: "milestone", level: 0 }]);
+    session.activeMilliseconds = 6000;
+    exercise.sample();
+    expect(session.difficulty).toBe(0);
+    expect(exercise.drainCues()).toEqual([]);
+    session.activeMilliseconds = 9999;
+    exercise.sample();
+    expect(session.difficulty).toBe(0);
+    session.activeMilliseconds = 10000;
+    exercise.sample();
+    expect(session.difficulty).toBe(1);
+    expect(exercise.drainCues()).toEqual([{ kind: "level-up", level: 1 }]);
+  });
+  it("makes small difficulty steps and keeps default pace approachable across all levels", () => {
+    const { session, exercise } = setup("follow");
+    const radius = exercise.toleranceRadius();
+    const diameter = touchTargetDiameter(session);
+    session.difficulty = 1;
+    expect(exercise.toleranceRadius()).toBeCloseTo(radius * 0.99);
+    expect(touchTargetDiameter(session)).toBeCloseTo(diameter * 0.98);
+    expect(followMotionFactor(defaults, 1)).toBeCloseTo(1.01);
+    expect(followMotionFactor(defaults, maximumTouchLevel)).toBeLessThan(1.35);
+    expect(tapTimeLimit(defaults, maximumTouchLevel)).toBeGreaterThanOrEqual(
+      1400,
+    );
+    session.kind = "tap";
+    session.difficulty = maximumTouchLevel;
+    expect(touchTargetDiameter(session)).toBeGreaterThan(18);
+  });
   it("awards halfway and level cues from sustained on-target time with exact active timestamps", () => {
     const { session, exercise } = setup("follow", 150, 300);
     exercise.pointerDown(exercise.handlePoint());
-    session.activeMilliseconds = 12000;
+    session.activeMilliseconds = 20000;
     exercise.sample();
     expect(session.difficulty).toBe(2);
     expect(
       session.challenge?.achievements.map((item) => item.activeMilliseconds),
-    ).toEqual([6000, 12000]);
+    ).toEqual([10000, 20000]);
     expect(exercise.drainCues().map((cue) => cue.kind)).toEqual([
       "milestone",
       "level-up",
       "milestone",
       "level-up",
     ]);
-    expect(session.follow?.trackedMilliseconds).toBe(12000);
+    expect(session.follow?.trackedMilliseconds).toBe(20000);
   });
   it("does not award levels for off-target holds and resets an interrupted goal while preserving points", () => {
     const { session, exercise } = setup("follow");
@@ -181,13 +220,17 @@ describe("following challenge", () => {
     exercise.pointerMove({ x: 10000, y: 10000 });
     session.activeMilliseconds = 1400;
     exercise.sample();
+    expect(session.challenge?.progressMilliseconds).toBe(1000);
+    expect(session.follow?.onTargetMilliseconds).toBe(earned);
+    session.activeMilliseconds = 2100;
+    exercise.sample();
     expect(session.challenge?.progressMilliseconds).toBe(0);
     exercise.release(true);
     session.activeMilliseconds = 100000;
     exercise.sample();
     expect(session.follow?.onTargetMilliseconds).toBe(earned);
     expect(session.difficulty).toBe(0);
-    expect(session.challenge?.motionSeconds).toBeLessThan(2);
+    expect(session.challenge?.motionSeconds).toBeLessThan(3);
   });
   it("increases motion speed without a position jump and respects gentler motion limits", () => {
     const { session, exercise } = setup("follow");

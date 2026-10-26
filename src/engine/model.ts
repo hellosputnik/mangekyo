@@ -151,7 +151,7 @@ export interface ChallengeAchievement {
   activeMilliseconds: number;
 }
 export interface TouchChallengeState {
-  version: 1;
+  version: 1 | 2;
   startingLevel: number;
   highestLevel: number;
   levelUps: number;

@@ -7,7 +7,9 @@ import {
 
 export const maximumTouchLevel = 29;
 export const tapLevelGoal = 5;
-export const followLevelGoalMilliseconds = 6000;
+export const followLevelGoalMilliseconds = 10000;
+export const followHalfwayMilliseconds = followLevelGoalMilliseconds / 2;
+export const followGraceMilliseconds = 1000;
 export type TouchCueKind =
   | "level-up"
   | "level-down"
@@ -25,7 +27,7 @@ export function ensureTouchChallenge(session: Session): TouchChallengeState {
     bounded(session.difficulty, 0, maximumTouchLevel, 0),
   );
   return (session.challenge ??= {
-    version: 1,
+    version: 2,
     startingLevel: session.difficulty,
     highestLevel: session.difficulty,
     levelUps: 0,
@@ -44,7 +46,7 @@ export function tapTimeLimit(configuration: Configuration, level: number) {
   return Math.max(
     600,
     Math.round(
-      ((configuration.tapPaceSeconds ?? 2.5) * 1000 * 0.96 ** level) / 100,
+      ((configuration.tapPaceSeconds ?? 2.5) * 1000 * 0.98 ** level) / 100,
     ) * 100,
   );
 }
@@ -54,8 +56,10 @@ export function touchTargetDiameter(session: Session) {
       ? (session.challenge?.streak ?? 0) / tapLevelGoal
       : 0;
   return Math.max(
-    Math.min(12, session.configuration.size),
-    session.configuration.size * 0.95 ** (session.difficulty + progress),
+    Math.min(16, session.configuration.size),
+    session.configuration.size *
+      (session.kind === "follow" ? 0.98 : 0.97) **
+        (session.difficulty + progress),
   );
 }
 export function followMotionFactor(
@@ -64,7 +68,7 @@ export function followMotionFactor(
 ) {
   const base = configuration.speed;
   const maximum = Math.max(base, configuration.gentleMotion ? 0.08 : 0.22);
-  return Math.min(base * 1.04 ** level, maximum) / base;
+  return Math.min(base * 1.01 ** level, maximum) / base;
 }
 export function resetTouchRun(session: Session) {
   const state = session.challenge;

@@ -8,6 +8,7 @@ import {
 import { recordResponse } from "../exercises/responses";
 import { visualDifficultyLimit } from "../exercises/visual";
 import { TouchExercise, emptyFollowMetrics } from "../exercises/touch";
+import { ensureTouchChallenge } from "../exercises/touch-challenge";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -32,6 +33,41 @@ it("round trips settings, routines, and professional measurements", () => {
   expect(mergeBackup(initialData(), JSON.parse(JSON.stringify(data)))).toEqual(
     data,
   );
+});
+it("retains ten-second follow progress in backups and accepts the earlier challenge rules", () => {
+  const data = initialData();
+  const session = {
+    id: "follow-progress",
+    kind: "follow" as const,
+    eye: "Left" as const,
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "abandoned" as const,
+    activeMilliseconds: 9000,
+    slices: [
+      { date: "2026-10-26", timezone: "UTC", offset: 0, milliseconds: 9000 },
+    ],
+    trials: [],
+    difficulty: 0,
+  };
+  const challenge = ensureTouchChallenge(session);
+  challenge.progressMilliseconds = 9000;
+  data.sessions = [session];
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.sessions[0].challenge).toMatchObject({
+    version: 2,
+    progressMilliseconds: 9000,
+  });
+  challenge.version = 1;
+  challenge.progressMilliseconds = 5000;
+  const legacy = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(legacy.sessions[0].challenge).toMatchObject({
+    version: 1,
+    progressMilliseconds: 5000,
+  });
+  const invalid = JSON.parse(JSON.stringify(data));
+  invalid.sessions[0].challenge.version = 3;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
 });
 it("rejects malformed data without modifying existing records", () => {
   const data = initialData();

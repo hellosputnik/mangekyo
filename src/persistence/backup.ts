@@ -10,7 +10,10 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
-import { maximumTouchLevel } from "../exercises/touch-challenge";
+import {
+  maximumTouchLevel,
+  followLevelGoalMilliseconds,
+} from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
   kind === "visual"
     ? visualDifficultyLimit
@@ -60,7 +63,7 @@ function validSession(value: unknown): value is Session {
     if (
       !["tap", "follow"].includes(String(value.kind)) ||
       !record(challenge) ||
-      challenge.version !== 1 ||
+      (challenge.version !== 1 && challenge.version !== 2) ||
       typeof challenge.mastered !== "boolean" ||
       !["startingLevel", "highestLevel"].every(
         (key) =>
@@ -73,7 +76,11 @@ function validSession(value: unknown): value is Session {
           Number.isInteger(challenge[key]),
       ) ||
       !finite(challenge.streak, 0, 4) ||
-      !finite(challenge.progressMilliseconds, 0, 6032) ||
+      !finite(
+        challenge.progressMilliseconds,
+        0,
+        followLevelGoalMilliseconds + 32,
+      ) ||
       !finite(challenge.outsideMilliseconds, 0, 5000) ||
       !finite(challenge.motionSeconds, 0, 14400) ||
       !Array.isArray(challenge.achievements) ||

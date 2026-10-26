@@ -7,6 +7,8 @@ import {
   ensureTouchChallenge,
   failTouchChallenge,
   followLevelGoalMilliseconds,
+  followHalfwayMilliseconds,
+  followGraceMilliseconds,
   followMotionFactor,
   recordTapChallenge,
   resetTouchRun,
@@ -49,7 +51,7 @@ export class TouchExercise implements Exercise {
   ) {}
   initialize() {
     this.running = true;
-    ensureTouchChallenge(this.session);
+    ensureTouchChallenge(this.session).version = 2;
     resetTouchRun(this.session);
     if (this.session.kind === "tap" && !this.session.tapState)
       this.placeTarget();
@@ -120,7 +122,7 @@ export class TouchExercise implements Exercise {
     );
   }
   toleranceRadius() {
-    const factor = this.session.kind === "tap" ? 0.95 : 0.97;
+    const factor = this.session.kind === "tap" ? 0.98 : 0.99;
     const configured = Math.max(
       22,
       (this.session.configuration.touchTolerance / 2) *
@@ -296,8 +298,8 @@ export class TouchExercise implements Exercise {
     const spanX = area.right - area.left,
       spanY = area.bottom - area.top;
     const separation = Math.min(
-      this.toleranceRadius() * (3 + this.session.difficulty * 0.08),
-      Math.hypot(spanX, spanY) * (0.45 + this.session.difficulty * 0.01),
+      this.toleranceRadius() * (3 + this.session.difficulty * 0.04),
+      Math.hypot(spanX, spanY) * (0.45 + this.session.difficulty * 0.005),
     );
     let x = 0.5,
       y = 0.5;
@@ -339,8 +341,8 @@ export class TouchExercise implements Exercise {
         10000 - metrics.windowMilliseconds,
         challenge.mastered
           ? Infinity
-          : (challenge.progressMilliseconds < 3000
-              ? 3000
+          : (challenge.progressMilliseconds < followHalfwayMilliseconds
+              ? followHalfwayMilliseconds
               : followLevelGoalMilliseconds) - challenge.progressMilliseconds,
       );
       const error = distance(
@@ -373,7 +375,10 @@ export class TouchExercise implements Exercise {
         challenge.outsideMilliseconds = 0;
         const previousProgress = challenge.progressMilliseconds;
         if (!challenge.mastered) challenge.progressMilliseconds += amount;
-        if (previousProgress < 3000 && challenge.progressMilliseconds >= 3000)
+        if (
+          previousProgress < followHalfwayMilliseconds &&
+          challenge.progressMilliseconds >= followHalfwayMilliseconds
+        )
           this.cues.push({ kind: "milestone", level: this.session.difficulty });
         if (
           !challenge.mastered &&
@@ -385,7 +390,7 @@ export class TouchExercise implements Exercise {
       } else {
         metrics.currentRunMilliseconds = 0;
         challenge.outsideMilliseconds += amount;
-        if (challenge.outsideMilliseconds > 250)
+        if (challenge.outsideMilliseconds > followGraceMilliseconds)
           challenge.progressMilliseconds = 0;
         if (challenge.outsideMilliseconds >= 5000) {
           const cue = changeTouchLevel(this.session, -1, cursor + amount);

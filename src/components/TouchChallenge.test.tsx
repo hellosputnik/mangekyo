@@ -48,7 +48,7 @@ it("shows the required precision/pace, actual run progress, highest level, score
 });
 it("uses seconds for following goals and translates challenge controls into Vietnamese", () => {
   const record = session("follow");
-  record.challenge!.progressMilliseconds = 3000;
+  record.challenge!.progressMilliseconds = 5000;
   const html = renderToStaticMarkup(
     <LocalizationContext.Provider value={createLocalization("vi")}>
       <TouchChallenge
@@ -61,9 +61,9 @@ it("uses seconds for following goals and translates challenge controls into Viet
       />
     </LocalizationContext.Provider>,
   );
-  expect(html).toContain("Theo sát 6 giây để lên mức tiếp theo");
-  expect(html).toContain('value="3000"');
-  expect(html).toContain('max="6000"');
+  expect(html).toContain("Theo sát 10 giây để lên mức tiếp theo");
+  expect(html).toContain('value="5000"');
+  expect(html).toContain('max="10000"');
   expect(html).toContain("Âm bật");
   expect(html).toContain("Dễ hơn");
 });
