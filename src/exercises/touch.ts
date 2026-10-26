@@ -2,6 +2,7 @@ import { bounded, type FollowMetrics, type Session } from "../engine/model";
 import type { Exercise } from "./exercise";
 import { pursuitPoint } from "./pursuit";
 import { responseScore } from "./responses";
+import { easeBalance, recordBalanceWindow } from "../adaptive/balance";
 import {
   changeTouchLevel,
   ensureTouchChallenge,
@@ -14,6 +15,7 @@ import {
   resetTouchRun,
   tapTimeLimit,
   touchTargetDiameter,
+  touchDifficultyLoad,
   type TouchCue,
 } from "./touch-challenge";
 
@@ -51,7 +53,9 @@ export class TouchExercise implements Exercise {
   ) {}
   initialize() {
     this.running = true;
-    ensureTouchChallenge(this.session).version = 2;
+    const challenge = ensureTouchChallenge(this.session);
+    if (challenge.version !== 3) challenge.mastered = false;
+    challenge.version = 3;
     resetTouchRun(this.session);
     if (this.session.kind === "tap" && !this.session.tapState)
       this.placeTarget();
@@ -69,7 +73,10 @@ export class TouchExercise implements Exercise {
       target &&
       !target.expired &&
       this.session.activeMilliseconds - target.presentedAtMilliseconds >
-        tapTimeLimit(this.session.configuration, this.session.difficulty)
+        tapTimeLimit(
+          this.session.configuration,
+          touchDifficultyLoad(this.session),
+        )
     ) {
       target.expired = true;
       const cue = failTouchChallenge(this.session);
@@ -81,8 +88,13 @@ export class TouchExercise implements Exercise {
   }
   makeEasier() {
     resetTouchRun(this.session);
-    const cue = changeTouchLevel(this.session, -1);
-    if (cue) this.cues.push(cue);
+    if (
+      easeBalance(
+        ensureTouchChallenge(this.session).balance!,
+        this.session.activeMilliseconds,
+      ) < 0
+    )
+      this.cues.push({ kind: "level-down", level: this.session.difficulty });
   }
   setViewport(width: number, height: number) {
     if (width <= 0 || height <= 0 || !Number.isFinite(width + height))
@@ -122,11 +134,10 @@ export class TouchExercise implements Exercise {
     );
   }
   toleranceRadius() {
-    const factor = this.session.kind === "tap" ? 0.98 : 0.99;
     const configured = Math.max(
       22,
       (this.session.configuration.touchTolerance / 2) *
-        factor ** this.session.difficulty,
+        0.97 ** touchDifficultyLoad(this.session),
     );
     return Math.max(22, Math.min(configured, this.baseToleranceRadius()));
   }
@@ -247,7 +258,7 @@ export class TouchExercise implements Exercise {
     );
     const timeLimitMilliseconds = tapTimeLimit(
       this.session.configuration,
-      this.session.difficulty,
+      touchDifficultyLoad(this.session),
     );
     const stimulusDiameter = Math.min(
       touchTargetDiameter(this.session),
@@ -272,6 +283,7 @@ export class TouchExercise implements Exercise {
       qualified,
       timeLimitMilliseconds,
       precisionRadius,
+      adaptiveLoad: touchDifficultyLoad(this.session),
     });
     const cue = recordTapChallenge(
       this.session,
@@ -298,8 +310,9 @@ export class TouchExercise implements Exercise {
     const spanX = area.right - area.left,
       spanY = area.bottom - area.top;
     const separation = Math.min(
-      this.toleranceRadius() * (3 + this.session.difficulty * 0.04),
-      Math.hypot(spanX, spanY) * (0.45 + this.session.difficulty * 0.005),
+      this.toleranceRadius() * (3 + touchDifficultyLoad(this.session) * 0.04),
+      Math.hypot(spanX, spanY) *
+        (0.45 + touchDifficultyLoad(this.session) * 0.005),
     );
     let x = 0.5,
       y = 0.5;
@@ -353,13 +366,16 @@ export class TouchExercise implements Exercise {
             (amount / 2000) *
               followMotionFactor(
                 this.session.configuration,
-                this.session.difficulty,
+                touchDifficultyLoad(this.session),
               ),
         ),
       );
       challenge.motionSeconds +=
         (amount / 1000) *
-        followMotionFactor(this.session.configuration, this.session.difficulty);
+        followMotionFactor(
+          this.session.configuration,
+          touchDifficultyLoad(this.session),
+        );
       const inside = error <= this.toleranceRadius();
       metrics.trackedMilliseconds += amount;
       metrics.distanceWeightedMilliseconds += error * amount;
@@ -393,12 +409,28 @@ export class TouchExercise implements Exercise {
         if (challenge.outsideMilliseconds > followGraceMilliseconds)
           challenge.progressMilliseconds = 0;
         if (challenge.outsideMilliseconds >= 5000) {
-          const cue = changeTouchLevel(this.session, -1, cursor + amount);
+          const adjustment = easeBalance(challenge.balance!, cursor + amount);
+          metrics.windowMilliseconds = 0;
+          metrics.windowOnTargetMilliseconds = 0;
           challenge.outsideMilliseconds = 0;
-          if (cue) this.cues.push(cue);
+          if (adjustment < 0)
+            this.cues.push({
+              kind: "level-down",
+              level: this.session.difficulty,
+            });
         }
       }
       if (metrics.windowMilliseconds >= 10000) {
+        const adjustment = recordBalanceWindow(
+          challenge.balance!,
+          metrics.windowOnTargetMilliseconds / metrics.windowMilliseconds,
+          cursor + amount,
+        );
+        if (adjustment < 0)
+          this.cues.push({
+            kind: "level-down",
+            level: this.session.difficulty,
+          });
         metrics.windowMilliseconds = 0;
         metrics.windowOnTargetMilliseconds = 0;
       }

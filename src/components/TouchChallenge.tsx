@@ -1,11 +1,12 @@
 import type { Session } from "../engine/model";
 import {
   followLevelGoalMilliseconds,
-  maximumTouchLevel,
   tapLevelGoal,
   tapTimeLimit,
+  touchDifficultyLoad,
   type TouchCue,
 } from "../exercises/touch-challenge";
+import { balanceRules } from "../adaptive/balance";
 import { useI18n } from "../i18n/react";
 
 export function TouchChallenge({
@@ -23,7 +24,7 @@ export function TouchChallenge({
   onSound: () => void;
   onEasier: () => void;
 }) {
-  const { t, number } = useI18n();
+  const { t, number, percent } = useI18n();
   const state = session.challenge;
   const maximum =
     session.kind === "tap" ? tapLevelGoal : followLevelGoalMilliseconds;
@@ -38,7 +39,8 @@ export function TouchChallenge({
       ? t("challenge.tapGoal", {
           count: number(tapLevelGoal),
           seconds: number(
-            tapTimeLimit(session.configuration, session.difficulty) / 1000,
+            tapTimeLimit(session.configuration, touchDifficultyLoad(session)) /
+              1000,
             1,
           ),
         })
@@ -50,10 +52,15 @@ export function TouchChallenge({
       <div className="touch-challenge-heading">
         <div>
           <strong>
-            {t("challenge.level", {
-              level: number(session.difficulty + 1),
-              maximum: number(maximumTouchLevel + 1),
-            })}
+            {t(
+              state?.version === 3
+                ? "challenge.earnedLevel"
+                : "challenge.level",
+              {
+                level: number(session.difficulty + 1),
+                maximum: number(30),
+              },
+            )}
           </strong>
           <span className="challenge-best">
             <span>{t("challenge.best", { level: number(bestLevel + 1) })}</span>
@@ -65,7 +72,7 @@ export function TouchChallenge({
         <button
           type="button"
           className="quiet"
-          disabled={session.difficulty <= 0}
+          disabled={touchDifficultyLoad(session) <= 0}
           onClick={onEasier}
         >
           {t("challenge.easier")}
@@ -79,6 +86,30 @@ export function TouchChallenge({
           {t(sound ? "challenge.soundOn" : "challenge.soundOff")}
         </button>
       </div>
+      {state?.balance && (
+        <div className="challenge-balance">
+          <span>
+            {t(
+              state.balance.load >= balanceRules.maximumLoad
+                ? "challenge.settingsLimit"
+                : state.balance.phase === "calibrating"
+                  ? "challenge.calibrating"
+                  : state.balance.lastPerformance !== null &&
+                      state.balance.lastPerformance >= balanceRules.lower &&
+                      state.balance.lastPerformance <= balanceRules.upper
+                    ? "challenge.inZone"
+                    : "challenge.personalized",
+            )}
+          </span>
+          {state.balance.lastPerformance !== null && (
+            <span>
+              {t("challenge.recent", {
+                percent: percent(state.balance.lastPerformance),
+              })}
+            </span>
+          )}
+        </div>
+      )}
       <p id="challenge-rule">{rule}</p>
       <progress
         max={maximum}
@@ -130,7 +161,8 @@ export function TouchChallengeNotice({
         {
           level: number(cue.level + 1),
           seconds: number(
-            tapTimeLimit(session.configuration, session.difficulty) / 1000,
+            tapTimeLimit(session.configuration, touchDifficultyLoad(session)) /
+              1000,
             1,
           ),
         },

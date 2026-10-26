@@ -10,8 +10,10 @@ export type PracticeSetups = Record<ExerciseKind, PracticeSetup>;
 export function practiceDefaults(kind: ExerciseKind): Configuration {
   return {
     ...defaults,
-    ...(kind === "tap" ? { size: 44 } : {}),
-    ...(kind === "follow" ? { speed: 0.06 } : {}),
+    ...(kind === "tap" || kind === "follow"
+      ? { size: 44, touchTolerance: 100 }
+      : {}),
+    ...(kind === "follow" ? { speed: 0.04 } : {}),
   };
 }
 

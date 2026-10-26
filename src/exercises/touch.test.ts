@@ -189,11 +189,13 @@ describe("finger following", () => {
     expect(successful.record.difficulty).toBe(1);
     const struggling = setup("follow");
     struggling.record.difficulty = 2;
+    struggling.record.challenge!.balance!.load = 8;
     struggling.exercise.pointerDown(struggling.exercise.handlePoint());
     struggling.exercise.pointerMove({ x: 10000, y: 10000 });
     struggling.record.activeMilliseconds = 10000;
     struggling.exercise.sample();
-    expect(struggling.record.difficulty).toBe(1);
+    expect(struggling.record.difficulty).toBe(2);
+    expect(struggling.record.challenge!.balance!.load).toBeLessThan(8);
     const idle = setup("follow");
     idle.record.activeMilliseconds = 300000;
     idle.exercise.sample();

@@ -36,7 +36,8 @@ it("shows the required precision/pace, actual run progress, highest level, score
       />
     </LocalizationContext.Provider>,
   );
-  expect(html).toContain("Level 1 / 30");
+  expect(html).toContain("Level 1");
+  expect(html).toContain("Finding your pace");
   expect(html).toContain("Best level 5");
   expect(html).toContain("5 centered hits in a row · within 2.5s each");
   expect(html).toContain('value="3"');
@@ -67,6 +68,29 @@ it("uses seconds for following goals and translates challenge controls into Viet
   expect(html).toContain("Âm bật");
   expect(html).toContain("Dễ hơn");
 });
+it("shows a steady working zone and allows easier settings independently of an earned level", () => {
+  const record = session();
+  Object.assign(record.challenge!.balance!, {
+    phase: "personalized",
+    load: 8,
+    lastPerformance: 0.8,
+  });
+  const html = renderToStaticMarkup(
+    <LocalizationContext.Provider value={createLocalization("en")}>
+      <TouchChallenge
+        session={record}
+        bestLevel={0}
+        points={4}
+        sound={false}
+        onSound={() => {}}
+        onEasier={() => {}}
+      />
+    </LocalizationContext.Provider>,
+  );
+  expect(html).toContain("In your zone");
+  expect(html).toContain("Recent: 80%");
+  expect(html).not.toContain('disabled=""');
+});
 it("celebrates unlocking while making easier-level and precision cues explicit", () => {
   const record = session();
   const render = (kind: "level-up" | "level-down" | "closer") =>
@@ -76,6 +100,6 @@ it("celebrates unlocking while making easier-level and precision cues explicit",
       </LocalizationContext.Provider>,
     );
   expect(render("level-up")).toContain("Level 2 reached!");
-  expect(render("level-down")).toContain("Your points stay");
+  expect(render("level-down")).toContain("Your points and levels stay");
   expect(render("closer")).toContain("Aim for the center");
 });

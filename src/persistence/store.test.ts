@@ -172,6 +172,14 @@ it("recovers earned levels and motion phase without carrying an unfinished level
     motionSeconds: 9.2,
     levelUps: 2,
   });
+  Object.assign(challenge.balance!, {
+    load: 12.25,
+    phase: "personalized",
+    step: 0.25,
+    samples: 3,
+    successes: 2,
+    strongWindows: 1,
+  });
   await save(data);
   const recovered = await load();
   expect(recovered.current?.status).toBe("interrupted");
@@ -181,5 +189,13 @@ it("recovers earned levels and motion phase without carrying an unfinished level
     levelUps: 2,
     progressMilliseconds: 0,
     motionSeconds: 9.2,
+    balance: {
+      load: 12.25,
+      phase: "personalized",
+      step: 0.25,
+      samples: 0,
+      successes: 0,
+      strongWindows: 1,
+    },
   });
 });

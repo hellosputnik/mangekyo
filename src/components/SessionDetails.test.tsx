@@ -5,6 +5,7 @@ import { createLocalization } from "../i18n/locale";
 import { LocalizationContext } from "../i18n/react";
 import { SessionDetails } from "./SessionDetails";
 import { emptyFollowMetrics } from "../exercises/touch";
+import { ensureTouchChallenge } from "../exercises/touch-challenge";
 
 function record(overrides: Partial<Session> = {}): Session {
   return {
@@ -52,6 +53,23 @@ it("shows recorded start/end clocks independently from active and planned time",
 it("renders unknown ends without inventing a timestamp", () => {
   expect(render(record({ endedAt: undefined }))).toContain("Not recorded");
   expect(render(record({ endedAt: "invalid" }))).toContain("Not recorded");
+});
+it("explains earned levels separately from personalized challenge and its measured recent result", () => {
+  const session = record({
+    kind: "follow",
+    difficulty: 35,
+    follow: emptyFollowMetrics(),
+  });
+  Object.assign(ensureTouchChallenge(session).balance!, {
+    phase: "personalized",
+    load: 12,
+    lastPerformance: 0.85,
+  });
+  const html = render(session);
+  expect(html).toContain("Earned levels stay");
+  expect(html).toContain("Personalized pace");
+  expect(html).toContain("Last 10 active seconds on target");
+  expect(html).toContain("85%");
 });
 it("uses recorded answers for response details and keeps the source session unchanged", () => {
   const session = record({

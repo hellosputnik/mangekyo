@@ -218,7 +218,13 @@ export function SessionDetails({
               <dd>{number(summary.responseCount)}</dd>
             </div>
             <div>
-              <dt>{t("sessionDetails.level")}</dt>
+              <dt>
+                {t(
+                  session.kind === "tap" && session.challenge?.version === 3
+                    ? "challenge.levelLabel"
+                    : "sessionDetails.level",
+                )}
+              </dt>
               <dd>{number(session.difficulty + 1)}</dd>
             </div>
             <div>
@@ -304,6 +310,37 @@ export function SessionDetails({
       {session.challenge && (
         <section className="session-results">
           <h3>{t("challenge.title")}</h3>
+          {session.challenge.balance && (
+            <>
+              <p className="fine">{t("challenge.balanceNote")}</p>
+              <dl className="session-facts">
+                <div>
+                  <dt>{t("challenge.adaptation")}</dt>
+                  <dd>
+                    {t(
+                      session.challenge.balance.phase === "calibrating"
+                        ? "challenge.calibrating"
+                        : "challenge.personalized",
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>
+                    {t(
+                      session.kind === "tap"
+                        ? "challenge.recentTaps"
+                        : "challenge.recentFollowing",
+                    )}
+                  </dt>
+                  <dd>
+                    {session.challenge.balance.lastPerformance === null
+                      ? "—"
+                      : percent(session.challenge.balance.lastPerformance)}
+                  </dd>
+                </div>
+              </dl>
+            </>
+          )}
           {session.challenge.achievements.some(
             (item) => item.kind === "mastered",
           ) && <p className="answer-affirmation">{t("challenge.mastered")}</p>}

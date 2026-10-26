@@ -1,4 +1,5 @@
 import type { LanguagePreference } from "../i18n/locale";
+import type { AdaptiveBalance } from "../adaptive/balance";
 
 export const exerciseKinds = [
   "pursuit",
@@ -129,6 +130,7 @@ export interface Trial {
   qualified?: boolean;
   timeLimitMilliseconds?: number;
   precisionRadius?: number;
+  adaptiveLoad?: number;
 }
 export interface FollowMetrics {
   trackedMilliseconds: number;
@@ -151,7 +153,8 @@ export interface ChallengeAchievement {
   activeMilliseconds: number;
 }
 export interface TouchChallengeState {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
+  balance?: AdaptiveBalance;
   startingLevel: number;
   highestLevel: number;
   levelUps: number;
@@ -221,6 +224,12 @@ export interface StatisticsReset {
   sessions: Session[];
   measurements?: Measurement[];
   levels?: Record<ExerciseKind, number>;
+  touchProfiles?: TouchProfile[];
+}
+export interface TouchProfile {
+  key: string;
+  updatedAt: string;
+  balance: AdaptiveBalance;
 }
 export interface Data {
   sessions: Session[];
@@ -232,6 +241,7 @@ export interface Data {
   levels: Record<ExerciseKind, number>;
   breakState: { remaining: number; manual: boolean } | null;
   statisticsReset?: StatisticsReset;
+  touchProfiles?: TouchProfile[];
 }
 export const initialData = (): Data => ({
   sessions: [],
@@ -250,6 +260,7 @@ export const initialData = (): Data => ({
     reminder: 5,
   },
   measurements: [],
+  touchProfiles: [],
   levels: {
     pursuit: 0,
     saccades: 0,

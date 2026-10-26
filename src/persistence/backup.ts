@@ -10,9 +10,11 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { balanceRules, type AdaptiveBalance } from "../adaptive/balance";
 import {
   maximumTouchLevel,
   followLevelGoalMilliseconds,
+  highestTouchLevel,
 } from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
   kind === "visual"
@@ -29,6 +31,52 @@ const finite = (value: unknown, min: number, max: number): value is number =>
   value <= max;
 const eye = (value: unknown) =>
   ["Left", "Right", "Both"].includes(String(value));
+function validBalance(
+  value: unknown,
+  elapsed = 3600000,
+): value is AdaptiveBalance {
+  return (
+    record(value) &&
+    value.version === 1 &&
+    finite(value.load, 0, balanceRules.maximumLoad) &&
+    finite(value.step, balanceRules.minimumStep, balanceRules.initialStep) &&
+    ["calibrating", "personalized"].includes(String(value.phase)) &&
+    [-1, 0, 1].includes(Number(value.direction)) &&
+    typeof value.direction === "number" &&
+    ["reversals", "windows", "strongWindows", "samples", "successes"].every(
+      (key) => finite(value[key], 0, 1000000) && Number.isInteger(value[key]),
+    ) &&
+    finite(value.strongWindows, 0, 1) &&
+    finite(value.samples, 0, balanceRules.tapWindow - 1) &&
+    finite(value.successes, 0, Number(value.samples)) &&
+    (value.lastPerformance === null || finite(value.lastPerformance, 0, 1)) &&
+    Array.isArray(value.history) &&
+    value.history.length <= 1000 &&
+    value.history.every(
+      (item) =>
+        record(item) &&
+        finite(item.activeMilliseconds, 0, elapsed) &&
+        (item.performance === null || finite(item.performance, 0, 1)) &&
+        finite(item.fromLoad, 0, balanceRules.maximumLoad) &&
+        finite(item.toLoad, 0, balanceRules.maximumLoad),
+    )
+  );
+}
+function validTouchProfiles(value: unknown) {
+  return (
+    Array.isArray(value) &&
+    value.length <= 100 &&
+    value.every(
+      (profile) =>
+        record(profile) &&
+        typeof profile.key === "string" &&
+        profile.key.length <= 2000 &&
+        typeof profile.updatedAt === "string" &&
+        Number.isFinite(Date.parse(profile.updatedAt)) &&
+        validBalance(profile.balance),
+    )
+  );
+}
 function validSession(value: unknown): value is Session {
   if (
     !record(value) ||
@@ -39,6 +87,8 @@ function validSession(value: unknown): value is Session {
     !Number.isFinite(Date.parse(value.startedAt)) ||
     !finite(value.activeMilliseconds, 0, 3600000) ||
     !finite(value.difficulty, 0, difficultyLimit(value.kind)) ||
+    (["tap", "follow"].includes(String(value.kind)) &&
+      !Number.isInteger(value.difficulty)) ||
     !Array.isArray(value.slices) ||
     !Array.isArray(value.trials) ||
     !record(value.configuration)
@@ -63,7 +113,12 @@ function validSession(value: unknown): value is Session {
     if (
       !["tap", "follow"].includes(String(value.kind)) ||
       !record(challenge) ||
-      (challenge.version !== 1 && challenge.version !== 2) ||
+      ![1, 2, 3].includes(Number(challenge.version)) ||
+      typeof challenge.version !== "number" ||
+      (challenge.version === 3 &&
+        !validBalance(challenge.balance, value.activeMilliseconds)) ||
+      (challenge.balance !== undefined &&
+        !validBalance(challenge.balance, value.activeMilliseconds)) ||
       typeof challenge.mastered !== "boolean" ||
       !["startingLevel", "highestLevel"].every(
         (key) =>
@@ -206,7 +261,9 @@ function validSession(value: unknown): value is Session {
       (trial.timeLimitMilliseconds === undefined ||
         finite(trial.timeLimitMilliseconds, 1, 10000)) &&
       (trial.precisionRadius === undefined ||
-        finite(trial.precisionRadius, 1, 80)),
+        finite(trial.precisionRadius, 1, 80)) &&
+      (trial.adaptiveLoad === undefined ||
+        finite(trial.adaptiveLoad, 0, balanceRules.maximumLoad)),
   );
 }
 function validMeasurement(value: unknown): value is Measurement {
@@ -226,6 +283,8 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
     Number.isFinite(Date.parse(value.resetAt)) &&
     Array.isArray(value.sessions) &&
     value.sessions.every(validSession) &&
+    (value.touchProfiles === undefined ||
+      validTouchProfiles(value.touchProfiles)) &&
     (value.measurements === undefined ||
       (Array.isArray(value.measurements) &&
         value.measurements.every(validMeasurement))) &&
@@ -251,6 +310,21 @@ export function mergeBackup(current: Data, input: unknown): Data {
   )
     throw Error("Invalid sessions");
   const sessions: Session[] = [...input.sessions];
+  const importedTouchLevels = { tap: 0, follow: 0 };
+  if (input.levels !== undefined) {
+    if (!record(input.levels)) throw Error("Invalid levels");
+    for (const kind of ["tap", "follow"] as const) {
+      const level = input.levels[kind] ?? 0;
+      if (!finite(level, 0, maximumTouchLevel) || !Number.isInteger(level))
+        throw Error("Invalid touch level");
+      importedTouchLevels[kind] = level;
+    }
+  }
+  if (
+    input.touchProfiles !== undefined &&
+    !validTouchProfiles(input.touchProfiles)
+  )
+    throw Error("Invalid adaptive profiles");
   if (
     input.statisticsReset !== undefined &&
     !validStatisticsReset(input.statisticsReset)
@@ -347,6 +421,26 @@ export function mergeBackup(current: Data, input: unknown): Data {
   ];
   return {
     ...current,
+    levels: {
+      ...current.levels,
+      tap: highestTouchLevel(
+        sessions.filter((session) => session.kind === "tap"),
+        Math.max(current.levels.tap, importedTouchLevels.tap),
+      ),
+      follow: highestTouchLevel(
+        sessions.filter((session) => session.kind === "follow"),
+        Math.max(current.levels.follow, importedTouchLevels.follow),
+      ),
+    },
+    touchProfiles: [
+      ...new Map(
+        [
+          ...((input.touchProfiles as NonNullable<Data["touchProfiles"]>) ??
+            []),
+          ...(current.touchProfiles ?? []),
+        ].map((profile) => [profile.key, profile]),
+      ).values(),
+    ].slice(-100),
     ...(!current.statisticsReset && statisticsReset ? { statisticsReset } : {}),
     preferences: input.preferences ? preferences : current.preferences,
     sessions: merge(

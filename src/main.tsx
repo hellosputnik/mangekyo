@@ -31,6 +31,10 @@ import { createExercise } from "./exercises/factory";
 import { TouchExercise, type Point } from "./exercises/touch";
 import { highestTouchLevel, type TouchCue } from "./exercises/touch-challenge";
 import {
+  rememberTouchProfile,
+  restoreTouchProfile,
+} from "./engine/touch-profiles";
+import {
   TouchChallenge,
   TouchChallengeNotice,
 } from "./components/TouchChallenge";
@@ -300,6 +304,7 @@ function App() {
       structuredClone(session),
     ];
     latest.levels[session.kind] = session.difficulty;
+    rememberTouchProfile(latest, session);
     latest.current = null;
     setAnswerResult(null);
     setFeedback("");
@@ -509,6 +514,7 @@ function App() {
       difficulty: state.current.levels[selected],
       ...(selected === "follow" ? { awaitingTouch: true } : {}),
     };
+    restoreTouchProfile(session, state.current.touchProfiles);
     timer.current = new ActiveTimer(session);
     if (selected !== "follow") timer.current.resume();
     if (state.current.preferences.answerSound) unlockPracticeAudio();

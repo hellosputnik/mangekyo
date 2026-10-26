@@ -9,6 +9,8 @@ import { recordResponse } from "../exercises/responses";
 import { visualDifficultyLimit } from "../exercises/visual";
 import { TouchExercise, emptyFollowMetrics } from "../exercises/touch";
 import { ensureTouchChallenge } from "../exercises/touch-challenge";
+import { createBalance, recordBalanceWindow } from "../adaptive/balance";
+import { rememberTouchProfile } from "../engine/touch-profiles";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -55,7 +57,7 @@ it("retains ten-second follow progress in backups and accepts the earlier challe
   data.sessions = [session];
   const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
   expect(imported.sessions[0].challenge).toMatchObject({
-    version: 2,
+    version: 3,
     progressMilliseconds: 9000,
   });
   challenge.version = 1;
@@ -66,13 +68,84 @@ it("retains ten-second follow progress in backups and accepts the earlier challe
     progressMilliseconds: 5000,
   });
   const invalid = JSON.parse(JSON.stringify(data));
-  invalid.sessions[0].challenge.version = 3;
+  invalid.sessions[0].challenge.version = 4;
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
 });
 it("rejects malformed data without modifying existing records", () => {
   const data = initialData();
   expect(() => mergeBackup(data, { sessions: [{ id: "bad" }] })).toThrow();
   expect(data.sessions).toHaveLength(0);
+});
+it("round trips personalized tuning and Undo, and rejects invalid adaptation metadata", () => {
+  const data = initialData();
+  const session = {
+    id: "adaptive",
+    kind: "tap" as const,
+    eye: "Left" as const,
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "abandoned" as const,
+    activeMilliseconds: 10000,
+    slices: [
+      { date: "2026-10-26", timezone: "UTC", offset: 0, milliseconds: 10000 },
+    ],
+    trials: [],
+    difficulty: 50,
+  };
+  const challenge = ensureTouchChallenge(session);
+  recordBalanceWindow(challenge.balance!, 1, 10000);
+  data.sessions = [session];
+  rememberTouchProfile(data, session);
+  data.levels.tap = 50;
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.touchProfiles).toEqual(data.touchProfiles);
+  expect(imported.sessions[0].challenge?.balance).toEqual(challenge.balance);
+  expect(imported.sessions[0].difficulty).toBe(50);
+  expect(imported.levels.tap).toBe(50);
+  const historyCleared = resetStatistics(data, {
+    difficulty: false,
+    measurements: false,
+  });
+  const restoredWithoutHistory = mergeBackup(
+    initialData(),
+    JSON.parse(JSON.stringify(historyCleared)),
+  );
+  expect(restoredWithoutHistory.levels.tap).toBe(50);
+  expect(restoredWithoutHistory.touchProfiles).toEqual(data.touchProfiles);
+  const cleared = resetStatistics(data, {
+    difficulty: true,
+    measurements: false,
+  });
+  expect(
+    undoStatisticsReset(
+      mergeBackup(initialData(), JSON.parse(JSON.stringify(cleared))),
+    ).touchProfiles,
+  ).toEqual(data.touchProfiles);
+  const legacy = { ...data };
+  delete legacy.touchProfiles;
+  expect(mergeBackup(initialData(), legacy).touchProfiles).toEqual([]);
+  for (const patch of [
+    { load: Infinity },
+    { step: 0 },
+    { phase: "unknown" },
+    { samples: 5 },
+    { lastPerformance: 1.1 },
+    {
+      history: [
+        { activeMilliseconds: 11000, performance: 1, fromLoad: 0, toLoad: 4 },
+      ],
+    },
+  ]) {
+    const invalid = structuredClone(data);
+    Object.assign(invalid.sessions[0].challenge!.balance!, patch);
+    expect(() => mergeBackup(initialData(), invalid)).toThrow();
+  }
+  const invalidProfile = structuredClone(data);
+  invalidProfile.touchProfiles![0].balance = { ...createBalance(), load: -1 };
+  expect(() => mergeBackup(initialData(), invalidProfile)).toThrow();
+  const invalidLevels = structuredClone(data);
+  invalidLevels.levels.tap = 1.5;
+  expect(() => mergeBackup(initialData(), invalidLevels)).toThrow();
 });
 it("deduplicates routine records on repeated imports", () => {
   const data = initialData();
@@ -385,7 +458,7 @@ it("round trips earned touch levels beyond 12 and the exact challenge conditions
   );
   expect(undo.levels.tap).toBe(15);
   const invalid = JSON.parse(JSON.stringify(data));
-  invalid.sessions[0].challenge.achievements[0].level = 1000;
+  invalid.sessions[0].challenge.achievements[0].level = 1000001;
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
   invalid.sessions[0].challenge = data.sessions[0].challenge;
   invalid.sessions[0].trials[0].timeLimitMilliseconds = -1;

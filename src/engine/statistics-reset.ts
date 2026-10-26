@@ -17,7 +17,8 @@ export function resetStatistics(
     !(options.measurements && data.measurements.length) &&
     !(
       options.difficulty &&
-      Object.values(data.levels).some((level) => level > 0)
+      (Object.values(data.levels).some((level) => level > 0) ||
+        Boolean(data.touchProfiles?.length))
     )
   )
     return data;
@@ -26,13 +27,19 @@ export function resetStatistics(
     sessions: [],
     measurements: options.measurements ? [] : data.measurements,
     levels: options.difficulty ? initialData().levels : data.levels,
+    touchProfiles: options.difficulty ? [] : data.touchProfiles,
     statisticsReset: {
       resetAt: now.toISOString(),
       sessions: structuredClone(data.sessions),
       ...(options.measurements
         ? { measurements: structuredClone(data.measurements) }
         : {}),
-      ...(options.difficulty ? { levels: { ...data.levels } } : {}),
+      ...(options.difficulty
+        ? {
+            levels: { ...data.levels },
+            touchProfiles: structuredClone(data.touchProfiles ?? []),
+          }
+        : {}),
     },
   };
 }
@@ -66,5 +73,15 @@ export function undoStatisticsReset(data: Data): Data {
       ? merge(statisticsReset.measurements, data.measurements)
       : data.measurements,
     levels,
+    touchProfiles: statisticsReset.touchProfiles
+      ? [
+          ...new Map(
+            [
+              ...statisticsReset.touchProfiles,
+              ...(data.touchProfiles ?? []),
+            ].map((profile) => [profile.key, profile]),
+          ).values(),
+        ].slice(-100)
+      : data.touchProfiles,
   };
 }

@@ -1349,6 +1349,16 @@ summary small {
   color: var(--text-secondary);
   margin: 0.3rem 0 0.45rem;
 }
+.challenge-balance {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.3rem;
+}
 .touch-challenge progress {
   display: block;
   width: 100%;
