@@ -23,6 +23,10 @@ import { Routines } from "./components/Routines";
 import { Navigation, type Page } from "./components/Navigation";
 import { Practice } from "./components/Practice";
 import { SessionControls } from "./components/SessionControls";
+import {
+  LandscapeHint,
+  shouldRecommendLandscape,
+} from "./components/LandscapeHint";
 import { DurationControl } from "./components/controls/DurationControl";
 import { NumberStepper } from "./components/controls/NumberStepper";
 import { ToggleSwitch } from "./components/controls/ToggleSwitch";
@@ -624,6 +628,11 @@ function App() {
                   })
                 : t("rest.saved")}
             </p>
+            {data.run &&
+              shouldRecommendLandscape(
+                data.run.routine.steps[data.run.index].kind,
+                configuration.pattern,
+              ) && <LandscapeHint />}
             <div className="actions">
               <button
                 onClick={() =>
@@ -735,6 +744,7 @@ function App() {
                   setRoutine={setRoutine}
                   persist={persist}
                   start={start}
+                  pursuitPattern={configuration.pattern}
                 />
               )}
               {tab === "Settings" && (

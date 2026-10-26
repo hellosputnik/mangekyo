@@ -14,7 +14,8 @@ type IconName =
   | "Check"
   | "Pause"
   | "Play"
-  | "Stop";
+  | "Stop"
+  | "RotatePhone";
 
 const paths: Record<IconName, string> = {
   Practice:
@@ -34,6 +35,8 @@ const paths: Record<IconName, string> = {
   Pause: "M8 5v14 M16 5v14",
   Play: "m8 5 11 7-11 7Z",
   Stop: "M6 6h12v12H6Z",
+  RotatePhone:
+    "M5 3h7a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M7 18h3 M16 4a5 5 0 0 1 5 5v3 M18 9l3 3 2-3",
 };
 
 export function Icon({ name }: { name: IconName }) {

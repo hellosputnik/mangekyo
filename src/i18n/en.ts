@@ -1,5 +1,7 @@
 export const english = {
   "app.title": "Mangekyo · Visual practice",
+  "orientation.landscapeHint":
+    "Turn your phone sideways for more horizontal room. Portrait works too.",
   "brand.caption": "VISUAL PRACTICE",
   "nav.Practice": "Practice",
   "nav.Progress": "Progress",

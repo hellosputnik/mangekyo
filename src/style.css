@@ -1941,3 +1941,28 @@ footer {
     color: #fff2eb;
   }
 }
+
+.landscape-hint {
+  display: none;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .landscape-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 1rem 0 0.5rem;
+    text-align: left;
+  }
+  .landscape-hint > svg {
+    flex: 0 0 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--accent-soft);
+  }
+  .landscape-hint > p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+}

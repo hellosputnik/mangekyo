@@ -78,3 +78,11 @@ Saving remains automatic at checkpoints and transitions. New completion status f
 All **91 tests** pass, including boundary classification, ending while paused/interrupted without counting time away, terminal idempotency, localized action labels, routine skip wording, and conditional primary emphasis. Browser checks verified a three-second early session retained 0:03 in history with zero completed sessions; a full ten-second session recorded 0:10 and one completion. Skipping a routine step transitioned to rest with the next exercise and End routine available. Reloading showed one explicit confirmation control. At 320px the Vietnamese recovery controls remained visible with 65px-high targets. Normal running controls at 390px measured at least 44px high, both with neutral backgrounds.
 
 [Updated running session controls](screenshots/iphone-session-controls.jpg). Direct Safari/physical iPhone validation remains outstanding.
+
+## Follow-up: landscape recommendation
+
+Added a small phone-portrait hint near Begin for smooth pursuit and saccadic targets, plus matching guidance for saved routines and the next routine step during rest. Landscape gives these tasks more horizontal room; the hint makes no health or performance claim. Vertical-only pursuit and discrimination setup omit it. The hint disappears in landscape, and portrait remains usable without another confirmation screen. There is no orientation lock, automatic start on rotation, or timer change. English and Vietnamese copy remain in the language catalogs.
+
+Browser checks at 320×740 and 390×844 showed readable copy without horizontal overflow. At 844×390 the hint was hidden and setup duration stayed at five minutes. Starting in portrait and rotating retained the active saccade session; rotating back while paused kept active time unchanged. Both session controls stayed visible in landscape. Verified the vertical-only and visual-discrimination exceptions and the saved-routine hint. All **91 tests**, the production build, and whitespace checks pass. Physical iPhone Safari rotation and browser-bar behavior still need device verification.
+
+[Portrait setup with landscape guidance](screenshots/iphone-landscape-hint.jpg).

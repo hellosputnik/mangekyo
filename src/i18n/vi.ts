@@ -1,6 +1,8 @@
 import type { MessageKey } from "./en";
 export const vietnamese = {
   "app.title": "Mangekyo · Luyện tập thị giác",
+  "orientation.landscapeHint":
+    "Xoay ngang điện thoại để có thêm không gian. Bạn vẫn có thể tập theo chiều dọc.",
   "brand.caption": "LUYỆN TẬP THỊ GIÁC",
   "nav.Practice": "Luyện tập",
   "nav.Progress": "Tiến trình",

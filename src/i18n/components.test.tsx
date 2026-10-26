@@ -25,6 +25,7 @@ it("shows Vietnamese routine options while retaining stable option values and cu
         setRoutine={() => {}}
         persist={() => {}}
         start={() => {}}
+        pursuitPattern={defaults.pattern}
       />
     </LocalizationContext.Provider>,
   );

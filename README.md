@@ -55,6 +55,7 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 ## What works
 
 - Responsive practice dashboard, four Canvas exercises, dark training stage, safe-area padding, visual eye selection, glass-style navigation, touch controls, and portrait/landscape layouts. The glass treatment has opaque and reduced-motion accessibility fallbacks.
+- Phone portrait setup recommends landscape for pursuit and saccadic practice to provide more horizontal room. Portrait remains available; vertical-only pursuit and discrimination tasks do not show the hint. Rotating keeps session state and never starts an exercise automatically.
 - Pursuit: a compact choice between **Default (mixed)** and **Custom**. Default gives horizontal, vertical, circular, figure-eight, and smooth wandering paths an equal share of active time within the five-minute session. Custom opens a modal settings sheet for path selection, size, speed, contrast, complexity, colors, and viewing distance. Duration is always adjustable. Pausing/recovery preserves the mix position.
 - Saccades: reproducible pseudo-random jumps, exposure/pause/distance controls, optional acknowledgement. No gaze measurement.
 - Visual response tasks: C-like opening, directional pattern, directional triangle; contrast tasks: localized gratings or circles. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.

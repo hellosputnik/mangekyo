@@ -5,12 +5,14 @@ import {
   type Eye,
   type ExerciseKind,
   type Routine,
+  type Pattern,
 } from "../engine/model";
 import { useI18n } from "../i18n/react";
 import { EyeSelector } from "./controls/EyeSelector";
 import { DurationControl } from "./controls/DurationControl";
 import { ToggleSwitch } from "./controls/ToggleSwitch";
 import { Icon } from "./Icon";
+import { LandscapeHint, shouldRecommendLandscape } from "./LandscapeHint";
 interface Props {
   data: Data;
   eye: Eye;
@@ -19,6 +21,7 @@ interface Props {
   setRoutine: (routine: Routine) => void;
   persist: (data: Data) => void;
   start: (kind: ExerciseKind, duration: number, eye: Eye) => void;
+  pursuitPattern: Pattern;
 }
 export function Routines({
   data,
@@ -28,6 +31,7 @@ export function Routines({
   setRoutine,
   persist,
   start,
+  pursuitPattern,
 }: Props) {
   const { t, number, exerciseName, duration } = useI18n();
   const [removed, setRemoved] = useState<Routine | null>(null);
@@ -53,6 +57,11 @@ export function Routines({
       <section className="panel saved-routines">
         <h2>{t("routine.saved")}</h2>
         <EyeSelector value={eye} onChange={setEye} label={t("routine.eye")} />
+        {data.routines.some((item) =>
+          item.steps.some((step) =>
+            shouldRecommendLandscape(step.kind, pursuitPattern),
+          ),
+        ) && <LandscapeHint />}
         {!data.routines.length && <p>{t("routine.empty")}</p>}
         {data.routines.map((item) => (
           <article className="routine-row" key={item.id}>

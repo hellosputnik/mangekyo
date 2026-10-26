@@ -14,6 +14,7 @@ import { ToggleSwitch } from "./controls/ToggleSwitch";
 import { Icon } from "./Icon";
 import { PursuitPresets } from "./PursuitPresets";
 import { ExerciseArtwork } from "./ExerciseArtwork";
+import { LandscapeHint, shouldRecommendLandscape } from "./LandscapeHint";
 interface Props {
   minutes: number;
   goal: number;
@@ -274,6 +275,9 @@ export function Practice({
             onChange={(value) => setting("duration", value)}
             onValidationChange={setDurationValid}
           />
+          {shouldRecommendLandscape(kind, configuration.pattern) && (
+            <LandscapeHint />
+          )}
           <button
             className="primary begin-button"
             disabled={!ready || !durationValid}
