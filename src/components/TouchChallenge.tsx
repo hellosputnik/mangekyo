@@ -8,6 +8,7 @@ import {
 } from "../exercises/touch-challenge";
 import { balanceRules } from "../adaptive/balance";
 import { useI18n } from "../i18n/react";
+import { Icon } from "./Icon";
 
 export function TouchChallenge({
   session,
@@ -15,14 +16,12 @@ export function TouchChallenge({
   points,
   sound,
   onSound,
-  onEasier,
 }: {
   session: Session;
   bestLevel: number;
   points: number;
   sound: boolean;
   onSound: () => void;
-  onEasier: () => void;
 }) {
   const { t, number, percent } = useI18n();
   const state = session.challenge;
@@ -71,19 +70,13 @@ export function TouchChallenge({
         </div>
         <button
           type="button"
-          className="quiet"
-          disabled={touchDifficultyLoad(session) <= 0}
-          onClick={onEasier}
-        >
-          {t("challenge.easier")}
-        </button>
-        <button
-          type="button"
           className="quiet sound-toggle"
           aria-pressed={sound}
+          aria-label={t("challenge.sound")}
+          title={t(sound ? "challenge.muteSound" : "challenge.enableSound")}
           onClick={onSound}
         >
-          {t(sound ? "challenge.soundOn" : "challenge.soundOff")}
+          <Icon name={sound ? "SoundOn" : "SoundOff"} />
         </button>
       </div>
       {state?.balance && (

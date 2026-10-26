@@ -96,9 +96,9 @@ export const vietnamese = {
   "challenge.recentTaps": "5 lần chạm gần đây trúng tâm đúng nhịp",
   "challenge.recentFollowing": "10 giây tập gần đây theo sát mục tiêu",
   "challenge.best": "Cao nhất: mức {level}",
-  "challenge.easier": "Dễ hơn",
-  "challenge.soundOn": "Âm bật",
-  "challenge.soundOff": "Âm tắt",
+  "challenge.sound": "Âm thanh luyện tập",
+  "challenge.muteSound": "Tắt âm",
+  "challenge.enableSound": "Bật âm",
   "challenge.progress": "Tiến độ lên mức tiếp theo",
   "challenge.tapGoal":
     "{count} lần chạm tâm liên tiếp · tối đa {seconds} giây/lần",
@@ -106,7 +106,7 @@ export const vietnamese = {
   "challenge.tapProgress": "{count}/{goal} lần chạm tâm nhanh",
   "challenge.followProgress": "Theo sát {seconds}/{goal} giây",
   "challenge.unlocked": "Đã lên mức {level}!",
-  "challenge.eased": "Nhịp nhẹ hơn. Điểm và mức đã đạt vẫn được giữ.",
+  "challenge.eased": "Đã điều chỉnh nhịp. Thành tích vẫn được giữ.",
   "challenge.mastered": "Đã chinh phục cả 30 mức!",
   "challenge.masteredRule":
     "Đã hoàn thành thử thách. Tiếp tục nâng kỷ lục nhé.",
@@ -392,7 +392,10 @@ export const vietnamese = {
   "settings.rest": "Thời gian nghỉ mặc định",
   "settings.reminder": "Nhắc nghỉ (số phút đã tập; 0 để tắt)",
   "settings.sound": "Âm thanh / rung khi hết giờ nghỉ",
-  "settings.answerSound": "Âm thanh / rung khi luyện tập",
+  "settings.answerSound": "Âm thanh luyện tập",
+  "settings.haptics": "Rung nhẹ khi luyện tập",
+  "settings.hapticsNote":
+    "Rung ngắn khi trả lời đúng hoặc đạt mốc, nếu thiết bị hỗ trợ.",
   "settings.reducedMotion": "Chuyển động dõi theo nhẹ hơn",
   "settings.highContrast": "Nút điều khiển có độ tương phản cao",
   "settings.data": "Lưu giữ quá trình luyện tập",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaults, type Session } from "../engine/model";
 import { TouchExercise } from "./touch";
-import { balanceRules } from "../adaptive/balance";
+import { balanceRules, easeBalance } from "../adaptive/balance";
 import {
   changeTouchLevel,
   followMotionFactor,
@@ -174,7 +174,7 @@ describe("tap challenge", () => {
     expect(exercise.toleranceRadius() * 2).toBeGreaterThanOrEqual(44);
     expect(touchTargetDiameter(session)).toBeGreaterThanOrEqual(16);
     const load = session.challenge!.balance!.load;
-    exercise.makeEasier();
+    easeBalance(session.challenge!.balance!, session.activeMilliseconds);
     expect(session.difficulty).toBe(31);
     expect(session.challenge!.balance!.load).toBeLessThan(load);
     expect(session.challenge?.highestLevel).toBe(31);
@@ -226,7 +226,7 @@ describe("following challenge", () => {
     expect(session.challenge?.balance?.windows).toBe(31);
     expect(session.challenge!.balance!.load).toBeGreaterThan(12);
     const load = session.challenge!.balance!.load;
-    exercise.makeEasier();
+    easeBalance(session.challenge!.balance!, session.activeMilliseconds);
     expect(session.difficulty).toBe(31);
     expect(session.challenge!.balance!.load).toBeLessThan(load);
   });

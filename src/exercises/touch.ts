@@ -86,16 +86,6 @@ export class TouchExercise implements Exercise {
   drainCues(): TouchCue[] {
     return this.cues.splice(0);
   }
-  makeEasier() {
-    resetTouchRun(this.session);
-    if (
-      easeBalance(
-        ensureTouchChallenge(this.session).balance!,
-        this.session.activeMilliseconds,
-      ) < 0
-    )
-      this.cues.push({ kind: "level-down", level: this.session.difficulty });
-  }
   setViewport(width: number, height: number) {
     if (width <= 0 || height <= 0 || !Number.isFinite(width + height))
       return false;

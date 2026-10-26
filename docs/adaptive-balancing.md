@@ -17,7 +17,7 @@ Implemented October 26, 2026. The objective is a welcoming start, quick calibrat
 | Find the working range | An in-band result, less decisive success, a direction reversal or exhausting the three-window search ends coarse calibration. At most one-unit steps follow; reversals halve the step.                                               |
 | Hold near capability   | At 80–90%, keep the current load and use quarter-unit steps for later increases. Above 90%, require two consecutive completed strong windows before increasing. A merely lucky window does not raise a personalized pace.            |
 | Provide support        | Below 80%, ease after one complete window; below 60%, ease more. Three consecutive failed tap outcomes or five continuous held off-target seconds provide earlier relief. Pause/release is not a failed outcome.                     |
-| Preserve control       | Easier pauses active practice and reduces load. Earned levels and points stay. Breaks and further practice always require explicit action.                                                                                           |
+| Preserve control       | Pause, exit and Custom base conditions remain available. Automatic support retains earned levels and points; its message is neutral. Breaks and further practice require explicit action.                                            |
 
 For taps, a success is a centered hit inside the displayed pace limit. Five outcomes form a window. An expired target supplies exactly one failed outcome; releasing it later does not count the failure twice. A forgiven outer-halo hit earns a point even if it does not qualify for adaptation or a level. One error in five is a valid 80% window; perfection is not required to maintain difficulty.
 

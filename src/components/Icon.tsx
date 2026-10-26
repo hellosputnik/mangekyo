@@ -17,7 +17,9 @@ type IconName =
   | "Stop"
   | "RotatePhone"
   | "Previous"
-  | "Calendar";
+  | "Calendar"
+  | "SoundOn"
+  | "SoundOff";
 
 const paths: Record<IconName, string> = {
   Practice:
@@ -39,6 +41,8 @@ const paths: Record<IconName, string> = {
   Stop: "M6 6h12v12H6Z",
   Previous: "m15 5-7 7 7 7",
   Calendar: "M4 5h16v16H4Z M8 2v6 M16 2v6 M4 10h16 M8 14h2 M14 14h2 M8 18h2",
+  SoundOn: "M3 9v6h4l5 4V5L7 9H3Z M16 8a6 6 0 0 1 0 8 M19 5a10 10 0 0 1 0 14",
+  SoundOff: "M3 9v6h4l5 4V5L7 9H3Z M17 9l5 6 M22 9l-5 6",
   RotatePhone:
     "M5 3h7a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M7 18h3 M16 4a5 5 0 0 1 5 5v3 M18 9l3 3 2-3",
 };

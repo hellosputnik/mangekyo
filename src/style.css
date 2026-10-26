@@ -1310,7 +1310,7 @@ summary small {
 }
 .touch-challenge-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.35rem;
 }
@@ -1342,6 +1342,17 @@ summary small {
 }
 .touch-challenge-heading .sound-toggle[aria-pressed="true"] {
   color: var(--accent-soft);
+}
+.touch-challenge-heading .sound-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.touch-challenge-heading .sound-toggle svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 .touch-challenge p {
   font-size: 0.76rem;

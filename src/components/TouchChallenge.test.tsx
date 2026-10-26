@@ -32,7 +32,6 @@ it("shows the required precision/pace, actual run progress, highest level, score
         points={13}
         sound={false}
         onSound={() => {}}
-        onEasier={() => {}}
       />
     </LocalizationContext.Provider>,
   );
@@ -43,7 +42,10 @@ it("shows the required precision/pace, actual run progress, highest level, score
   expect(html).toContain('value="3"');
   expect(html).toContain('max="5"');
   expect(html).toContain('aria-pressed="false"');
-  expect(html).toContain("Sound off");
+  expect(html).toContain('aria-label="Practice sound"');
+  expect(html).toContain('title="Turn sound on"');
+  expect(html).toContain("<svg");
+  expect(html).not.toContain("Easier");
   expect(html).toContain("Score");
   expect(html).toContain("13");
 });
@@ -58,17 +60,18 @@ it("uses seconds for following goals and translates challenge controls into Viet
         points={3}
         sound
         onSound={() => {}}
-        onEasier={() => {}}
       />
     </LocalizationContext.Provider>,
   );
   expect(html).toContain("Theo sát 10 giây để lên mức tiếp theo");
   expect(html).toContain('value="5000"');
   expect(html).toContain('max="10000"');
-  expect(html).toContain("Âm bật");
-  expect(html).toContain("Dễ hơn");
+  expect(html).toContain('aria-label="Âm thanh luyện tập"');
+  expect(html).toContain('title="Tắt âm"');
+  expect(html).toContain('aria-pressed="true"');
+  expect(html).not.toContain("Dễ hơn");
 });
-it("shows a steady working zone and allows easier settings independently of an earned level", () => {
+it("shows a steady working zone without an easier control", () => {
   const record = session();
   Object.assign(record.challenge!.balance!, {
     phase: "personalized",
@@ -83,13 +86,13 @@ it("shows a steady working zone and allows easier settings independently of an e
         points={4}
         sound={false}
         onSound={() => {}}
-        onEasier={() => {}}
       />
     </LocalizationContext.Provider>,
   );
   expect(html).toContain("In your zone");
   expect(html).toContain("Recent: 80%");
   expect(html).not.toContain('disabled=""');
+  expect(html.match(/<button/g)).toHaveLength(1);
 });
 it("celebrates unlocking while making easier-level and precision cues explicit", () => {
   const record = session();
@@ -100,6 +103,6 @@ it("celebrates unlocking while making easier-level and precision cues explicit",
       </LocalizationContext.Provider>,
     );
   expect(render("level-up")).toContain("Level 2 reached!");
-  expect(render("level-down")).toContain("Your points and levels stay");
+  expect(render("level-down")).toContain("Pace adjusted. Your progress stays");
   expect(render("closer")).toContain("Aim for the center");
 });

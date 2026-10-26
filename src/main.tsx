@@ -175,11 +175,11 @@ function App() {
         ) ?? cues.at(-1)!;
     setTouchCue({ value: cue, sequence: ++touchCueSequence.current });
     const celebratory = cue.kind === "level-up" || cue.kind === "mastered";
-    if (
-      state.current.preferences.answerSound &&
-      (celebratory || cue.kind === "milestone")
-    )
-      playPracticeFeedback(celebratory ? "level" : "milestone");
+    if (celebratory || cue.kind === "milestone")
+      playPracticeFeedback(celebratory ? "level" : "milestone", {
+        sound: state.current.preferences.answerSound,
+        haptics: state.current.preferences.haptics,
+      });
     if (celebratory || cue.kind === "level-down") persist(state.current);
     return celebratory || cue.kind === "milestone";
   };
@@ -526,6 +526,7 @@ function App() {
   };
   const resume = () => {
     if (!document.hidden) {
+      if (state.current.preferences.answerSound) unlockPracticeAudio();
       if (state.current.current?.kind === "follow") {
         state.current.current.status = "paused";
         state.current.current.awaitingTouch = true;
@@ -571,8 +572,11 @@ function App() {
       highlight: true,
     });
     setFeedback("");
-    if (correct && state.current.preferences.answerSound)
-      playAnswerConfirmation();
+    if (correct)
+      playAnswerConfirmation({
+        sound: state.current.preferences.answerSound,
+        haptics: state.current.preferences.haptics,
+      });
     persist(state.current);
   };
   const touchPoint = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
@@ -662,12 +666,11 @@ function App() {
           retry: true,
         });
         setFeedback("");
-        if (
-          result.correct &&
-          state.current.preferences.answerSound &&
-          !playedCue
-        )
-          playAnswerConfirmation();
+        if (result.correct && !playedCue)
+          playAnswerConfirmation({
+            sound: state.current.preferences.answerSound,
+            haptics: state.current.preferences.haptics,
+          });
       }
       persist(state.current);
     }
@@ -839,14 +842,6 @@ function App() {
                       answerSound: enabled,
                     },
                   });
-                }}
-                onEasier={() => {
-                  if (!(exercise.current instanceof TouchExercise)) return;
-                  if (state.current.current?.status === "running")
-                    pause(false, state.current.current.kind === "follow");
-                  exercise.current.makeEasier();
-                  consumeTouchCues();
-                  persist(state.current);
                 }}
               />
             )}
@@ -1273,6 +1268,7 @@ function App() {
                           ["manual", t("routine.manual")],
                           ["sound", t("settings.sound")],
                           ["answerSound", t("settings.answerSound")],
+                          ["haptics", t("settings.haptics")],
                           ["reducedMotion", t("settings.reducedMotion")],
                           ["highContrast", t("settings.highContrast")],
                         ] as const
@@ -1281,17 +1277,20 @@ function App() {
                           key={key}
                           label={label}
                           checked={data.preferences[key]}
-                          onChange={(value) =>
+                          onChange={(value) => {
+                            if (key === "answerSound" && value)
+                              unlockPracticeAudio();
                             persist({
                               ...data,
                               preferences: {
                                 ...data.preferences,
                                 [key]: value,
                               },
-                            })
-                          }
+                            });
+                          }}
                         />
                       ))}
+                      <p className="fine">{t("settings.hapticsNote")}</p>
                     </div>
                   </section>
                   <section className="panel">

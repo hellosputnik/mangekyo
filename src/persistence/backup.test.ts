@@ -299,17 +299,34 @@ it("round trips visual progression past level 12, presented sizes, feedback pref
   invalid.sessions[0].trials[0].stimulusDiameter = NaN;
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
 });
-it("defaults answer sound off in legacy backups and rejects malformed feedback preferences", () => {
+it("defaults missing feedback on, preserves saved choices, and rejects malformed preferences", () => {
   const data = initialData();
   const { answerSound: ignored, ...legacyPreferences } = data.preferences;
   expect(
     mergeBackup(initialData(), { ...data, preferences: legacyPreferences })
       .preferences.answerSound,
-  ).toBe(false);
+  ).toBe(true);
   expect(() =>
     mergeBackup(initialData(), {
       ...data,
       preferences: { ...data.preferences, answerSound: "yes" },
+    }),
+  ).toThrow();
+  const muted = initialData();
+  muted.preferences.answerSound = false;
+  muted.preferences.haptics = false;
+  expect(mergeBackup(initialData(), muted).preferences).toMatchObject({
+    answerSound: false,
+    haptics: false,
+  });
+  const { haptics: removedHaptics, ...oldPreferences } = legacyPreferences;
+  expect(
+    mergeBackup(muted, { ...data, preferences: oldPreferences }).preferences,
+  ).toMatchObject({ answerSound: false, haptics: false });
+  expect(() =>
+    mergeBackup(initialData(), {
+      ...data,
+      preferences: { ...data.preferences, haptics: "invalid" },
     }),
   ).toThrow();
 });

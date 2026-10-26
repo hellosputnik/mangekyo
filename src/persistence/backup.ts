@@ -392,10 +392,11 @@ export function mergeBackup(current: Data, input: unknown): Data {
       throw Error("Invalid language preference");
     }
     preferences.language = language ?? current.preferences.language ?? "system";
-    if (input.preferences.answerSound !== undefined) {
-      if (typeof input.preferences.answerSound !== "boolean")
-        throw Error("Invalid answer feedback preference");
-      preferences.answerSound = input.preferences.answerSound;
+    for (const key of ["answerSound", "haptics"] as const) {
+      const value = input.preferences[key];
+      if (value !== undefined && typeof value !== "boolean")
+        throw Error("Invalid practice feedback preference");
+      preferences[key] = value ?? current.preferences[key] ?? true;
     }
     for (const key of ["goal", "rest", "reminder"] as const) {
       const maximum = { goal: 240, rest: 3600, reminder: 60 }[key];

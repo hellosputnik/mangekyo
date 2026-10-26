@@ -208,6 +208,7 @@ export interface Preferences {
   manual: boolean;
   sound: boolean;
   answerSound: boolean;
+  haptics: boolean;
   reducedMotion: boolean;
   highContrast: boolean;
   reminder: number;
@@ -254,7 +255,8 @@ export const initialData = (): Data => ({
     rest: 60,
     manual: false,
     sound: false,
-    answerSound: false,
+    answerSound: true,
+    haptics: true,
     reducedMotion: false,
     highContrast: false,
     reminder: 5,

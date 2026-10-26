@@ -107,7 +107,29 @@ it("recovers continuous difficulty, target sizes and optional answer sound witho
   await save({ ...data, preferences: legacyPreferences } as ReturnType<
     typeof initialData
   >);
-  expect((await load()).preferences.answerSound).toBe(false);
+  expect((await load()).preferences.answerSound).toBe(true);
+});
+it("defaults new feedback to enabled while retaining saved sound and haptic choices", async () => {
+  expect(initialData().preferences).toMatchObject({
+    answerSound: true,
+    haptics: true,
+  });
+  const data = initialData();
+  data.preferences.answerSound = false;
+  data.preferences.haptics = false;
+  await save(data);
+  expect((await load()).preferences).toMatchObject({
+    answerSound: false,
+    haptics: false,
+  });
+  const { haptics: ignored, ...legacyPreferences } = data.preferences;
+  await save({ ...data, preferences: legacyPreferences } as ReturnType<
+    typeof initialData
+  >);
+  expect((await load()).preferences).toMatchObject({
+    answerSound: false,
+    haptics: true,
+  });
 });
 it("recovers following as interrupted without a held finger and migrates older exercise settings and levels", async () => {
   const data = initialData();

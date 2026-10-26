@@ -76,3 +76,27 @@ it("keeps audio available without vibration and tolerates unavailable or rejecte
   ).play("level");
   expect(blocked.oscillator.start).not.toHaveBeenCalled();
 });
+it("uses short event-specific haptics independently of muted sound", () => {
+  const create = vi.fn(() => audioMock().audio as unknown as AudioContext);
+  const vibrate = vi.fn();
+  const player = new PracticeSoundPlayer(create, vibrate);
+  for (const kind of ["correct", "milestone", "level"] as const)
+    player.play(kind, { sound: false, haptics: true });
+  expect(vibrate.mock.calls.map(([length]) => length)).toEqual([8, 12, 16]);
+  expect(create).not.toHaveBeenCalled();
+  player.play("correct", { sound: false, haptics: false });
+  expect(vibrate).toHaveBeenCalledTimes(3);
+});
+it("can play sound with haptics disabled and resumes Safari interruption state", () => {
+  const { audio, oscillator } = audioMock("interrupted");
+  const vibrate = vi.fn();
+  const player = new PracticeSoundPlayer(
+    () => audio as unknown as AudioContext,
+    vibrate,
+  );
+  player.unlock();
+  player.play("correct", { sound: true, haptics: false });
+  expect(audio.resume).toHaveBeenCalledOnce();
+  expect(oscillator.start).toHaveBeenCalledOnce();
+  expect(vibrate).not.toHaveBeenCalled();
+});

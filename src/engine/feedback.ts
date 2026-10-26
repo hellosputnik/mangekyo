@@ -1,4 +1,8 @@
 export type PracticeSound = "correct" | "milestone" | "level";
+export interface PracticeFeedbackOptions {
+  sound: boolean;
+  haptics: boolean;
+}
 
 /** Unlock from a user gesture; later tracking milestones reuse that same context. */
 export class PracticeSoundPlayer {
@@ -12,19 +16,25 @@ export class PracticeSoundPlayer {
     try {
       if (!this.audio || this.audio.state === "closed")
         this.audio = this.createContext();
-      if (this.audio.state === "suspended")
+      if (this.audio.state !== "running")
         void this.audio.resume().catch(() => {});
     } catch {
       /* Optional browser support. */
     }
   }
-  play(kind: PracticeSound) {
-    this.unlock();
-    try {
-      this.vibrate(kind === "level" ? 20 : 10);
-    } catch {
-      /* Vibration is independently optional. */
+  play(
+    kind: PracticeSound,
+    options: PracticeFeedbackOptions = { sound: true, haptics: true },
+  ) {
+    if (options.haptics) {
+      try {
+        this.vibrate(kind === "level" ? 16 : kind === "milestone" ? 12 : 8);
+      } catch {
+        /* Vibration is independently optional. */
+      }
     }
+    if (!options.sound) return;
+    this.unlock();
     try {
       const audio = this.audio;
       if (!audio || audio.state !== "running") return;
@@ -67,5 +77,9 @@ export class PracticeSoundPlayer {
 }
 const player = new PracticeSoundPlayer();
 export const unlockPracticeAudio = () => player.unlock();
-export const playPracticeFeedback = (kind: PracticeSound) => player.play(kind);
-export const playAnswerConfirmation = () => player.play("correct");
+export const playPracticeFeedback = (
+  kind: PracticeSound,
+  options: PracticeFeedbackOptions,
+) => player.play(kind, options);
+export const playAnswerConfirmation = (options: PracticeFeedbackOptions) =>
+  player.play("correct", options);
