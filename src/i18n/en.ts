@@ -26,9 +26,7 @@ export const english = {
   "pattern.Wandering": "Wandering",
   "pattern.Mixed": "Default (mixed)",
   "pursuit.motion": "Motion path",
-  "pursuit.custom": "Custom",
   "pursuit.mixedNote": "All five paths, with smooth transitions.",
-  "pursuit.customSettings": "Custom settings",
   "stimulus.Opening": "Opening",
   "stimulus.Orientation": "Orientation",
   "stimulus.Shape": "Shape",
@@ -130,6 +128,9 @@ export const english = {
     "Eye selection is self-reported; the app cannot verify occlusion. Target size uses CSS pixels, not calibrated visual angle.",
   "config.pattern": "Motion path",
   "config.size": "Target diameter (CSS px)",
+  "config.patternSize": "Pattern size (CSS px)",
+  "config.displayNote":
+    "Contrast depends on your screen and brightness. Consumer displays are not medically calibrated.",
   "config.speed": "Motion speed (cycles/sec)",
   "config.contrast": "Stimulus contrast",
   "config.complexity": "Path complexity",
@@ -179,8 +180,14 @@ export const english = {
   "progress.empty": "Your first practice starts a story. No scores yet.",
   "progress.noAccuracy": "No accuracy measurement",
   "progress.accuracy": "{percent} correct · {count} responses",
-  "progress.configuration":
+  "progress.configuration.pursuit":
     "Target {size}px · contrast {contrast} · speed {speed} · {pattern} · viewing distance {distance}cm",
+  "progress.configuration.saccades":
+    "Target {size}px · contrast {contrast} · exposure {exposure}s · pause {jumpPause}s · jump distance {jumpDistance} · viewing distance {distance}cm",
+  "progress.configuration.visual":
+    "{stimulus} · size {size}px · contrast {contrast} · viewing distance {distance}cm",
+  "progress.configuration.contrast":
+    "{contrastStimulus} · size {size}px · contrast {contrast} · viewing distance {distance}cm",
   "progress.measurements": "Professional measurements",
   "progress.measurementNote":
     "Optional records from an eye-care professional. Separate from app performance.",
@@ -232,7 +239,9 @@ export const english = {
   "number.increase": "Increase {label}",
   "number.invalid": "Enter a whole number from {minimum} to {maximum}.",
   "practice.configure": "Set up your session",
-  "practice.customize": "Customize exercise",
+  "practice.settings": "Practice settings",
+  "practice.default": "Default",
+  "practice.customSettings": "Custom settings",
   "practice.safetyShort":
     "Experimental practice. Follow your eye-care professional’s guidance and stop if uncomfortable.",
   "practice.safetyDetails": "Practice safely",

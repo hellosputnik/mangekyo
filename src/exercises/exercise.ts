@@ -118,15 +118,20 @@ export class VisualExercise implements Exercise {
         [0.28, 0.72],
         [0.72, 0.72],
       ];
+      const patternSize = Math.min(
+        settings.size,
+        Math.max(1, Math.min(width, height) * 0.2 - 10),
+      );
+      const panelSize = patternSize + 10;
       positions.forEach(([horizontal, vertical], index) => {
         context.globalAlpha = 1;
         context.strokeStyle = "#664343";
         context.lineWidth = 1;
         context.strokeRect(
-          width * horizontal - 38,
-          height * vertical - 38,
-          76,
-          76,
+          width * horizontal - panelSize,
+          height * vertical - panelSize,
+          panelSize * 2,
+          panelSize * 2,
         );
         if (index === this.target) {
           context.globalAlpha = contrast;
@@ -136,7 +141,7 @@ export class VisualExercise implements Exercise {
             context.arc(
               width * horizontal,
               height * vertical,
-              Math.min(30, settings.size),
+              patternSize,
               0,
               Math.PI * 2,
             );
@@ -144,10 +149,12 @@ export class VisualExercise implements Exercise {
           } else
             for (let stripe = -3; stripe <= 3; stripe++)
               context.fillRect(
-                width * horizontal + stripe * 8 - 2,
-                height * vertical - 28,
-                4,
-                56,
+                width * horizontal +
+                  (stripe * patternSize) / 3.5 -
+                  patternSize / 14,
+                height * vertical - patternSize,
+                patternSize / 7,
+                patternSize * 2,
               );
         }
       });

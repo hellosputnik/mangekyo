@@ -27,9 +27,7 @@ export const vietnamese = {
   "pattern.Wandering": "Uốn lượn",
   "pattern.Mixed": "Mặc định (kết hợp)",
   "pursuit.motion": "Đường di chuyển",
-  "pursuit.custom": "Tùy chỉnh",
   "pursuit.mixedNote": "Cả năm đường đi, chuyển tiếp nhẹ nhàng.",
-  "pursuit.customSettings": "Cài đặt tùy chỉnh",
   "stimulus.Opening": "Khe hở",
   "stimulus.Orientation": "Hướng",
   "stimulus.Shape": "Hình dạng",
@@ -134,6 +132,9 @@ export const vietnamese = {
     "Mắt luyện tập do bạn tự chọn; ứng dụng không xác minh việc che mắt. Kích thước mục tiêu tính bằng pixel CSS, không phải góc nhìn đã hiệu chuẩn.",
   "config.pattern": "Quỹ đạo chuyển động",
   "config.size": "Đường kính mục tiêu (pixel CSS)",
+  "config.patternSize": "Kích thước hình (pixel CSS)",
+  "config.displayNote":
+    "Độ tương phản phụ thuộc vào màn hình và độ sáng. Màn hình thông thường không được hiệu chuẩn y tế.",
   "config.speed": "Tốc độ chuyển động (chu kỳ/giây)",
   "config.contrast": "Độ tương phản hình hiển thị",
   "config.complexity": "Độ phức tạp quỹ đạo",
@@ -183,8 +184,14 @@ export const vietnamese = {
   "progress.empty": "Chưa có kết quả. Hãy bắt đầu với buổi tập đầu tiên.",
   "progress.noAccuracy": "Không đo độ chính xác",
   "progress.accuracy": "Đúng {percent} · {count} câu trả lời",
-  "progress.configuration":
+  "progress.configuration.pursuit":
     "Mục tiêu {size}px · tương phản {contrast} · tốc độ {speed} · {pattern} · khoảng cách nhìn {distance}cm",
+  "progress.configuration.saccades":
+    "Mục tiêu {size}px · tương phản {contrast} · hiện {exposure} giây · nghỉ {jumpPause} giây · khoảng chuyển {jumpDistance} · khoảng cách nhìn {distance}cm",
+  "progress.configuration.visual":
+    "{stimulus} · kích thước {size}px · tương phản {contrast} · khoảng cách nhìn {distance}cm",
+  "progress.configuration.contrast":
+    "{contrastStimulus} · kích thước {size}px · tương phản {contrast} · khoảng cách nhìn {distance}cm",
   "progress.measurements": "Kết quả đo chuyên môn",
   "progress.measurementNote":
     "Tùy chọn ghi lại kết quả đo của chuyên gia chăm sóc mắt, tách biệt với kết quả luyện tập trong ứng dụng.",
@@ -237,7 +244,9 @@ export const vietnamese = {
   "number.increase": "Tăng {label}",
   "number.invalid": "Nhập số nguyên từ {minimum} đến {maximum}.",
   "practice.configure": "Chuẩn bị buổi tập",
-  "practice.customize": "Tùy chỉnh bài tập",
+  "practice.settings": "Cài đặt bài tập",
+  "practice.default": "Mặc định",
+  "practice.customSettings": "Cài đặt tùy chỉnh",
   "practice.safetyShort":
     "Luyện tập thử nghiệm. Làm theo hướng dẫn của bác sĩ mắt và dừng nếu khó chịu.",
   "practice.safetyDetails": "Luyện tập an toàn",

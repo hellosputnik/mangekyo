@@ -76,3 +76,36 @@ it("localizes session history and professional measurements without changing sto
   expect(html).not.toContain("No accuracy measurement");
   expect(JSON.stringify(data)).toBe(before);
 });
+it("shows saccade timing in history without unrelated pursuit path and speed labels", () => {
+  const data = initialData();
+  data.sessions = [
+    {
+      id: "custom-saccades",
+      kind: "saccades",
+      eye: "Left",
+      configuration: {
+        ...defaults,
+        size: 72,
+        exposure: 2.5,
+        jumpPause: 1,
+        jumpDistance: 0.6,
+      },
+      startedAt: "2026-10-25T12:00:00Z",
+      endedAt: "2026-10-25T12:01:00Z",
+      status: "abandoned",
+      activeMilliseconds: 60000,
+      slices: [],
+      trials: [],
+      difficulty: 0,
+    },
+  ];
+  const html = renderToStaticMarkup(
+    <LocalizationContext.Provider value={createLocalization("en")}>
+      <Progress data={data} persist={() => {}} />
+    </LocalizationContext.Provider>,
+  );
+  expect(html).toContain("Target 72px");
+  expect(html).toContain("exposure 2.5s · pause 1s · jump distance 0.6");
+  expect(html).not.toContain("Default (mixed)");
+  expect(html).not.toContain("speed");
+});

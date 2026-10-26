@@ -29,6 +29,7 @@ export function Progress({
     eyeLabel,
     statusLabel,
     patternLabel,
+    optionLabel,
   } = useI18n();
   const [measurementEye, setMeasurementEye] = useState<Eye>("Left");
   const [measurementSaved, setMeasurementSaved] = useState(false);
@@ -208,12 +209,19 @@ export function Progress({
                 {t("progress.level", { level: number(session.difficulty + 1) })}
               </p>
               <p className="fine">
-                {t("progress.configuration", {
+                {t(`progress.configuration.${session.kind}`, {
                   size: number(session.configuration.size),
                   contrast: number(session.configuration.contrast),
                   speed: number(session.configuration.speed),
                   pattern: patternLabel(session.configuration.pattern),
                   distance: number(session.configuration.distance),
+                  exposure: number(session.configuration.exposure),
+                  jumpPause: number(session.configuration.jumpPause),
+                  jumpDistance: number(session.configuration.jumpDistance),
+                  stimulus: optionLabel(session.configuration.stimulus),
+                  contrastStimulus: optionLabel(
+                    session.configuration.contrastStimulus,
+                  ),
                 })}
               </p>
             </details>

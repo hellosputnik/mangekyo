@@ -340,7 +340,7 @@ header {
 .practice-overview {
   min-width: 0;
 }
-.pursuit-options {
+.practice-options {
   margin-top: 1.4rem;
 }
 .motion-grid {
@@ -414,6 +414,11 @@ header {
 }
 .custom-dialog-header h2 {
   font-size: 1.1rem;
+}
+.custom-dialog-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 .custom-dialog-body {
   padding: 1.1rem max(1.25rem, env(safe-area-inset-right))
@@ -542,33 +547,6 @@ header {
 }
 .setup > .control-caption {
   margin: 0.6rem 0 1.4rem;
-}
-.exercise-adjustments {
-  margin-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-.exercise-adjustments > summary {
-  min-height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  padding: 0.8rem 0;
-  list-style: none;
-}
-.exercise-adjustments > summary::-webkit-details-marker {
-  display: none;
-}
-.exercise-adjustments > summary > svg {
-  width: 1rem;
-  height: 1rem;
-  transition: transform 0.18s ease;
-}
-.exercise-adjustments[open] > summary > svg {
-  transform: rotate(90deg);
 }
 .settings-grid {
   display: grid;

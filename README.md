@@ -56,13 +56,14 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 
 - Responsive practice dashboard, four Canvas exercises, dark training stage, safe-area padding, visual eye selection, glass-style navigation, touch controls, and portrait/landscape layouts. The glass treatment has opaque and reduced-motion accessibility fallbacks.
 - Phone portrait setup recommends landscape for pursuit and saccadic practice to provide more horizontal room. Portrait remains available; vertical-only pursuit and discrimination tasks do not show the hint. Rotating keeps session state and never starts an exercise automatically.
+- Every exercise has visible **Default / Custom** controls in the same place. Custom opens the shared settings sheet with that exercise's relevant controls. Each exercise keeps its own draft settings and duration while switching within the open app; Default restores stimulus settings while retaining duration and viewing distance. Sessions, including routine steps, record the selected exercise's configuration.
 - Pursuit: a compact choice between **Default (mixed)** and **Custom**. Default gives horizontal, vertical, circular, figure-eight, and smooth wandering paths an equal share of active time within the five-minute session. Custom opens a modal settings sheet for path selection, size, speed, contrast, complexity, colors, and viewing distance. Duration is always adjustable. Pausing/recovery preserves the mix position.
-- Saccades: reproducible pseudo-random jumps, exposure/pause/distance controls, optional acknowledgement. No gaze measurement.
-- Visual response tasks: C-like opening, directional pattern, directional triangle; contrast tasks: localized gratings or circles. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.
+- Saccades: reproducible pseudo-random jumps; custom target size, contrast, exposure, pause, jump distance, colors, and optional acknowledgement. No gaze measurement.
+- Visual response tasks: C-like opening, directional pattern, directional triangle, with custom size, contrast, and colors. Contrast tasks: localized gratings or circles with adjustable size, contrast, and background. Contrast pattern size works for both forms and fits within non-overlapping panels on small stages. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.
 - 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
 - Monotonic active timer; neutral Pause and one End session action with automatic saving. Resume is emphasized while paused. Routine sessions offer Skip exercise. Reaching the configured duration marks completion; ending sooner keeps valid time and records Stopped early. Background interruption still requires explicit reload recovery.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
-- IndexedDB history, daily/weekly totals, eye/exercise breakdowns, recent accuracy/difficulty charts, and separately labeled professional measurements.
+- IndexedDB history with exercise-specific configuration summaries, daily/weekly totals, eye/exercise breakdowns, recent accuracy/difficulty charts, and separately labeled professional measurements.
 - JSON export and validated merge import. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. Schedule preferences are restored; in-progress routines are recovered locally, not resumed from imports.
 - Offline app-shell caching, update prompt, optional wake lock, optional rest-end sound/vibration, and high-contrast/gentler-motion controls.
 
@@ -79,6 +80,7 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 ## Architecture
 
 - `src/engine/model.ts`: typed configuration, records, validation, defaults.
+- `src/engine/practice.ts`: independent exercise drafts and Default/Custom selection, separate from scheduling and adaptive levels.
 - `src/engine/timer.ts`: React-independent active timing and bounded adaptive progression.
 - `src/engine/routines.ts`: routine and break transitions.
 - `src/exercises/exercise.ts`: common exercise lifecycle and Canvas stimulus renderer.
@@ -107,6 +109,8 @@ Desktop browser checks cover start, pause, reload recovery, completion-to-rest t
 Not clinically validated. No claim of curing amblyopia, improving acuity, or measuring eye movements. Display contrast and target size are uncalibrated. Improved task scores may reflect familiarity and do not establish improved eyesight. Follow qualified eye-care guidance for patching and frequency. Practice seated with comfortable brightness, never while driving/walking or doing hazardous tasks. Stop immediately if uncomfortable.
 
 Browser storage can be cleared or evicted. Export backups regularly. Do not train simultaneously in multiple tabs: the initial version uses a single local state snapshot and does not arbitrate concurrent writers. No native apps, accounts, cloud synchronization, gaze tracking, or clinical testing have been implemented.
+
+Unstarted exercise settings are drafts in memory and reset on reload. A started session stores its complete configuration in IndexedDB for recovery and history; changing a draft never rewrites recorded sessions.
 
 ## Design skill
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  defaults,
   initialData,
   validate,
   localDate,
@@ -13,10 +12,15 @@ import {
   type Session,
 } from "./engine/model";
 import { ActiveTimer, adapt } from "./engine/timer";
+import {
+  initialPracticeSetups,
+  selectPracticeMode,
+  updatePracticeSetting,
+} from "./engine/practice";
 import { load, save } from "./persistence/store";
 import { totalForDate } from "./analytics/totals";
 import { VisualExercise } from "./exercises/exercise";
-import { applyPursuitPreset, currentPursuitPath } from "./exercises/pursuit";
+import { currentPursuitPath } from "./exercises/pursuit";
 import { advanceRoutine, advanceBreak } from "./engine/routines";
 import { mergeBackup } from "./persistence/backup";
 import { Routines } from "./components/Routines";
@@ -66,7 +70,8 @@ function App() {
   const [tab, setTab] = useState<Page>("Practice");
   const [kind, setKind] = useState<ExerciseKind>("pursuit");
   const [eye, setEye] = useState<Eye>("Left");
-  const [configuration, setConfiguration] = useState(defaults);
+  const [practiceSetups, setPracticeSetups] = useState(initialPracticeSetups);
+  const configuration = practiceSetups[kind].configuration;
   const [, refresh] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [update, setUpdate] = useState<ServiceWorker | null>(null);
@@ -354,16 +359,17 @@ function App() {
   ]);
   const start = (
     selected = kind,
-    duration = configuration.duration,
+    duration = practiceSetups[selected].configuration.duration,
     selectedEye = eye,
   ) => {
     if (!ready || document.hidden || state.current.current) return;
+    const selectedConfiguration = practiceSetups[selected].configuration;
     const settings = validate({
-      ...configuration,
+      ...selectedConfiguration,
       duration,
       speed: data.preferences.reducedMotion
-        ? Math.min(configuration.speed, 0.08)
-        : configuration.speed,
+        ? Math.min(selectedConfiguration.speed, 0.08)
+        : selectedConfiguration.speed,
     });
     const session: Session = {
       id: crypto.randomUUID(),
@@ -415,7 +421,10 @@ function App() {
   const setting = (
     key: keyof Configuration,
     value: string | number | boolean,
-  ) => setConfiguration((previous) => ({ ...previous, [key]: value }));
+  ) =>
+    setPracticeSetups((previous) =>
+      updatePracticeSetting(previous, kind, key, value),
+    );
   const exportData = () => {
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(state.current, null, 2)], {
@@ -631,7 +640,7 @@ function App() {
             {data.run &&
               shouldRecommendLandscape(
                 data.run.routine.steps[data.run.index].kind,
-                configuration.pattern,
+                practiceSetups.pursuit.configuration.pattern,
               ) && <LandscapeHint />}
             <div className="actions">
               <button
@@ -719,9 +728,10 @@ function App() {
                   setEye={setEye}
                   configuration={configuration}
                   setting={setting}
-                  selectPursuitPreset={(preset) =>
-                    setConfiguration((previous) =>
-                      applyPursuitPreset(previous, preset),
+                  mode={practiceSetups[kind].mode}
+                  selectMode={(mode) =>
+                    setPracticeSetups((previous) =>
+                      selectPracticeMode(previous, kind, mode),
                     )
                   }
                   ready={ready}
@@ -744,7 +754,7 @@ function App() {
                   setRoutine={setRoutine}
                   persist={persist}
                   start={start}
-                  pursuitPattern={configuration.pattern}
+                  pursuitPattern={practiceSetups.pursuit.configuration.pattern}
                 />
               )}
               {tab === "Settings" && (

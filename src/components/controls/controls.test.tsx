@@ -5,7 +5,7 @@ import { createLocalization } from "../../i18n/locale";
 import { EyeSelector } from "./EyeSelector";
 import { DurationControl } from "./DurationControl";
 import { Navigation } from "../Navigation";
-import { PursuitPresets } from "../PursuitPresets";
+import { PracticePresets } from "../PracticePresets";
 
 it("offers a named native eye radio group with stable stored values", () => {
   const html = renderToStaticMarkup(
@@ -65,8 +65,9 @@ it.each([
   (language, defaultLabel, customLabel) => {
     const html = renderToStaticMarkup(
       <LocalizationContext.Provider value={createLocalization(language)}>
-        <PursuitPresets
-          value="Mixed"
+        <PracticePresets
+          kind="pursuit"
+          value="Default"
           onChange={() => {}}
           onCustomize={() => {}}
           dialogId="custom-dialog"

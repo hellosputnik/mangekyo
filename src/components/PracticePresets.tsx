@@ -1,34 +1,39 @@
-import type { PursuitPreset } from "../engine/model";
+import type { ExerciseKind } from "../engine/model";
+import type { PracticeMode } from "../engine/practice";
 import { useI18n } from "../i18n/react";
 
-export function PursuitPresets({
+export function PracticePresets({
+  kind,
   value,
   onChange,
   onCustomize,
   dialogId,
 }: {
-  value: PursuitPreset;
-  onChange: (preset: "Mixed" | "Custom") => void;
+  kind: ExerciseKind;
+  value: PracticeMode;
+  onChange: (mode: PracticeMode) => void;
   onCustomize: () => void;
   dialogId: string;
 }) {
   const { t, patternLabel } = useI18n();
   return (
-    <fieldset className="motion-presets">
-      <legend>{t("pursuit.motion")}</legend>
+    <fieldset className="practice-presets">
+      <legend>
+        {t(kind === "pursuit" ? "pursuit.motion" : "practice.settings")}
+      </legend>
       <div className="motion-grid">
         <button
           type="button"
           className="motion-preset"
-          aria-pressed={value === "Mixed"}
-          onClick={() => onChange("Mixed")}
+          aria-pressed={value === "Default"}
+          onClick={() => onChange("Default")}
         >
-          {patternLabel("Mixed")}
+          {kind === "pursuit" ? patternLabel("Mixed") : t("practice.default")}
         </button>
         <button
           type="button"
           className="motion-preset"
-          aria-pressed={value !== "Mixed"}
+          aria-pressed={value === "Custom"}
           aria-haspopup="dialog"
           aria-controls={dialogId}
           onClick={() => {
@@ -36,7 +41,7 @@ export function PursuitPresets({
             onCustomize();
           }}
         >
-          {t("pursuit.custom")}
+          {t("practice.custom")}
         </button>
       </div>
     </fieldset>

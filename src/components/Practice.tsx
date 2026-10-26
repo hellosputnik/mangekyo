@@ -5,14 +5,14 @@ import {
   type Configuration,
   type ExerciseKind,
   type Eye,
-  type PursuitPreset,
 } from "../engine/model";
+import type { PracticeMode } from "../engine/practice";
 import { useI18n } from "../i18n/react";
 import { EyeSelector } from "./controls/EyeSelector";
 import { DurationControl } from "./controls/DurationControl";
 import { ToggleSwitch } from "./controls/ToggleSwitch";
 import { Icon } from "./Icon";
-import { PursuitPresets } from "./PursuitPresets";
+import { PracticePresets } from "./PracticePresets";
 import { ExerciseArtwork } from "./ExerciseArtwork";
 import { LandscapeHint, shouldRecommendLandscape } from "./LandscapeHint";
 interface Props {
@@ -24,7 +24,8 @@ interface Props {
   setEye: (eye: Eye) => void;
   configuration: Configuration;
   setting: (key: keyof Configuration, value: string | number | boolean) => void;
-  selectPursuitPreset: (preset: PursuitPreset) => void;
+  mode: PracticeMode;
+  selectMode: (mode: PracticeMode) => void;
   ready: boolean;
   start: () => void;
 }
@@ -52,9 +53,48 @@ function AdvancedFields({
             </select>
           </label>
         )}
+        {kind === "visual" && (
+          <label>
+            {t("config.visualTask")}
+            <select
+              value={configuration.stimulus}
+              onChange={(event) => setting("stimulus", event.target.value)}
+            >
+              {["Opening", "Orientation", "Shape"].map((value) => (
+                <option key={value} value={value}>
+                  {optionLabel(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {kind === "contrast" && (
+          <label>
+            {t("config.contrastTask")}
+            <select
+              value={configuration.contrastStimulus}
+              onChange={(event) =>
+                setting("contrastStimulus", event.target.value)
+              }
+            >
+              <option value="Grating">{t("stimulus.Grating")}</option>
+              <option value="Shape">{t("stimulus.Shape")}</option>
+            </select>
+          </label>
+        )}
         {(
           [
-            ["size", t("config.size"), 8, 120, 1],
+            [
+              "size",
+              t(
+                kind === "pursuit" || kind === "saccades"
+                  ? "config.size"
+                  : "config.patternSize",
+              ),
+              8,
+              120,
+              1,
+            ],
             ["speed", t("config.speed"), 0.02, 1, 0.02],
             ["contrast", t("config.contrast"), 0.03, 1, 0.01],
             ["complexity", t("config.complexity"), 1, 5, 1],
@@ -106,35 +146,6 @@ function AdvancedFields({
             onChange={(event) => setting("background", event.target.value)}
           />
         </label>
-        {kind === "visual" && (
-          <label>
-            {t("config.visualTask")}
-            <select
-              value={configuration.stimulus}
-              onChange={(event) => setting("stimulus", event.target.value)}
-            >
-              {["Opening", "Orientation", "Shape"].map((value) => (
-                <option key={value} value={value}>
-                  {optionLabel(value)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {kind === "contrast" && (
-          <label>
-            {t("config.contrastTask")}
-            <select
-              value={configuration.contrastStimulus}
-              onChange={(event) =>
-                setting("contrastStimulus", event.target.value)
-              }
-            >
-              <option value="Grating">{t("stimulus.Grating")}</option>
-              <option value="Shape">{t("stimulus.Shape")}</option>
-            </select>
-          </label>
-        )}
         {kind === "saccades" && (
           <ToggleSwitch
             label={t("config.tapConfirm")}
@@ -144,6 +155,7 @@ function AdvancedFields({
         )}
       </div>
       <p className="fine">{t("practice.eyeNote")}</p>
+      {kind === "contrast" && <p className="fine">{t("config.displayNote")}</p>}
     </>
   );
 }
@@ -156,13 +168,13 @@ export function Practice({
   setEye,
   configuration,
   setting,
-  selectPursuitPreset,
+  mode,
+  selectMode,
   ready,
   start,
 }: Props) {
   const { t, number, exerciseName, exerciseDescription } = useI18n();
   const [durationValid, setDurationValid] = useState(true);
-  const selectedPreset = configuration.pursuitPreset ?? "Custom";
   const [customOpen, setCustomOpen] = useState(false);
   const customDialog = useRef<HTMLDialogElement>(null);
   const customDialogId = useId();
@@ -244,19 +256,18 @@ export function Practice({
             </div>
             <p className="library-description">{exerciseDescription(kind)}</p>
           </section>
-          {kind === "pursuit" && (
-            <section className="pursuit-options">
-              <PursuitPresets
-                value={selectedPreset}
-                onChange={selectPursuitPreset}
-                onCustomize={() => setCustomOpen(true)}
-                dialogId={customDialogId}
-              />
-              {selectedPreset === "Mixed" && (
-                <p className="preset-description">{t("pursuit.mixedNote")}</p>
-              )}
-            </section>
-          )}
+          <section className="practice-options">
+            <PracticePresets
+              kind={kind}
+              value={mode}
+              onChange={selectMode}
+              onCustomize={() => setCustomOpen(true)}
+              dialogId={customDialogId}
+            />
+            {kind === "pursuit" && mode === "Default" && (
+              <p className="preset-description">{t("pursuit.mixedNote")}</p>
+            )}
+          </section>
         </div>
         <section className="setup" aria-labelledby="setup-title">
           <div className="setup-heading">
@@ -270,6 +281,7 @@ export function Practice({
           />
           <p className="control-caption">{t("eye.selfReported")}</p>
           <DurationControl
+            key={kind}
             label={t("practice.duration")}
             value={configuration.duration}
             onChange={(value) => setting("duration", value)}
@@ -286,19 +298,6 @@ export function Practice({
             {t("practice.begin")}
             <span aria-hidden="true">→</span>
           </button>
-          {kind !== "pursuit" && (
-            <details className="exercise-adjustments" key={kind}>
-              <summary>
-                {t("practice.customize")}
-                <Icon name="Chevron" />
-              </summary>
-              <AdvancedFields
-                kind={kind}
-                configuration={configuration}
-                setting={setting}
-              />
-            </details>
-          )}
         </section>
       </div>
       <dialog
@@ -322,7 +321,12 @@ export function Practice({
         }}
       >
         <div className="custom-dialog-header">
-          <h2 id={`${customDialogId}-title`}>{t("pursuit.customSettings")}</h2>
+          <div>
+            <h2 id={`${customDialogId}-title`}>
+              {t("practice.customSettings")}
+            </h2>
+            <p>{exerciseName(kind)}</p>
+          </div>
           <button
             type="button"
             className="primary"
@@ -333,7 +337,7 @@ export function Practice({
         </div>
         <div className="custom-dialog-body">
           <AdvancedFields
-            kind="pursuit"
+            kind={kind}
             configuration={configuration}
             setting={setting}
           />
