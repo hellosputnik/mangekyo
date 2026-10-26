@@ -68,10 +68,9 @@ export const english = {
   "session.levelResponses": "Level {level} · {count} responses",
   "session.found": "I found the target",
   "session.pause": "Pause",
-  "session.finish": "Finish & save",
-  "session.stop": "Skip / stop",
+  "session.endSession": "End session",
   "session.safety":
-    "Stop immediately if uncomfortable. Partial active time is always retained.",
+    "Stop immediately if uncomfortable. Your active time is saved automatically.",
   "answer.right": "Right →",
   "answer.down": "Down ↓",
   "answer.left": "Left ←",
@@ -244,7 +243,6 @@ export const english = {
   "session.openingQuestion": "Which way is the opening?",
   "session.directionQuestion": "Which way does the pattern point?",
   "session.contrastQuestion": "Which panel contains the pattern?",
-  "session.endEarly": "End early",
   "session.skip": "Skip exercise",
   "progress.trendEmpty":
     "Response exercises will add accuracy and difficulty here.",

@@ -69,7 +69,7 @@ describe("active timer", () => {
     timer.resume();
     timer.checkpoint();
     expect(session.activeMilliseconds).toBe(1500);
-    expect(session.status).toBe("completed");
+    expect(session.status).toBe("abandoned");
   });
   it("caps time at configured duration", () => {
     const { timer, session, advance } = fixture();
@@ -77,14 +77,63 @@ describe("active timer", () => {
     advance(80000);
     timer.finish();
     expect(session.activeMilliseconds).toBe(60000);
+    expect(session.status).toBe("completed");
   });
   it("retains valid time when abandoned", () => {
     const { timer, session, advance } = fixture();
     timer.resume();
     advance(700);
-    timer.finish(true);
+    timer.finish();
     expect(session.status).toBe("abandoned");
     expect(session.activeMilliseconds).toBe(700);
+  });
+  it.each([
+    [59999, "abandoned"],
+    [60000, "completed"],
+  ] as const)(
+    "classifies ending at %i milliseconds by active duration",
+    (milliseconds, status) => {
+      const { timer, session, advance } = fixture();
+      timer.resume();
+      advance(milliseconds);
+      timer.finish();
+      expect(session.status).toBe(status);
+      expect(session.activeMilliseconds).toBe(milliseconds);
+    },
+  );
+  it("retains paused progress without counting time away when ended", () => {
+    const { timer, session, advance } = fixture();
+    timer.resume();
+    advance(1400);
+    timer.pause(true);
+    advance(600000);
+    timer.finish();
+    expect(session.status).toBe("abandoned");
+    expect(session.activeMilliseconds).toBe(1400);
+    expect(
+      session.slices.reduce((total, slice) => total + slice.milliseconds, 0),
+    ).toBe(1400);
+  });
+  it("cannot reopen or rewrite an ended session", () => {
+    let now = 0;
+    const { session } = fixture();
+    const timer = new ActiveTimer(
+      session,
+      () => now,
+      () => new Date(Date.UTC(2026, 9, 25, 12) + now),
+    );
+    timer.resume();
+    now = 1000;
+    timer.finish();
+    const endedAt = session.endedAt;
+    now = 9000;
+    timer.finish();
+    timer.pause();
+    timer.resume();
+    timer.checkpoint();
+    expect(session.status).toBe("abandoned");
+    expect(session.activeMilliseconds).toBe(1000);
+    expect(session.endedAt).toBe(endedAt);
   });
   it("requires explicit resume after recovery", () => {
     const { session } = fixture();

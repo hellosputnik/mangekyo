@@ -72,10 +72,9 @@ export const vietnamese = {
   "session.levelResponses": "Mức {level} · {count} câu trả lời",
   "session.found": "Tôi đã thấy mục tiêu",
   "session.pause": "Tạm dừng",
-  "session.finish": "Kết thúc và lưu",
-  "session.stop": "Bỏ qua / dừng",
+  "session.endSession": "Kết thúc",
   "session.safety":
-    "Dừng ngay nếu thấy khó chịu. Thời gian đã tập vẫn được ghi lại dù bạn dừng sớm.",
+    "Dừng ngay nếu thấy khó chịu. Thời gian đã tập được lưu tự động.",
   "answer.right": "Phải →",
   "answer.down": "Dưới ↓",
   "answer.left": "Trái ←",
@@ -249,7 +248,6 @@ export const vietnamese = {
   "session.openingQuestion": "Khe hở hướng về phía nào?",
   "session.directionQuestion": "Họa tiết hướng về phía nào?",
   "session.contrastQuestion": "Ô nào có họa tiết?",
-  "session.endEarly": "Dừng sớm",
   "session.skip": "Bỏ qua bài này",
   "progress.trendEmpty":
     "Các bài trả lời sẽ bổ sung độ chính xác và mức khó tại đây.",

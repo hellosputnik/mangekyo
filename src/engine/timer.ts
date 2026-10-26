@@ -63,14 +63,20 @@ export class ActiveTimer {
     }
   }
   pause(interrupted = false) {
+    if (["completed", "abandoned"].includes(this.session.status)) return;
     this.checkpoint();
     this.anchor = null;
     this.session.status = interrupted ? "interrupted" : "paused";
   }
-  finish(abandoned = false) {
+  finish() {
+    if (["completed", "abandoned"].includes(this.session.status)) return;
     this.checkpoint();
     this.anchor = null;
-    this.session.status = abandoned ? "abandoned" : "completed";
+    this.session.status =
+      this.session.activeMilliseconds >=
+      this.session.configuration.duration * 1000
+        ? "completed"
+        : "abandoned";
     this.session.endedAt = this.wall().toISOString();
   }
 }

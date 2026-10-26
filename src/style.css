@@ -1392,13 +1392,16 @@ summary small {
 }
 .training-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
 }
 .training-controls button {
   padding: 0.7rem 0.45rem;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   line-height: 1.35;
+}
+.training-controls .session-end {
+  color: var(--accent-soft);
 }
 .training > .fine {
   text-align: center;
@@ -1726,9 +1729,6 @@ footer {
     gap: 0.5rem;
     padding-left: max(0.9rem, env(safe-area-inset-left));
     padding-right: max(0.9rem, env(safe-area-inset-right));
-  }
-  .training-controls button {
-    font-size: 0.8rem;
   }
   .training > .fine {
     font-size: 0.7rem;

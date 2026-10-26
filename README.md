@@ -59,7 +59,7 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 - Saccades: reproducible pseudo-random jumps, exposure/pause/distance controls, optional acknowledgement. No gaze measurement.
 - Visual response tasks: C-like opening, directional pattern, directional triangle; contrast tasks: localized gratings or circles. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.
 - 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
-- Monotonic active timer; pause, resume, save early, skip/abandon, background interruption, explicit reload recovery.
+- Monotonic active timer; neutral Pause and one End session action with automatic saving. Resume is emphasized while paused. Routine sessions offer Skip exercise. Reaching the configured duration marks completion; ending sooner keeps valid time and records Stopped early. Background interruption still requires explicit reload recovery.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
 - IndexedDB history, daily/weekly totals, eye/exercise breakdowns, recent accuracy/difficulty charts, and separately labeled professional measurements.
 - JSON export and validated merge import. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. Schedule preferences are restored; in-progress routines are recovered locally, not resumed from imports.
@@ -67,7 +67,7 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 
 ## Timing and persistence contract
 
-`ActiveTimer` uses `performance.now()` for running intervals. `visibilitychange` and `pagehide` pause and persist state. Background time is never calculated from wall-clock timestamps. A frame also checks visibility before crediting time. On reload, a saved current session is always interrupted; the user must explicitly resume. Paused and interrupted time never earns credit. Finish/skip write a session once by ID; both retain valid partial time.
+`ActiveTimer` uses `performance.now()` for running intervals. `visibilitychange` and `pagehide` pause and persist state. Background time is never calculated from wall-clock timestamps. A frame also checks visibility before crediting time. On reload, a saved current session is always interrupted; the user must explicitly resume. Paused and interrupted time never earns credit. End/skip write a session once by ID and retain valid partial time. The timer classifies newly ended sessions as completed only when accumulated active time reaches the configured duration; shorter sessions are stored as stopped early. Repeated ending, pausing, or resuming cannot reopen a terminal timer. Historical records retain their original status.
 
 Foreground time is checkpointed each animation frame and saved approximately every second and at lifecycle transitions. An abrupt OS kill may lose the most recent unsaved second (or more if the storage transaction was delayed); it does not reconstruct missing time. IndexedDB cannot guarantee a transaction completes during process termination. Storage failures produce a visible error and export remains available for the in-memory state.
 

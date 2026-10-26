@@ -22,6 +22,7 @@ import { mergeBackup } from "./persistence/backup";
 import { Routines } from "./components/Routines";
 import { Navigation, type Page } from "./components/Navigation";
 import { Practice } from "./components/Practice";
+import { SessionControls } from "./components/SessionControls";
 import { DurationControl } from "./components/controls/DurationControl";
 import { NumberStepper } from "./components/controls/NumberStepper";
 import { ToggleSwitch } from "./components/controls/ToggleSwitch";
@@ -191,11 +192,11 @@ function App() {
       void lock?.release();
     };
   }, [current?.status]);
-  const finish = (abandoned = false) => {
+  const finish = () => {
     const latest = state.current;
     const session = latest.current;
     if (!session) return;
-    timer.current?.finish(abandoned);
+    (timer.current ?? new ActiveTimer(session)).finish();
     latest.sessions = [
       ...latest.sessions.filter((item) => item.id !== session.id),
       structuredClone(session),
@@ -507,7 +508,9 @@ function App() {
               />
               {current.status !== "running" && (
                 <div className="pause-overlay">
-                  <span className="orb">Ⅱ</span>
+                  <span className="orb" aria-hidden="true">
+                    Ⅱ
+                  </span>
                   <h2>
                     {current.status === "interrupted"
                       ? t("session.welcome")
@@ -518,11 +521,6 @@ function App() {
                       ? t("session.interrupted")
                       : t("session.paused")}
                   </p>
-                  <button className="primary" onClick={resume}>
-                    {current.status === "interrupted"
-                      ? t("session.confirmResume")
-                      : t("session.resume")}
-                  </button>
                 </div>
               )}
             </div>
@@ -597,22 +595,13 @@ function App() {
             <div className="feedback" role="status">
               {feedback ? t(feedback) : ""}
             </div>
-            <div className="training-controls">
-              <button
-                className="primary"
-                onClick={() =>
-                  current.status === "running" ? pause() : resume()
-                }
-              >
-                {current.status === "running"
-                  ? `Ⅱ ${t("session.pause")}`
-                  : t("session.resume")}
-              </button>
-              <button onClick={() => finish()}>{t("session.finish")}</button>
-              <button onClick={() => finish(true)}>
-                {t(data.run ? "session.skip" : "session.endEarly")}
-              </button>
-            </div>
+            <SessionControls
+              status={current.status}
+              routine={Boolean(data.run)}
+              onPause={() => pause()}
+              onResume={resume}
+              onEnd={finish}
+            />
             <p className="fine">{t("session.safety")}</p>
           </main>
         ) : data.breakState ? (

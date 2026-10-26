@@ -11,7 +11,10 @@ type IconName =
   | "Copy"
   | "Trash"
   | "Chevron"
-  | "Check";
+  | "Check"
+  | "Pause"
+  | "Play"
+  | "Stop";
 
 const paths: Record<IconName, string> = {
   Practice:
@@ -28,6 +31,9 @@ const paths: Record<IconName, string> = {
   Trash: "M4 6h16 M9 6V3h6v3 M6 6l1 15h10l1-15 M10 10v7 M14 10v7",
   Chevron: "m8 5 7 7-7 7",
   Check: "m5 12 4 4L19 6",
+  Pause: "M8 5v14 M16 5v14",
+  Play: "m8 5 11 7-11 7Z",
+  Stop: "M6 6h12v12H6Z",
 };
 
 export function Icon({ name }: { name: IconName }) {

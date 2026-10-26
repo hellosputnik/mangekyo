@@ -68,3 +68,13 @@ Previews: [English exercise choices](screenshots/iphone-exercises-en.jpg), [Viet
 Replaced the font-character artwork with a typed SVG set in `src/components/ExerciseArtwork.tsx`. Saccadic targets use two focal targets and a diagonal jump arrow; contrast discrimination uses a split-tone circle. Pursuit and visual discrimination retain their infinity/C motifs with matching stroke, color, and proportions. Icons occupy fixed square slots and are decorative to assistive technology; the full button labels remain the accessible names. Exercise stimuli and settings are unchanged.
 
 Verified equal icon dimensions at 320px and 390px, no horizontal overflow, and preserved whole-word labels. All 82 tests and the production build pass. [Updated phone artwork](screenshots/iphone-exercise-icons.jpg).
+
+## Follow-up: session actions and completion status
+
+Previously, Finish & save and End early both retained time but allowed the same short session to be labeled completed or stopped early based on button choice. Removed that ambiguous distinction. A running standalone exercise now has two secondary controls: Pause and End session. The routine equivalent is Pause and Skip exercise, followed by the existing rest/next-step screen, where the routine can be ended. Pause has no primary color while running. The single Resume control receives emphasis while paused, and interrupted sessions explicitly say Confirm & resume. Removed the duplicate resume button from the pause overlay.
+
+Saving remains automatic at checkpoints and transitions. New completion status follows active duration: reaching the target is completed; ending sooner is stopped early (the existing stored `abandoned` identifier). Both retain valid active time. Terminal timers are idempotent and cannot be reopened by pause/resume. Existing history is not relabeled.
+
+All **91 tests** pass, including boundary classification, ending while paused/interrupted without counting time away, terminal idempotency, localized action labels, routine skip wording, and conditional primary emphasis. Browser checks verified a three-second early session retained 0:03 in history with zero completed sessions; a full ten-second session recorded 0:10 and one completion. Skipping a routine step transitioned to rest with the next exercise and End routine available. Reloading showed one explicit confirmation control. At 320px the Vietnamese recovery controls remained visible with 65px-high targets. Normal running controls at 390px measured at least 44px high, both with neutral backgrounds.
+
+[Updated running session controls](screenshots/iphone-session-controls.jpg). Direct Safari/physical iPhone validation remains outstanding.
