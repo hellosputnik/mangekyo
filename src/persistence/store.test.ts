@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { it, expect } from "vitest";
 import { load, save } from "./store";
 import { initialData, defaults } from "../engine/model";
+import { emptyFollowMetrics } from "../exercises/touch";
 import {
   resetStatistics,
   undoStatisticsReset,
@@ -106,4 +107,46 @@ it("recovers continuous difficulty, target sizes and optional answer sound witho
     typeof initialData
   >);
   expect((await load()).preferences.answerSound).toBe(false);
+});
+it("recovers following as interrupted without a held finger and migrates older exercise settings and levels", async () => {
+  const data = initialData();
+  data.current = {
+    id: "follow",
+    kind: "follow",
+    eye: "Left",
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "running",
+    activeMilliseconds: 2000,
+    slices: [],
+    trials: [],
+    difficulty: 2,
+    awaitingTouch: true,
+    follow: {
+      ...emptyFollowMetrics(),
+      trackedMilliseconds: 2000,
+      onTargetMilliseconds: 1500,
+      bestRunMilliseconds: 1000,
+      currentRunMilliseconds: 500,
+    },
+  };
+  const legacy = JSON.parse(JSON.stringify(data));
+  delete legacy.levels.tap;
+  delete legacy.levels.follow;
+  delete legacy.current.configuration.touchTolerance;
+  delete legacy.current.configuration.hand;
+  await save(legacy);
+  const restored = await load();
+  expect(restored.current?.status).toBe("interrupted");
+  expect(restored.current?.awaitingTouch).toBe(false);
+  expect(restored.current?.follow).toMatchObject({
+    trackedMilliseconds: 2000,
+    onTargetMilliseconds: 1500,
+    bestRunMilliseconds: 1000,
+    currentRunMilliseconds: 0,
+  });
+  expect(restored.levels.tap).toBe(0);
+  expect(restored.levels.follow).toBe(0);
+  expect(restored.current?.configuration.touchTolerance).toBe(72);
+  expect(restored.current?.configuration.hand).toBe("Right");
 });

@@ -4,19 +4,21 @@ import { Icon } from "./Icon";
 
 export function SessionControls({
   status,
+  awaitingTouch = false,
   routine,
   onPause,
   onResume,
   onEnd,
 }: {
   status: Session["status"];
+  awaitingTouch?: boolean;
   routine: boolean;
   onPause: () => void;
   onResume: () => void;
   onEnd: () => void;
 }) {
   const { t } = useI18n();
-  const running = status === "running";
+  const running = status === "running" || awaitingTouch;
   return (
     <div className="training-controls">
       <button

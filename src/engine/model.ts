@@ -1,6 +1,18 @@
 import type { LanguagePreference } from "../i18n/locale";
 
-export type ExerciseKind = "pursuit" | "saccades" | "visual" | "contrast";
+export const exerciseKinds = [
+  "pursuit",
+  "saccades",
+  "visual",
+  "contrast",
+  "tap",
+  "follow",
+] as const;
+export type ExerciseKind = (typeof exerciseKinds)[number];
+export const isResponseExercise = (kind: ExerciseKind) =>
+  kind === "visual" || kind === "contrast" || kind === "tap";
+export const isTouchExercise = (kind: ExerciseKind) =>
+  kind === "tap" || kind === "follow";
 export type Eye = "Left" | "Right" | "Both";
 export const motionPaths = [
   "Horizontal",
@@ -30,6 +42,8 @@ export interface Configuration {
   stimulus: "Opening" | "Orientation" | "Shape";
   contrastStimulus: "Grating" | "Shape";
   distance: number;
+  touchTolerance: number;
+  hand: "Left" | "Right";
 }
 export const defaults: Configuration = {
   duration: 300,
@@ -48,12 +62,16 @@ export const defaults: Configuration = {
   stimulus: "Opening",
   contrastStimulus: "Grating",
   distance: 40,
+  touchTolerance: 72,
+  hand: "Right",
 };
 export const names: Record<ExerciseKind, string> = {
   pursuit: "Smooth pursuit",
   saccades: "Saccadic targets",
   visual: "Visual discrimination",
   contrast: "Contrast discrimination",
+  tap: "Tap targets",
+  follow: "Follow the target",
 };
 export function bounded(
   value: number,
@@ -86,6 +104,8 @@ export function validate(configuration: Configuration): Configuration {
     jumpPause: bounded(configuration.jumpPause, 0, 10, 0.5),
     jumpDistance: bounded(configuration.jumpDistance, 0.1, 1, 0.8),
     distance: bounded(configuration.distance, 15, 200, 40),
+    touchTolerance: bounded(configuration.touchTolerance, 44, 160, 72),
+    hand: configuration.hand === "Left" ? "Left" : "Right",
   };
 }
 export interface Slice {
@@ -100,6 +120,22 @@ export interface Trial {
   difficulty: number;
   /** Presented visual target diameter in CSS pixels; absent in legacy records. */
   stimulusDiameter?: number;
+  touchDistance?: number;
+  touchTolerance?: number;
+}
+export interface FollowMetrics {
+  trackedMilliseconds: number;
+  onTargetMilliseconds: number;
+  distanceWeightedMilliseconds: number;
+  currentRunMilliseconds: number;
+  bestRunMilliseconds: number;
+  windowMilliseconds: number;
+  windowOnTargetMilliseconds: number;
+}
+export interface TapState {
+  x: number;
+  y: number;
+  presentedAtMilliseconds: number;
 }
 export interface Session {
   id: string;
@@ -113,6 +149,9 @@ export interface Session {
   slices: Slice[];
   trials: Trial[];
   difficulty: number;
+  follow?: FollowMetrics;
+  tapState?: TapState;
+  awaitingTouch?: boolean;
 }
 export interface Step {
   kind: ExerciseKind;
@@ -182,7 +221,14 @@ export const initialData = (): Data => ({
     reminder: 5,
   },
   measurements: [],
-  levels: { pursuit: 0, saccades: 0, visual: 0, contrast: 0 },
+  levels: {
+    pursuit: 0,
+    saccades: 0,
+    visual: 0,
+    contrast: 0,
+    tap: 0,
+    follow: 0,
+  },
   breakState: null,
 });
 export const localDate = (date: Date) =>

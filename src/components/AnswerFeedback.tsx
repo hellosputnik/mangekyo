@@ -7,6 +7,7 @@ export interface AnswerResult {
   currentRun: number;
   enlarged: boolean;
   highlight: boolean;
+  retry?: boolean;
 }
 
 export function AnswerFeedback({ result }: { result: AnswerResult }) {
@@ -25,7 +26,13 @@ export function AnswerFeedback({ result }: { result: AnswerResult }) {
         ? result.currentRun > 0 && result.currentRun % 5 === 0
           ? t("feedback.run", { count: number(result.currentRun) })
           : t("feedback.point")
-        : t(result.enlarged ? "feedback.larger" : "feedback.next")}
+        : t(
+            result.enlarged
+              ? "feedback.larger"
+              : result.retry
+                ? "feedback.retry"
+                : "feedback.next",
+          )}
     </span>
   );
 }

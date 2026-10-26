@@ -1,4 +1,4 @@
-import { initialData, type Data } from "./model";
+import { initialData, exerciseKinds, type Data } from "./model";
 
 export interface ResetStatisticsOptions {
   measurements: boolean;
@@ -52,9 +52,9 @@ export function undoStatisticsReset(data: Data): Data {
   ];
   const levels = { ...data.levels };
   if (statisticsReset.levels) {
-    for (const kind of ["pursuit", "saccades", "visual", "contrast"] as const) {
+    for (const kind of exerciseKinds) {
       if (!data.sessions.some((session) => session.kind === kind))
-        levels[kind] = statisticsReset.levels[kind];
+        levels[kind] = statisticsReset.levels[kind] ?? 0;
     }
   }
   return {

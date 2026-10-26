@@ -1,4 +1,4 @@
-import { initialData, type Data } from "../engine/model";
+import { initialData, validate, type Data } from "../engine/model";
 import { normalizeLanguagePreference } from "../i18n/locale";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
@@ -19,6 +19,22 @@ export async function load(): Promise<Data> {
         ...data.preferences,
         language: normalizeLanguagePreference(data.preferences?.language),
       };
+      data.levels = { ...initialData().levels, ...data.levels };
+      for (const session of [
+        ...data.sessions,
+        ...(data.current ? [data.current] : []),
+        ...(data.statisticsReset?.sessions ?? []),
+      ])
+        session.configuration = validate(session.configuration);
+      if (data.statisticsReset?.levels)
+        data.statisticsReset.levels = {
+          ...initialData().levels,
+          ...data.statisticsReset.levels,
+        };
+      if (data.current?.kind === "follow") {
+        data.current.awaitingTouch = false;
+        if (data.current.follow) data.current.follow.currentRunMilliseconds = 0;
+      }
       if (data.current) data.current.status = "interrupted";
       resolve(data);
     };

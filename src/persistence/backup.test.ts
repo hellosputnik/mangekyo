@@ -7,6 +7,7 @@ import {
 } from "../engine/statistics-reset";
 import { recordResponse } from "../exercises/responses";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { TouchExercise, emptyFollowMetrics } from "../exercises/touch";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -202,4 +203,94 @@ it("defaults answer sound off in legacy backups and rejects malformed feedback p
       preferences: { ...data.preferences, answerSound: "yes" },
     }),
   ).toThrow();
+});
+it("round trips touch metrics, trial geometry, routine steps and a six-exercise reset snapshot", () => {
+  const data = initialData();
+  const session = {
+    id: "tap",
+    kind: "tap" as const,
+    eye: "Left" as const,
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "running" as const,
+    activeMilliseconds: 0,
+    slices: [],
+    trials: [],
+    difficulty: 0,
+  };
+  const exercise = new TouchExercise(session, () => 0.5);
+  exercise.initialize();
+  exercise.setViewport(390, 500);
+  exercise.pointerDown(exercise.targetPoint());
+  exercise.pointerUp(exercise.targetPoint());
+  data.sessions = [
+    { ...session, status: "abandoned" },
+    {
+      ...session,
+      id: "follow",
+      kind: "follow",
+      trials: [],
+      follow: emptyFollowMetrics(),
+    },
+  ];
+  data.routines = [
+    {
+      id: "touch",
+      name: "Touch",
+      steps: [
+        { kind: "tap", duration: 60 },
+        { kind: "follow", duration: 60 },
+      ],
+      rest: 30,
+      manual: false,
+    },
+  ];
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.sessions[0].trials).toEqual(data.sessions[0].trials);
+  expect(imported.sessions[1].follow).toEqual(emptyFollowMetrics());
+  expect(imported.routines).toEqual(data.routines);
+  data.levels.tap = 3;
+  data.levels.follow = 4;
+  const reset = resetStatistics(data, {
+    difficulty: true,
+    measurements: false,
+  });
+  expect(
+    undoStatisticsReset(mergeBackup(initialData(), reset)).levels,
+  ).toMatchObject({ tap: 3, follow: 4 });
+  const invalid = structuredClone(data);
+  invalid.sessions[1].follow!.trackedMilliseconds = 100000;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+  invalid.sessions[1].follow = emptyFollowMetrics();
+  invalid.sessions[0].trials[0].touchDistance = NaN;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+});
+it("imports four-exercise legacy backups without losing records or reset recovery", () => {
+  const data = initialData();
+  data.sessions = [
+    {
+      id: "old",
+      kind: "pursuit",
+      eye: "Left",
+      configuration: { ...defaults },
+      startedAt: "2026-10-25T12:00:00Z",
+      status: "abandoned",
+      activeMilliseconds: 0,
+      slices: [],
+      trials: [],
+      difficulty: 0,
+    },
+  ];
+  const legacy = JSON.parse(
+    JSON.stringify(
+      resetStatistics(data, { difficulty: true, measurements: false }),
+    ),
+  );
+  delete legacy.statisticsReset.levels.tap;
+  delete legacy.statisticsReset.levels.follow;
+  delete legacy.statisticsReset.sessions[0].configuration.touchTolerance;
+  delete legacy.statisticsReset.sessions[0].configuration.hand;
+  const imported = mergeBackup(initialData(), legacy);
+  expect(imported.statisticsReset?.levels?.follow).toBe(0);
+  expect(undoStatisticsReset(imported).sessions[0].id).toBe("old");
 });

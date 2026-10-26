@@ -13,6 +13,34 @@ export const vietnamese = {
   "exercise.saccades": "Chuyển điểm nhìn",
   "exercise.visual": "Phân biệt hình ảnh",
   "exercise.contrast": "Phân biệt tương phản",
+  "exercise.tap": "Chạm mục tiêu",
+  "exercise.follow": "Kéo theo mục tiêu",
+  "description.tap": "Chạm từng mục tiêu, luyện nhịp chạm đều và chính xác.",
+  "description.follow":
+    "Kéo nút điều khiển để vòng tròn theo sát chấm di chuyển.",
+  "touch.tapInstruction":
+    "Chạm trong quầng tròn quanh mục tiêu. Chạm trúng để chuyển vị trí; nếu trượt, thử lại nhé.",
+  "touch.followInstruction":
+    "Giữ nút bên dưới vòng tròn rồi kéo theo chấm. Nhấc ngón tay để tạm dừng đồng hồ.",
+  "touch.holdHandle": "Giữ nút điều khiển để bắt đầu",
+  "touch.ready": "Sẵn sàng",
+  "touch.hitArea": "Đường kính vùng chạm (px CSS)",
+  "touch.haloSize": "Đường kính quầng tròn (px CSS)",
+  "touch.hand": "Tay luyện tập (tự ghi)",
+  "touch.leftHand": "Tay trái",
+  "touch.rightHand": "Tay phải",
+  "touch.liveResult": "Theo sát {accuracy} · Tốt nhất {best}",
+  "touch.onTarget": "Thời gian theo sát",
+  "touch.meanDistance": "Lệch trung bình",
+  "touch.hitRate": "Tỷ lệ chạm trúng",
+  "touch.hitSummary": "Chạm trúng: {correct} / {total}",
+  "touch.tapResponse": "Chạm trung vị",
+  "touch.pixels": "{value} px CSS",
+  "touch.bestRun": "Lần theo sát lâu nhất",
+  "touch.trackedTime": "Thời gian kéo theo",
+  "touch.noData": "Kết quả điều khiển sẽ hiện sau khi tập.",
+  "touch.performanceNote":
+    "Điểm số phản ánh điều khiển ngón tay, không đo chuyển động mắt hay thị lực. Kích thước màn hình, cảm ứng và tay dùng ảnh hưởng đến việc so sánh.",
   "description.pursuit": "Dùng mắt dõi theo mục tiêu di chuyển nhẹ nhàng.",
   "description.saccades": "Chuyển ánh nhìn giữa các mục tiêu.",
   "description.visual": "Nhận biết hướng. Rèn sự tập trung.",
@@ -51,6 +79,8 @@ export const vietnamese = {
   "feedback.run": "Đúng {count} câu liên tiếp · +1",
   "feedback.larger": "Mục tiêu lớn hơn. Thử lại nhé",
   "feedback.next": "Thử câu tiếp theo nhé",
+  "feedback.retry": "Thử lại nhé — mục tiêu vẫn ở đây",
+  "touch.inHalo": "Đang theo sát",
   "feedback.target":
     "Đã xác nhận mục tiêu · Ứng dụng không đo độ chính xác của ánh nhìn",
   "feedback.imported":
@@ -169,7 +199,7 @@ export const vietnamese = {
   "statistics.sessions": "Buổi tập",
   "statistics.sessionCount": "{count} buổi tập",
   "statistics.practiceDays": "Ngày tập",
-  "statistics.responses": "Câu trả lời",
+  "statistics.responses": "Lượt phản hồi",
   "statistics.averageSession": "Trung bình/buổi",
   "statistics.outcomes":
     "{completed} hoàn thành · {stopped} dừng sớm · {interrupted} bị gián đoạn",

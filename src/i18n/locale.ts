@@ -47,12 +47,16 @@ const exerciseKeys: Record<ExerciseKind, MessageKey> = {
   saccades: "exercise.saccades",
   visual: "exercise.visual",
   contrast: "exercise.contrast",
+  tap: "exercise.tap",
+  follow: "exercise.follow",
 };
 const descriptionKeys: Record<ExerciseKind, MessageKey> = {
   pursuit: "description.pursuit",
   saccades: "description.saccades",
   visual: "description.visual",
   contrast: "description.contrast",
+  tap: "description.tap",
+  follow: "description.follow",
 };
 const eyeKeys: Record<Eye, MessageKey> = {
   Left: "eye.Left",

@@ -1,4 +1,9 @@
-import type { Data } from "../engine/model";
+import {
+  isResponseExercise,
+  isTouchExercise,
+  type Data,
+} from "../engine/model";
+import { summarizeTouch } from "../analytics/touch";
 import type { ResetStatisticsOptions } from "../engine/statistics-reset";
 import { buildStatistics } from "../analytics/statistics";
 import { useI18n } from "../i18n/react";
@@ -98,8 +103,12 @@ export function Statistics({
         </div>
         <div className="exercise-report-grid">
           {report.exercises.map((exercise) => {
-            const responseExercise =
-              exercise.kind === "visual" || exercise.kind === "contrast";
+            const responseExercise = isResponseExercise(exercise.kind);
+            const touch = summarizeTouch(
+              report.sessions.filter(
+                (session) => session.kind === exercise.kind,
+              ),
+            );
             return (
               <article className="exercise-report" key={exercise.kind}>
                 <div className="exercise-report-heading">
@@ -120,7 +129,13 @@ export function Statistics({
                   {responseExercise ? (
                     <>
                       <div>
-                        <dt>{t("statistics.answerAccuracy")}</dt>
+                        <dt>
+                          {t(
+                            exercise.kind === "tap"
+                              ? "touch.hitRate"
+                              : "statistics.answerAccuracy",
+                          )}
+                        </dt>
                         <dd>
                           {exercise.accuracy === null
                             ? "—"
@@ -128,7 +143,13 @@ export function Statistics({
                         </dd>
                       </div>
                       <div>
-                        <dt>{t("statistics.medianResponse")}</dt>
+                        <dt>
+                          {t(
+                            exercise.kind === "tap"
+                              ? "touch.tapResponse"
+                              : "statistics.medianResponse",
+                          )}
+                        </dt>
                         <dd>
                           {exercise.medianResponseMilliseconds === null
                             ? "—"
@@ -137,6 +158,27 @@ export function Statistics({
                                   exercise.medianResponseMilliseconds / 1000,
                                   1,
                                 ),
+                              })}
+                        </dd>
+                      </div>
+                    </>
+                  ) : exercise.kind === "follow" ? (
+                    <>
+                      <div>
+                        <dt>{t("touch.onTarget")}</dt>
+                        <dd>
+                          {touch.onTargetRatio === null
+                            ? "—"
+                            : percent(touch.onTargetRatio)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{t("touch.meanDistance")}</dt>
+                        <dd>
+                          {touch.meanDistance === null
+                            ? "—"
+                            : t("touch.pixels", {
+                                value: number(touch.meanDistance, 1),
                               })}
                         </dd>
                       </div>
@@ -167,6 +209,11 @@ export function Statistics({
                     <Icon name="Chevron" />
                   </summary>
                   <div className="exercise-report-detail-content">
+                    {isTouchExercise(exercise.kind) && (
+                      <p className="exercise-report-note">
+                        {t("touch.performanceNote")}
+                      </p>
+                    )}
                     <p className="exercise-report-note">
                       {t("statistics.outcomes", {
                         completed: number(exercise.completedCount),
@@ -177,12 +224,29 @@ export function Statistics({
                     {responseExercise ? (
                       <p className="exercise-report-note">
                         {exercise.responseCount
-                          ? t("statistics.correctAnswers", {
-                              correct: number(exercise.correctCount),
-                              total: number(exercise.responseCount),
-                            })
+                          ? t(
+                              exercise.kind === "tap"
+                                ? "touch.hitSummary"
+                                : "statistics.correctAnswers",
+                              {
+                                correct: number(exercise.correctCount),
+                                total: number(exercise.responseCount),
+                              },
+                            )
                           : t("statistics.noResponses")}
                       </p>
+                    ) : exercise.kind === "follow" ? (
+                      <>
+                        <p className="exercise-report-note">
+                          {t("touch.bestRun")}:{" "}
+                          {time(touch.bestRunMilliseconds)}
+                        </p>
+                        {touch.onTargetRatio === null && (
+                          <p className="exercise-report-note">
+                            {t("touch.noData")}
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <p className="exercise-report-note">
                         {t("statistics.noGazeScore")}

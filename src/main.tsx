@@ -4,6 +4,8 @@ import {
   initialData,
   validate,
   localDate,
+  isTouchExercise,
+  isResponseExercise,
   type Configuration,
   type Data,
   type ExerciseKind,
@@ -20,7 +22,10 @@ import {
 } from "./engine/practice";
 import { load, save } from "./persistence/store";
 import { totalForDate } from "./analytics/totals";
-import { VisualExercise } from "./exercises/exercise";
+import type { Exercise } from "./exercises/exercise";
+import { createExercise } from "./exercises/factory";
+import { TouchExercise, type Point } from "./exercises/touch";
+import { summarizeTouch } from "./analytics/touch";
 import { currentPursuitPath } from "./exercises/pursuit";
 import { maximumVisualDifficulty } from "./exercises/visual";
 import { recordResponse, responseScore } from "./exercises/responses";
@@ -70,6 +75,7 @@ function App() {
     eyeLabel,
     statusLabel,
     patternLabel,
+    percent,
   } = localization;
   const state = useRef(data);
   state.current = data;
@@ -119,7 +125,8 @@ function App() {
     }
   }, [language, t]);
   const timer = useRef<ActiveTimer | null>(null);
-  const exercise = useRef<VisualExercise | null>(null);
+  const exercise = useRef<Exercise | null>(null);
+  const touchPointer = useRef<number | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const trialStart = useRef(0);
   const lastSave = useRef(0);
@@ -171,8 +178,18 @@ function App() {
       window.removeEventListener("offline", network);
     };
   }, []);
-  const pause = (interrupted = false) => {
+  const releaseTouch = () => {
+    const pointer = touchPointer.current;
+    touchPointer.current = null;
+    if (exercise.current instanceof TouchExercise) exercise.current.release();
+    if (pointer !== null && canvas.current?.hasPointerCapture(pointer))
+      canvas.current.releasePointerCapture(pointer);
+  };
+  const pause = (interrupted = false, awaitingTouch = false) => {
     timer.current?.pause(interrupted);
+    releaseTouch();
+    if (state.current.current?.kind === "follow")
+      state.current.current.awaitingTouch = awaitingTouch && !interrupted;
     setAnswerResult(null);
     persist(state.current);
   };
@@ -198,7 +215,7 @@ function App() {
   );
   useEffect(() => {
     if (!current) return;
-    const renderer = new VisualExercise(current.kind, current.configuration);
+    const renderer = createExercise(current);
     renderer.initialize();
     exercise.current = renderer;
     trialStart.current = current.activeMilliseconds;
@@ -229,6 +246,8 @@ function App() {
     const session = latest.current;
     if (!session) return;
     (timer.current ?? new ActiveTimer(session)).finish();
+    releaseTouch();
+    if (session.kind === "follow") session.awaitingTouch = false;
     latest.sessions = [
       ...latest.sessions.filter((item) => item.id !== session.id),
       structuredClone(session),
@@ -256,7 +275,11 @@ function App() {
         if (session.status === "running") {
           if (document.hidden) {
             pause(true);
-          } else timer.current?.checkpoint();
+          } else {
+            timer.current?.checkpoint();
+            if (exercise.current instanceof TouchExercise)
+              exercise.current.sample();
+          }
           if (
             session.activeMilliseconds >=
             session.configuration.duration * 1000
@@ -283,6 +306,18 @@ function App() {
         if (element && exercise.current) {
           const bounds = element.getBoundingClientRect();
           const ratio = Math.min(window.devicePixelRatio || 1, 3);
+          if (exercise.current instanceof TouchExercise) {
+            const resized = exercise.current.setViewport(
+              bounds.width,
+              bounds.height,
+            );
+            if (
+              resized &&
+              session.kind === "follow" &&
+              touchPointer.current !== null
+            )
+              pause(false, true);
+          }
           if (
             session.kind === "visual" &&
             bounds.width > 40 &&
@@ -420,9 +455,10 @@ function App() {
       slices: [],
       trials: [],
       difficulty: state.current.levels[selected],
+      ...(selected === "follow" ? { awaitingTouch: true } : {}),
     };
     timer.current = new ActiveTimer(session);
-    timer.current.resume();
+    if (selected !== "follow") timer.current.resume();
     lastReminder.current = 0;
     setFeedback("");
     setAnswerResult(null);
@@ -430,7 +466,10 @@ function App() {
   };
   const resume = () => {
     if (!document.hidden) {
-      timer.current?.resume();
+      if (state.current.current?.kind === "follow") {
+        state.current.current.status = "paused";
+        state.current.current.awaitingTouch = true;
+      } else timer.current?.resume();
       persist(state.current);
     }
   };
@@ -449,7 +488,8 @@ function App() {
     }
     const bounds = canvas.current?.getBoundingClientRect();
     if (!bounds || bounds.width <= 40 || bounds.height <= 40) return;
-    const correct = exercise.current.answer(choice);
+    const correct = exercise.current.answer?.(choice);
+    if (correct === undefined) return;
     const result = recordResponse(
       current,
       correct,
@@ -475,6 +515,105 @@ function App() {
       playAnswerConfirmation();
     persist(state.current);
   };
+  const touchPoint = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+  };
+  const touchDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const session = state.current.current;
+    const renderer = exercise.current;
+    if (
+      !session ||
+      !(renderer instanceof TouchExercise) ||
+      document.hidden ||
+      !event.isPrimary ||
+      event.button !== 0 ||
+      touchPointer.current !== null
+    )
+      return;
+    if (
+      session.status !== "running" &&
+      !(
+        session.kind === "follow" &&
+        session.status === "paused" &&
+        session.awaitingTouch
+      )
+    )
+      return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    renderer.setViewport(bounds.width, bounds.height);
+    if (!renderer.pointerDown(touchPoint(event))) return;
+    event.preventDefault();
+    touchPointer.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (session.kind === "follow") {
+      session.awaitingTouch = false;
+      timer.current?.resume();
+      setFeedback("");
+    }
+    persist(state.current);
+  };
+  const touchMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (
+      touchPointer.current !== event.pointerId ||
+      document.hidden ||
+      state.current.current?.status !== "running" ||
+      !(exercise.current instanceof TouchExercise)
+    )
+      return;
+    event.preventDefault();
+    timer.current?.checkpoint();
+    exercise.current.pointerMove(touchPoint(event));
+  };
+  const touchUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (
+      touchPointer.current !== event.pointerId ||
+      !(exercise.current instanceof TouchExercise)
+    )
+      return;
+    event.preventDefault();
+    const session = state.current.current;
+    if (!session || document.hidden || session.status !== "running") {
+      pause(true);
+      return;
+    }
+    timer.current?.checkpoint();
+    if (session.activeMilliseconds >= session.configuration.duration * 1000) {
+      finish();
+      return;
+    }
+    const result = exercise.current.pointerUp(touchPoint(event));
+    touchPointer.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    if (session.kind === "follow") pause(false, true);
+    else {
+      if (result) {
+        setAnswerResult({
+          choice: -1,
+          correct: result.correct,
+          sequence: session.trials.length,
+          currentRun: result.currentRun,
+          enlarged: false,
+          highlight: true,
+          retry: true,
+        });
+        setFeedback("");
+        if (result.correct && state.current.preferences.answerSound)
+          playAnswerConfirmation();
+      }
+      persist(state.current);
+    }
+  };
+  const touchCancel = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (touchPointer.current !== event.pointerId) return;
+    if (state.current.current?.kind === "follow")
+      pause(document.hidden, !document.hidden);
+    else {
+      releaseTouch();
+      persist(state.current);
+    }
+  };
   const navigate = (page: Page) => {
     setTab(page);
     setFeedback("");
@@ -483,10 +622,14 @@ function App() {
   const minutes = totalForDate(data) / 60000;
   const lastSession = data.sessions.at(-1);
   const lastScore =
-    data.breakState &&
-    lastSession &&
-    (lastSession.kind === "visual" || lastSession.kind === "contrast")
+    data.breakState && lastSession && isResponseExercise(lastSession.kind)
       ? responseScore(lastSession.trials)
+      : null;
+  const touchSummary =
+    current?.kind === "follow" ? summarizeTouch([current]) : null;
+  const lastTouchSummary =
+    data.breakState && lastSession?.kind === "follow"
+      ? summarizeTouch([lastSession])
       : null;
   const setting = (
     key: keyof Configuration,
@@ -567,7 +710,12 @@ function App() {
             <div className="training-top">
               <div>
                 <span className="eyebrow">
-                  {eyeLabel(current.eye)} · {statusLabel(current.status)}
+                  {eyeLabel(current.eye)} ·{" "}
+                  {current.kind === "follow" &&
+                  current.awaitingTouch &&
+                  current.status === "paused"
+                    ? t("touch.ready")
+                    : statusLabel(current.status)}
                 </span>
                 <h2>{exerciseName(current.kind)}</h2>
               </div>
@@ -585,27 +733,52 @@ function App() {
             <div className="canvas-wrap">
               <canvas
                 ref={canvas}
+                onContextMenu={(event) => {
+                  if (isTouchExercise(current.kind)) event.preventDefault();
+                }}
+                onPointerDown={touchDown}
+                onPointerMove={touchMove}
+                onPointerUp={touchUp}
+                onPointerCancel={touchCancel}
+                onLostPointerCapture={touchCancel}
+                aria-describedby={
+                  isTouchExercise(current.kind)
+                    ? "touch-instructions"
+                    : undefined
+                }
                 aria-label={t("session.stimulus", {
                   exercise: exerciseName(current.kind),
                 })}
               />
-              {current.status !== "running" && (
-                <div className="pause-overlay">
-                  <span className="orb" aria-hidden="true">
-                    Ⅱ
-                  </span>
-                  <h2>
-                    {current.status === "interrupted"
-                      ? t("session.welcome")
-                      : t("session.takeTime")}
-                  </h2>
-                  <p>
-                    {current.status === "interrupted"
-                      ? t("session.interrupted")
-                      : t("session.paused")}
-                  </p>
-                </div>
-              )}
+              {current.kind === "follow" &&
+                current.status === "paused" &&
+                current.awaitingTouch && (
+                  <div className="touch-ready" aria-hidden="true">
+                    {t("touch.holdHandle")}
+                  </div>
+                )}
+              {current.status !== "running" &&
+                !(
+                  current.kind === "follow" &&
+                  current.status === "paused" &&
+                  current.awaitingTouch
+                ) && (
+                  <div className="pause-overlay">
+                    <span className="orb" aria-hidden="true">
+                      Ⅱ
+                    </span>
+                    <h2>
+                      {current.status === "interrupted"
+                        ? t("session.welcome")
+                        : t("session.takeTime")}
+                    </h2>
+                    <p>
+                      {current.status === "interrupted"
+                        ? t("session.interrupted")
+                        : t("session.paused")}
+                    </p>
+                  </div>
+                )}
             </div>
             <div className="exercise-info">
               <span>
@@ -618,12 +791,29 @@ function App() {
                   ? `${patternLabel(currentPursuitPath(current.configuration, current.activeMilliseconds / 1000))} · ${t("session.pursuitHint")}`
                   : current.kind === "saccades"
                     ? t("session.saccadeHint")
-                    : t("session.score", {
-                        points: number(score.points),
-                        best: number(score.bestRun),
-                      })}
+                    : touchSummary
+                      ? t("touch.liveResult", {
+                          accuracy:
+                            touchSummary.onTargetRatio === null
+                              ? "—"
+                              : percent(touchSummary.onTargetRatio),
+                          best: formatTime(touchSummary.bestRunMilliseconds),
+                        })
+                      : t("session.score", {
+                          points: number(score.points),
+                          best: number(score.bestRun),
+                        })}
               </span>
             </div>
+            {isTouchExercise(current.kind) && (
+              <p className="touch-instructions" id="touch-instructions">
+                {t(
+                  current.kind === "tap"
+                    ? "touch.tapInstruction"
+                    : "touch.followInstruction",
+                )}
+              </p>
+            )}
             {(current.kind === "visual" || current.kind === "contrast") && (
               <section
                 className="answer-section"
@@ -676,7 +866,15 @@ function App() {
                 </button>
               )}
             <div className="feedback" role="status" aria-atomic="true">
-              {answerResult ? (
+              {current.kind === "follow" &&
+              current.status === "running" &&
+              exercise.current instanceof TouchExercise &&
+              exercise.current.isOnTarget() ? (
+                <span className="answer-affirmation">
+                  <span aria-hidden="true">✓</span>
+                  {t("touch.inHalo")}
+                </span>
+              ) : answerResult ? (
                 <AnswerFeedback result={answerResult} />
               ) : feedback ? (
                 t(feedback)
@@ -686,6 +884,11 @@ function App() {
             </div>
             <SessionControls
               status={current.status}
+              awaitingTouch={
+                current.kind === "follow" &&
+                current.awaitingTouch &&
+                current.status === "paused"
+              }
               routine={Boolean(data.run)}
               onPause={() => pause()}
               onResume={resume}
@@ -718,6 +921,17 @@ function App() {
                 {t("session.score", {
                   points: number(lastScore.points),
                   best: number(lastScore.bestRun),
+                })}
+              </p>
+            )}
+            {lastTouchSummary && (
+              <p className="rest-result">
+                {t("touch.liveResult", {
+                  accuracy:
+                    lastTouchSummary.onTargetRatio === null
+                      ? "—"
+                      : percent(lastTouchSummary.onTargetRatio),
+                  best: formatTime(lastTouchSummary.bestRunMilliseconds),
                 })}
               </p>
             )}

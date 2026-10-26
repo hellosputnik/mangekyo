@@ -7,6 +7,13 @@ export interface PracticeSetup {
   configuration: Configuration;
 }
 export type PracticeSetups = Record<ExerciseKind, PracticeSetup>;
+export function practiceDefaults(kind: ExerciseKind): Configuration {
+  return {
+    ...defaults,
+    ...(kind === "tap" ? { size: 44 } : {}),
+    ...(kind === "follow" ? { speed: 0.06 } : {}),
+  };
+}
 
 export function initialPracticeSetups(): PracticeSetups {
   return {
@@ -14,6 +21,8 @@ export function initialPracticeSetups(): PracticeSetups {
     saccades: { mode: "Default", configuration: { ...defaults } },
     visual: { mode: "Default", configuration: { ...defaults } },
     contrast: { mode: "Default", configuration: { ...defaults } },
+    tap: { mode: "Default", configuration: practiceDefaults("tap") },
+    follow: { mode: "Default", configuration: practiceDefaults("follow") },
   };
 }
 
@@ -28,9 +37,10 @@ export function selectPracticeMode(
       ? applyPursuitPreset(previous, mode === "Default" ? "Mixed" : "Custom")
       : mode === "Default"
         ? {
-            ...defaults,
+            ...practiceDefaults(kind),
             duration: previous.duration,
             distance: previous.distance,
+            hand: previous.hand,
           }
         : { ...previous };
   return { ...setups, [kind]: { mode, configuration } };

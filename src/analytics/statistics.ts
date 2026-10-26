@@ -1,6 +1,7 @@
 import {
   localDate,
   names,
+  isResponseExercise,
   type Data,
   type ExerciseKind,
   type Eye,
@@ -55,9 +56,7 @@ export function summarizePractice(sessions: Session[]): PracticeSummary {
       days.add(sessionDate(session));
   }
   const trials = sessions
-    .filter(
-      (session) => session.kind === "visual" || session.kind === "contrast",
-    )
+    .filter((session) => isResponseExercise(session.kind))
     .flatMap((session) => session.trials);
   const correctCount = trials.filter((trial) => trial.correct).length;
   const responseTimes = trials
@@ -102,16 +101,20 @@ export function buildStatistics(data: Data, today = new Date()) {
     Object.keys(names) as ExerciseKind[]
   ).map((kind) => {
     const records = sessions.filter((session) => session.kind === kind);
-    const responseRecords =
-      kind === "visual" || kind === "contrast"
-        ? records.filter((session) => session.trials.length)
-        : [];
+    const responseRecords = isResponseExercise(kind)
+      ? records.filter((session) => session.trials.length)
+      : [];
     return {
       ...summarizePractice(records),
       kind,
-      latestLevel: responseRecords.length
-        ? records.at(-1)!.difficulty + 1
-        : null,
+      latestLevel:
+        responseRecords.length ||
+        (kind === "follow" &&
+          records.some(
+            (session) => (session.follow?.trackedMilliseconds ?? 0) > 0,
+          ))
+          ? records.at(-1)!.difficulty + 1
+          : null,
       recentResults: responseRecords.slice(-6).map((session) => ({
         id: session.id,
         date: sessionDate(session),

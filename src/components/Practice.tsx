@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   names,
+  isTouchExercise,
   pursuitPatterns,
   type Configuration,
   type ExerciseKind,
@@ -38,7 +39,7 @@ function AdvancedFields({
   return (
     <>
       <div className="settings-grid">
-        {kind === "pursuit" && (
+        {(kind === "pursuit" || kind === "follow") && (
           <label>
             {t("config.pattern")}
             <select
@@ -87,7 +88,9 @@ function AdvancedFields({
             [
               "size",
               t(
-                kind === "pursuit" || kind === "saccades"
+                kind === "pursuit" ||
+                  kind === "saccades" ||
+                  isTouchExercise(kind)
                   ? "config.size"
                   : "config.patternSize",
               ),
@@ -106,7 +109,7 @@ function AdvancedFields({
         )
           .filter(([key]) => {
             if (key === "speed" || key === "complexity")
-              return kind === "pursuit";
+              return kind === "pursuit" || kind === "follow";
             if (
               key === "exposure" ||
               key === "jumpPause" ||
@@ -155,6 +158,40 @@ function AdvancedFields({
         )}
       </div>
       <p className="fine">{t("practice.eyeNote")}</p>
+      {isTouchExercise(kind) && (
+        <>
+          <label>
+            {t(kind === "tap" ? "touch.hitArea" : "touch.haloSize")} ·{" "}
+            {number(configuration.touchTolerance)}
+            <input
+              type="range"
+              min="44"
+              max="160"
+              step="2"
+              value={configuration.touchTolerance}
+              onChange={(event) =>
+                setting("touchTolerance", Number(event.target.value))
+              }
+            />
+          </label>
+          <fieldset className="hand-choice">
+            <legend>{t("touch.hand")}</legend>
+            <div>
+              {(["Left", "Right"] as const).map((hand) => (
+                <button
+                  key={hand}
+                  type="button"
+                  aria-pressed={configuration.hand === hand}
+                  onClick={() => setting("hand", hand)}
+                >
+                  {t(hand === "Left" ? "touch.leftHand" : "touch.rightHand")}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <p className="fine">{t("touch.performanceNote")}</p>
+        </>
+      )}
       {kind === "contrast" && <p className="fine">{t("config.displayNote")}</p>}
     </>
   );
@@ -229,7 +266,11 @@ export function Practice({
           >
             <div className="section-label">
               <h2 id="exercise-library-title">{t("practice.choose")}</h2>
-              <span>{t("practice.exerciseCount", { count: number(4) })}</span>
+              <span>
+                {t("practice.exerciseCount", {
+                  count: number(Object.keys(names).length),
+                })}
+              </span>
             </div>
             <div className="exercise-grid">
               {(Object.keys(names) as ExerciseKind[]).map((item) => (
@@ -285,6 +326,15 @@ export function Practice({
           />
           {shouldRecommendLandscape(kind, configuration.pattern) && (
             <LandscapeHint />
+          )}
+          {isTouchExercise(kind) && (
+            <p className="control-caption">
+              {t(
+                kind === "tap"
+                  ? "touch.tapInstruction"
+                  : "touch.followInstruction",
+              )}
+            </p>
           )}
           <button
             className="primary begin-button"

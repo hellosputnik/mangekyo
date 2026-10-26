@@ -1,5 +1,10 @@
 import { useEffect, useId, useRef } from "react";
-import type { Session } from "../engine/model";
+import {
+  isResponseExercise,
+  isTouchExercise,
+  type Session,
+} from "../engine/model";
+import { summarizeTouch } from "../analytics/touch";
 import { activityEntries, type ActivityEntry } from "../analytics/activity";
 import {
   sessionMoment,
@@ -32,8 +37,8 @@ export function SessionDetails({
   } = useI18n();
   const start = sessionMoment(session);
   const end = sessionMoment(session, "end");
-  const responseExercise =
-    session.kind === "visual" || session.kind === "contrast";
+  const responseExercise = isResponseExercise(session.kind);
+  const touch = summarizeTouch([session]);
   const summary = summarizePractice([session]);
   const score = responseScore(session.trials);
   const sizes = session.trials.flatMap((trial) =>
@@ -43,7 +48,9 @@ export function SessionDetails({
   const settings: { label: string; value: string }[] = [
     {
       label: t(
-        session.kind === "pursuit" || session.kind === "saccades"
+        session.kind === "pursuit" ||
+          session.kind === "saccades" ||
+          isTouchExercise(session.kind)
           ? "config.size"
           : "config.patternSize",
       ),
@@ -52,7 +59,7 @@ export function SessionDetails({
     { label: t("config.contrast"), value: number(configuration.contrast) },
     { label: t("config.distance"), value: number(configuration.distance) },
   ];
-  if (session.kind === "pursuit")
+  if (session.kind === "pursuit" || session.kind === "follow")
     settings.push(
       {
         label: t("config.pattern"),
@@ -87,6 +94,19 @@ export function SessionDetails({
       label: t("config.contrastTask"),
       value: optionLabel(configuration.contrastStimulus),
     });
+  if (isTouchExercise(session.kind))
+    settings.push(
+      {
+        label: t(session.kind === "tap" ? "touch.hitArea" : "touch.haloSize"),
+        value: number(configuration.touchTolerance),
+      },
+      {
+        label: t("touch.hand"),
+        value: t(
+          configuration.hand === "Left" ? "touch.leftHand" : "touch.rightHand",
+        ),
+      },
+    );
   if (session.kind !== "contrast")
     settings.push({
       label: t("config.foreground"),
@@ -158,13 +178,25 @@ export function SessionDetails({
           <h3>{t("sessionDetails.results")}</h3>
           <dl className="session-facts">
             <div>
-              <dt>{t("statistics.answerAccuracy")}</dt>
+              <dt>
+                {t(
+                  session.kind === "tap"
+                    ? "touch.hitRate"
+                    : "statistics.answerAccuracy",
+                )}
+              </dt>
               <dd>
                 {summary.accuracy === null ? "—" : percent(summary.accuracy)}
               </dd>
             </div>
             <div>
-              <dt>{t("statistics.medianResponse")}</dt>
+              <dt>
+                {t(
+                  session.kind === "tap"
+                    ? "touch.tapResponse"
+                    : "statistics.medianResponse",
+                )}
+              </dt>
               <dd>
                 {summary.medianResponseMilliseconds === null
                   ? "—"
@@ -188,30 +220,81 @@ export function SessionDetails({
               <dt>{t("sessionDetails.bestRun")}</dt>
               <dd>{number(score.bestRun)}</dd>
             </div>
-            {session.kind === "visual" && sizes.length > 0 && (
+            {(session.kind === "visual" || session.kind === "tap") &&
+              sizes.length > 0 && (
+                <div>
+                  <dt>{t("sessionDetails.targetRange")}</dt>
+                  <dd>
+                    {t("sessionDetails.targetPixels", {
+                      small: number(Math.min(...sizes), 1),
+                      large: number(Math.max(...sizes), 1),
+                    })}
+                  </dd>
+                </div>
+              )}
+            {session.kind === "tap" && (
               <div>
-                <dt>{t("sessionDetails.targetRange")}</dt>
+                <dt>{t("touch.meanDistance")}</dt>
                 <dd>
-                  {t("sessionDetails.targetPixels", {
-                    small: number(Math.min(...sizes), 1),
-                    large: number(Math.max(...sizes), 1),
-                  })}
+                  {touch.meanDistance === null
+                    ? "—"
+                    : t("touch.pixels", {
+                        value: number(touch.meanDistance, 1),
+                      })}
                 </dd>
               </div>
             )}
           </dl>
           <p className="fine">
-            {t("statistics.correctAnswers", {
-              correct: number(summary.correctCount),
-              total: number(summary.responseCount),
-            })}
+            {t(
+              session.kind === "tap"
+                ? "touch.hitSummary"
+                : "statistics.correctAnswers",
+              {
+                correct: number(summary.correctCount),
+                total: number(summary.responseCount),
+              },
+            )}
           </p>
           {sizes.length > 0 && (
             <p className="fine">{t("sessionDetails.targetNote")}</p>
           )}
         </section>
+      ) : session.kind === "follow" ? (
+        <section className="session-results">
+          <h3>{t("sessionDetails.results")}</h3>
+          <dl className="session-facts">
+            <div>
+              <dt>{t("touch.onTarget")}</dt>
+              <dd>
+                {touch.onTargetRatio === null
+                  ? "—"
+                  : percent(touch.onTargetRatio)}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("touch.meanDistance")}</dt>
+              <dd>
+                {touch.meanDistance === null
+                  ? "—"
+                  : t("touch.pixels", { value: number(touch.meanDistance, 1) })}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("touch.bestRun")}</dt>
+              <dd>{time(touch.bestRunMilliseconds)}</dd>
+            </div>
+            <div>
+              <dt>{t("touch.trackedTime")}</dt>
+              <dd>{time(touch.trackedMilliseconds)}</dd>
+            </div>
+          </dl>
+        </section>
       ) : (
         <p className="fine">{t("statistics.noGazeScore")}</p>
+      )}
+      {isTouchExercise(session.kind) && (
+        <p className="fine">{t("touch.performanceNote")}</p>
       )}
       {dayEntries.length > 1 && (
         <section className="session-days">

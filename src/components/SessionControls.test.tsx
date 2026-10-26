@@ -9,11 +9,13 @@ function controls(
   status: Session["status"],
   routine = false,
   language: Language = "en",
+  awaitingTouch = false,
 ) {
   return renderToStaticMarkup(
     <LocalizationContext.Provider value={createLocalization(language)}>
       <SessionControls
         status={status}
+        awaitingTouch={awaitingTouch}
         routine={routine}
         onPause={() => {}}
         onResume={() => {}}
@@ -43,6 +45,11 @@ it("emphasizes resuming only while paused", () => {
   expect(html).toContain('class="primary"');
   expect(html).toContain("Resume practice");
   expect(html).toContain("End session");
+});
+it("offers neutral Pause while waiting for an explicitly armed finger grab", () => {
+  const html = controls("paused", false, "en", true);
+  expect(html).toContain("Pause");
+  expect(html).not.toContain('class="primary"');
 });
 it("requires explicit confirmation after an interruption", () => {
   const html = controls("interrupted");

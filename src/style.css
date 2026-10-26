@@ -1284,6 +1284,43 @@ summary small {
   width: 100%;
   height: 100%;
   display: block;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.touch-ready {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+.touch-instructions {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.hand-choice {
+  border: 0;
+  padding: 0;
+  margin: 1rem 0;
+}
+.hand-choice legend {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.hand-choice > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.hand-choice button[aria-pressed="true"] {
+  border-color: var(--accent-soft);
+  background: var(--surface-accent);
 }
 .pause-overlay {
   position: absolute;

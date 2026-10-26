@@ -40,3 +40,11 @@ it("explains an enlarged target without awarding points for an incorrect respons
     "Try the next one",
   );
 });
+it("invites retrying a missed tap on the retained target", () => {
+  expect(render({ ...result, correct: false, retry: true })).toContain(
+    "the target stays here",
+  );
+  expect(render({ ...result, correct: false, retry: true }, "vi")).toContain(
+    "mục tiêu vẫn ở đây",
+  );
+});

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { defaults, type ExerciseKind } from "./model";
+import { defaults, exerciseKinds } from "./model";
 import {
   initialPracticeSetups,
   selectPracticeMode,
   updatePracticeSetting,
+  practiceDefaults,
 } from "./practice";
 
 describe("exercise configuration", () => {
@@ -26,7 +27,7 @@ describe("exercise configuration", () => {
     }
     expect(initial.saccades.configuration.size).toBe(defaults.size);
   });
-  it.each<ExerciseKind>(["pursuit", "saccades", "visual", "contrast"])(
+  it.each(exerciseKinds)(
     "restores %s defaults while retaining duration and viewing distance",
     (kind) => {
       let setups = initialPracticeSetups();
@@ -34,11 +35,17 @@ describe("exercise configuration", () => {
       setups = updatePracticeSetting(setups, kind, "size", 90);
       setups = updatePracticeSetting(setups, kind, "duration", 155);
       setups = updatePracticeSetting(setups, kind, "distance", 55);
+      setups = updatePracticeSetting(setups, kind, "hand", "Left");
       setups = updatePracticeSetting(setups, kind, "contrast", 0.2);
       const restored = selectPracticeMode(setups, kind, "Default");
       expect(restored[kind]).toEqual({
         mode: "Default",
-        configuration: { ...defaults, duration: 155, distance: 55 },
+        configuration: {
+          ...practiceDefaults(kind),
+          duration: 155,
+          distance: 55,
+          hand: "Left",
+        },
       });
       expect(setups[kind].configuration.size).toBe(90);
     },

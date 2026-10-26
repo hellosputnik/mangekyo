@@ -4,6 +4,7 @@ import { defaults, type Session } from "../engine/model";
 import { createLocalization } from "../i18n/locale";
 import { LocalizationContext } from "../i18n/react";
 import { SessionDetails } from "./SessionDetails";
+import { emptyFollowMetrics } from "../exercises/touch";
 
 function record(overrides: Partial<Session> = {}): Session {
   return {
@@ -94,4 +95,24 @@ it("shows the recorded target-size range and best run without inventing sizes fo
   expect(render(record({ kind: "visual" }))).not.toContain(
     "Target diameter range",
   );
+});
+it("shows following results and hand/settings separately from answer accuracy", () => {
+  const html = render(
+    record({
+      kind: "follow",
+      follow: {
+        ...emptyFollowMetrics(),
+        trackedMilliseconds: 2000,
+        onTargetMilliseconds: 1000,
+        distanceWeightedMilliseconds: 16000,
+        bestRunMilliseconds: 1000,
+      },
+    }),
+  );
+  expect(html).toContain("Time on target");
+  expect(html).toContain("50%");
+  expect(html).toContain("8.0 CSS px");
+  expect(html).toContain("Practicing hand");
+  expect(html).toContain("Right hand");
+  expect(html).not.toContain("Median response");
 });

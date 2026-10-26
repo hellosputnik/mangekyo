@@ -9,7 +9,7 @@ export interface Exercise {
     width: number,
     height: number,
   ): void;
-  answer(choice: number): boolean;
+  answer?(choice: number): boolean;
   terminate(): void;
 }
 export class VisualExercise implements Exercise {

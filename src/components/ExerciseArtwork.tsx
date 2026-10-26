@@ -33,6 +33,21 @@ const artwork: Record<ExerciseKind, ReactNode> = {
       <circle cx="16" cy="16" r="10.5" />
     </>
   ),
+  tap: (
+    <>
+      <circle cx="16" cy="16" r="8" />
+      <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
+      <path d="M16 2v3m0 22v3M2 16h3m22 0h3" />
+    </>
+  ),
+  follow: (
+    <>
+      <path d="M5 10c6-10 12 10 22 0" />
+      <circle cx="20" cy="10" r="3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="24" r="5" />
+      <path d="m12 19 3-5m-5 9h4m-4 2h4" />
+    </>
+  ),
 };
 
 export function ExerciseArtwork({ kind }: { kind: ExerciseKind }) {

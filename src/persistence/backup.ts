@@ -44,6 +44,42 @@ function validSession(value: unknown): value is Session {
     return false;
   const settings = value.configuration;
   if (
+    (settings.touchTolerance !== undefined &&
+      !finite(settings.touchTolerance, 44, 160)) ||
+    (settings.hand !== undefined &&
+      settings.hand !== "Left" &&
+      settings.hand !== "Right") ||
+    (value.awaitingTouch !== undefined &&
+      typeof value.awaitingTouch !== "boolean")
+  )
+    return false;
+  if (
+    value.tapState !== undefined &&
+    (!record(value.tapState) ||
+      !finite(value.tapState.x, 0, 1) ||
+      !finite(value.tapState.y, 0, 1) ||
+      !finite(
+        value.tapState.presentedAtMilliseconds,
+        0,
+        value.activeMilliseconds,
+      ))
+  )
+    return false;
+  if (value.follow !== undefined) {
+    const metrics = value.follow;
+    if (
+      !record(metrics) ||
+      !finite(metrics.trackedMilliseconds, 0, value.activeMilliseconds + 1) ||
+      !finite(metrics.onTargetMilliseconds, 0, metrics.trackedMilliseconds) ||
+      !finite(metrics.distanceWeightedMilliseconds, 0, 1e12) ||
+      !finite(metrics.bestRunMilliseconds, 0, metrics.onTargetMilliseconds) ||
+      !finite(metrics.currentRunMilliseconds, 0, metrics.bestRunMilliseconds) ||
+      !finite(metrics.windowMilliseconds, 0, 10000) ||
+      !finite(metrics.windowOnTargetMilliseconds, 0, metrics.windowMilliseconds)
+    )
+      return false;
+  }
+  if (
     ![
       "duration",
       "size",
@@ -99,7 +135,11 @@ function validSession(value: unknown): value is Session {
       finite(trial.responseMilliseconds, 0, 3600000) &&
       finite(trial.difficulty, 0, difficultyLimit(value.kind)) &&
       (trial.stimulusDiameter === undefined ||
-        finite(trial.stimulusDiameter, 0.1, 1000)),
+        finite(trial.stimulusDiameter, 0.1, 1000)) &&
+      (trial.touchDistance === undefined ||
+        finite(trial.touchDistance, 0, 100000)) &&
+      (trial.touchTolerance === undefined ||
+        finite(trial.touchTolerance, 44, 160)),
   );
 }
 function validMeasurement(value: unknown): value is Measurement {
@@ -124,12 +164,15 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
         value.measurements.every(validMeasurement))) &&
     (value.levels === undefined ||
       (record(value.levels) &&
-        Object.keys(names).every((kind) =>
-          finite(
-            (value.levels as Record<string, unknown>)[kind],
-            0,
-            difficultyLimit(kind),
-          ),
+        Object.keys(names).every(
+          (kind) =>
+            (["tap", "follow"].includes(kind) &&
+              (value.levels as Record<string, unknown>)[kind] === undefined) ||
+            finite(
+              (value.levels as Record<string, unknown>)[kind],
+              0,
+              difficultyLimit(kind),
+            ),
         )))
   );
 }
@@ -149,6 +192,14 @@ export function mergeBackup(current: Data, input: unknown): Data {
   const statisticsReset = input.statisticsReset
     ? {
         ...input.statisticsReset,
+        ...(input.statisticsReset.levels
+          ? {
+              levels: {
+                ...initialData().levels,
+                ...input.statisticsReset.levels,
+              },
+            }
+          : {}),
         sessions: input.statisticsReset.sessions.map((session) => ({
           ...session,
           configuration: validate(session.configuration),
