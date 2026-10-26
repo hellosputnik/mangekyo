@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { LocalizationContext } from "./react";
 import { createLocalization } from "./locale";
 import { Routines } from "../components/Routines";
-import { Progress } from "../components/Progress";
+import { Statistics } from "../components/Statistics";
 import { initialData, defaults, type Routine } from "../engine/model";
 it("shows Vietnamese routine options while retaining stable option values and custom names", () => {
   const data = initialData();
@@ -66,7 +66,13 @@ it("localizes session history and professional measurements without changing sto
   const before = JSON.stringify(data);
   const html = renderToStaticMarkup(
     <LocalizationContext.Provider value={createLocalization("vi")}>
-      <Progress data={data} persist={() => {}} />
+      <Statistics
+        data={data}
+        persist={() => {}}
+        onExport={() => {}}
+        onReset={() => {}}
+        onUndo={() => {}}
+      />
     </LocalizationContext.Provider>,
   );
   expect(html).toContain("Lịch sử luyện tập");
@@ -101,7 +107,13 @@ it("shows saccade timing in history without unrelated pursuit path and speed lab
   ];
   const html = renderToStaticMarkup(
     <LocalizationContext.Provider value={createLocalization("en")}>
-      <Progress data={data} persist={() => {}} />
+      <Statistics
+        data={data}
+        persist={() => {}}
+        onExport={() => {}}
+        onReset={() => {}}
+        onUndo={() => {}}
+      />
     </LocalizationContext.Provider>,
   );
   expect(html).toContain("Target 72px");

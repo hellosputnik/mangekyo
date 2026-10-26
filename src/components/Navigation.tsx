@@ -1,6 +1,11 @@
 import { Icon } from "./Icon";
 import { useI18n } from "../i18n/react";
-export const pages = ["Practice", "Progress", "Routines", "Settings"] as const;
+export const pages = [
+  "Practice",
+  "Statistics",
+  "Routines",
+  "Settings",
+] as const;
 export type Page = (typeof pages)[number];
 export function Navigation({
   current,

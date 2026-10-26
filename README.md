@@ -63,7 +63,8 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 - 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
 - Monotonic active timer; neutral Pause and one End session action with automatic saving. Resume is emphasized while paused. Routine sessions offer Skip exercise. Reaching the configured duration marks completion; ending sooner keeps valid time and records Stopped early. Background interruption still requires explicit reload recovery.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
-- IndexedDB history with exercise-specific configuration summaries, daily/weekly totals, eye/exercise breakdowns, recent accuracy/difficulty charts, and separately labeled professional measurements.
+- Statistics: lifetime active time, sessions, practice days, answers, average session duration, exercise report cards, weighted answer accuracy, median response time, recent results, a seven-day activity chart, and totals by eye. Session history retains exercise-specific configurations; professional measurements stay separate.
+- Confirmed statistics reset, optional clearing of professional measurements or exercise difficulty, and a persistent Undo copy that preserves practice added afterward.
 - JSON export and validated merge import. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. Schedule preferences are restored; in-progress routines are recovered locally, not resumed from imports.
 - Offline app-shell caching, update prompt, optional wake lock, optional rest-end sound/vibration, and high-contrast/gentler-motion controls.
 
@@ -83,14 +84,27 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 - `src/engine/practice.ts`: independent exercise drafts and Default/Custom selection, separate from scheduling and adaptive levels.
 - `src/engine/timer.ts`: React-independent active timing and bounded adaptive progression.
 - `src/engine/routines.ts`: routine and break transitions.
+- `src/engine/statistics-reset.ts`: scoped report reset and recovery without interrupting an active session.
 - `src/exercises/exercise.ts`: common exercise lifecycle and Canvas stimulus renderer.
 - `src/exercises/pursuit.ts`: motion presets, active-time path selection, and continuous mixed-path transitions.
 - `src/persistence/`: IndexedDB snapshots and validated backup merging.
-- `src/analytics/`: deduplicated time aggregation and response metrics.
-- `src/components/`: focused practice, navigation, routine, and progress views; shared eye, duration, stepper, and switch controls in `controls/`.
+- `src/analytics/`: deduplicated active-time aggregation, lifetime reports, and response metrics.
+- `src/components/`: focused practice, statistics, record, navigation, and routine views; shared eye, duration, stepper, and switch controls in `controls/`.
 - `src/main.tsx`: application coordination, session lifecycle, and settings.
 
 Canvas backing resolution uses device pixel ratio (capped at 3 for memory use). Target settings are CSS pixels, not millimeters or calibrated visual angles. Viewing distance is recorded metadata, not an automatic calibration. Native adapters, eye tracking, cloud sync, and physical display calibration are intentionally absent.
+
+## Statistics and reset
+
+The Statistics tab (Thống kê in Vietnamese) presents a lifetime report from saved session records. Partial sessions retain their active time. Practice days come from positive-time local calendar slices, including sessions crossing midnight; older records without slices use their start date. Duplicate IDs are counted once, with a current session taking precedence. The seven-day chart uses stored local dates and scales to the largest day, independently of the daily goal.
+
+Exercise report cards aggregate their recorded eyes and settings. Response accuracy is correct answers divided by all answers for that exercise, rather than an average of session percentages. Median response time includes correct and incorrect answers. The six latest response sessions show their individual accuracy; their conditions can differ. Pursuit and saccades report time and sessions without assigning a gaze score. Exercise scores are training performance, separate from eyesight or clinical outcomes.
+
+**Manage statistics → Reset statistics** opens a confirmation. It clears saved session history and starts a fresh report. Professional measurements and exercise difficulty can be cleared independently with explicit switches; routines and preferences stay. Reset and Undo are blocked while an exercise or routine is in progress, including interrupted recovery. Cancel receives initial focus, and confirmation actions remain visible while the body scrolls on a short landscape screen.
+
+Undo retains one previous copy locally through reloads. It merges the old records with new practice and measurements without duplicating IDs. If difficulty was reset, Undo restores it only for exercises with no new session since reset. Another reset replaces the previous Undo copy. JSON exports include this copy; validated imports keep it separate from current statistics until Undo is selected.
+
+Report previews in [the design audit](docs/apple-design-audit.md) use synthetic example records, not a person's training or clinical results.
 
 ## Validation and physical-device checklist
 

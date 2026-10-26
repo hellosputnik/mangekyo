@@ -145,6 +145,12 @@ export interface Measurement {
   method: string;
   value: string;
 }
+export interface StatisticsReset {
+  resetAt: string;
+  sessions: Session[];
+  measurements?: Measurement[];
+  levels?: Record<ExerciseKind, number>;
+}
 export interface Data {
   sessions: Session[];
   current: Session | null;
@@ -154,6 +160,7 @@ export interface Data {
   measurements: Measurement[];
   levels: Record<ExerciseKind, number>;
   breakState: { remaining: number; manual: boolean } | null;
+  statisticsReset?: StatisticsReset;
 }
 export const initialData = (): Data => ({
   sessions: [],

@@ -92,3 +92,9 @@ it("preserves a supported regional locale for date formatting", () => {
   ).toBe("25/10/2026");
   expect(createLocalization("vi", ["invalid", "vi-VN"]).locale).toBe("vi-VN");
 });
+it("formats lifetime training time without a clock-style minute overflow", () => {
+  expect(createLocalization("en").trainingTime(8165000)).toBe("2 hr 16 min");
+  expect(createLocalization("vi").trainingTime(8165000)).toBe("2 giờ 16 phút");
+  expect(createLocalization("en").trainingTime(125000)).toBe("2 min 5 sec");
+  expect(createLocalization("vi").trainingTime(0)).toBe("0 giây");
+});

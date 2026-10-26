@@ -1,12 +1,10 @@
 import { localDate, type Data, type Session } from "../engine/model";
 export function allSessions(data: Data): Session[] {
-  return [
-    ...data.sessions,
-    ...(data.current &&
-    !data.sessions.some((session) => session.id === data.current?.id)
-      ? [data.current]
-      : []),
-  ];
+  const sessions = new Map(
+    data.sessions.map((session) => [session.id, session]),
+  );
+  if (data.current) sessions.set(data.current.id, data.current);
+  return [...sessions.values()];
 }
 export function totalForDate(data: Data, date = localDate(new Date())) {
   return allSessions(data).reduce(

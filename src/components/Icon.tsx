@@ -1,6 +1,6 @@
 type IconName =
   | "Practice"
-  | "Progress"
+  | "Statistics"
   | "Routines"
   | "Settings"
   | "Edit"
@@ -20,7 +20,7 @@ type IconName =
 const paths: Record<IconName, string> = {
   Practice:
     "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
-  Progress: "M4 20V11 M12 20V4 M20 20v-6",
+  Statistics: "M4 20V11 M12 20V4 M20 20v-6",
   Routines: "M8 5h13 M8 12h13 M8 19h13 M3 5h.01 M3 12h.01 M3 19h.01",
   Settings: "M4 7h16 M4 17h16 M9 4v6 M16 14v6",
   Edit: "m15 5 4 4 M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15v5Z",

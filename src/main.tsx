@@ -34,7 +34,11 @@ import {
 import { DurationControl } from "./components/controls/DurationControl";
 import { NumberStepper } from "./components/controls/NumberStepper";
 import { ToggleSwitch } from "./components/controls/ToggleSwitch";
-import { Progress } from "./components/Progress";
+import { Statistics } from "./components/Statistics";
+import {
+  resetStatistics,
+  undoStatisticsReset,
+} from "./engine/statistics-reset";
 import { LocalizationContext, useLocalization } from "./i18n/react";
 import {
   createLocalization,
@@ -702,8 +706,8 @@ function App() {
                 <h1>
                   {tab === "Practice"
                     ? t("nav.Practice")
-                    : tab === "Progress"
-                      ? t("page.Progress.title")
+                    : tab === "Statistics"
+                      ? t("nav.Statistics")
                       : tab === "Routines"
                         ? t("page.Routines.title")
                         : t("page.Settings.title")}
@@ -711,8 +715,8 @@ function App() {
                 <p>
                   {tab === "Practice"
                     ? t("page.Practice.description")
-                    : tab === "Progress"
-                      ? t("page.Progress.description")
+                    : tab === "Statistics"
+                      ? t("page.Statistics.description")
                       : tab === "Routines"
                         ? t("page.Routines.description")
                         : t("page.Settings.description")}
@@ -738,11 +742,20 @@ function App() {
                   start={() => start()}
                 />
               )}
-              {tab === "Progress" && (
-                <Progress
+              {tab === "Statistics" && (
+                <Statistics
                   data={data}
                   persist={persist}
                   onPractice={() => navigate("Practice")}
+                  onExport={exportData}
+                  onReset={(options) => {
+                    if (state.current.current || state.current.run) return;
+                    persist(resetStatistics(state.current, options));
+                  }}
+                  onUndo={() => {
+                    if (state.current.current || state.current.run) return;
+                    persist(undoStatisticsReset(state.current));
+                  }}
                 />
               )}
               {tab === "Routines" && (

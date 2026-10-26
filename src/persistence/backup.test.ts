@@ -1,6 +1,10 @@
 import { it, expect } from "vitest";
 import { defaults, initialData } from "../engine/model";
 import { mergeBackup } from "./backup";
+import {
+  resetStatistics,
+  undoStatisticsReset,
+} from "../engine/statistics-reset";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -90,4 +94,51 @@ it("round trips mixed presets and still accepts legacy single-path sessions", ()
   const invalid = structuredClone(data);
   invalid.sessions[0].configuration.pursuitPreset = "Invalid" as never;
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
+});
+it("exports and imports the reset undo copy without restoring it into active statistics", () => {
+  const data = initialData();
+  data.sessions = [
+    {
+      id: "archived",
+      kind: "visual",
+      eye: "Left",
+      configuration: { ...defaults },
+      startedAt: "2026-10-25T12:00:00Z",
+      status: "abandoned",
+      activeMilliseconds: 3000,
+      slices: [
+        {
+          date: "2026-10-25",
+          timezone: "Asia/Ho_Chi_Minh",
+          offset: -420,
+          milliseconds: 3000,
+        },
+      ],
+      trials: [],
+      difficulty: 1,
+    },
+  ];
+  const reset = resetStatistics(data, { measurements: true, difficulty: true });
+  const imported = mergeBackup(
+    initialData(),
+    JSON.parse(JSON.stringify(reset)),
+  );
+  expect(imported.sessions).toEqual([]);
+  expect(imported.statisticsReset).toEqual(reset.statisticsReset);
+  expect(undoStatisticsReset(imported).sessions).toEqual(data.sessions);
+  expect(() =>
+    mergeBackup(data, {
+      ...reset,
+      statisticsReset: {
+        ...reset.statisticsReset,
+        sessions: [{ id: "invalid" }],
+      },
+    }),
+  ).toThrow();
+  expect(() =>
+    mergeBackup(data, {
+      ...reset,
+      statisticsReset: { ...reset.statisticsReset, levels: { visual: -1 } },
+    }),
+  ).toThrow();
 });

@@ -1923,6 +1923,371 @@ footer {
 .landscape-hint {
   display: none;
 }
+.statistics-page {
+  display: grid;
+  gap: 1.5rem;
+}
+.statistics-page > .panel {
+  margin: 0;
+}
+.statistics-page h2 {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+.lifetime-report {
+  padding: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #322023, var(--surface) 70%);
+}
+.report-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.report-heading > span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.lifetime-duration {
+  margin: 1.5rem 0 0.25rem;
+  font-size: clamp(2.2rem, 9vw, 4rem);
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: normal;
+}
+.lifetime-caption {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.lifetime-metrics,
+.exercise-report-metrics {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 1rem;
+  margin: 1.5rem 0;
+}
+.lifetime-metrics > div,
+.exercise-report-metrics > div {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 0.3rem;
+}
+.lifetime-metrics dt,
+.exercise-report-metrics dt {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.lifetime-metrics dd,
+.exercise-report-metrics dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  overflow-wrap: normal;
+}
+.report-outcomes {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.statistics-empty p {
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.statistics-week,
+.statistics-eyes,
+.statistics-data {
+  padding: 0.5rem 0;
+}
+.statistics-week > p,
+.report-section-heading > p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+.activity-week,
+.recent-results ol {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 1.25rem 0 0.75rem;
+}
+.activity-week li,
+.recent-results li {
+  min-width: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  overflow-wrap: normal;
+}
+.activity-column,
+.result-column {
+  height: 6rem;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: var(--surface-raised);
+  margin-bottom: 0.6rem;
+}
+.activity-column i,
+.result-column i {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent);
+  border-radius: inherit;
+}
+.daily-details summary {
+  min-height: 44px;
+  padding: 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.daily-details dl > div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.daily-details dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.exercise-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+.exercise-report {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.1rem;
+  background: var(--surface);
+  min-width: 0;
+}
+.exercise-report-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.exercise-report-heading h3 {
+  font-size: 1rem;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: normal;
+}
+.report-art {
+  flex: 0 0 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--accent-soft);
+}
+.report-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.exercise-report-metrics {
+  margin: 1.25rem 0;
+}
+.exercise-report-metrics dd {
+  font-size: 1.15rem;
+}
+.exercise-report-note,
+.exercise-report-footer {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.exercise-report-footer {
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.recent-results {
+  margin-top: 1rem;
+}
+.recent-results h4 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.recent-results ol {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+}
+.recent-results li {
+  font-size: 0.72rem;
+}
+.result-column {
+  height: 3rem;
+}
+.statistics-eyes dl {
+  margin: 0.5rem 0 0;
+}
+.statistics-eyes dl > div {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 1.5rem;
+  margin-top: 0.5rem;
+}
+.statistics-eyes dd {
+  margin: 0;
+  text-align: right;
+}
+.statistics-eyes dd strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.statistics-eyes dd > span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.eye-time-bar {
+  position: absolute;
+  height: 0.3rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+.eye-time-bar i {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.statistics-disclosure {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 550;
+}
+.statistics-disclosure::-webkit-details-marker {
+  display: none;
+}
+.statistics-disclosure svg {
+  flex: 0 0 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+.statistics-history[open] > summary > svg {
+  transform: rotate(90deg);
+}
+.statistics-data {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+.statistics-data-actions,
+.reset-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.statistics-data-actions button,
+.reset-dialog-actions button {
+  min-width: 0;
+  min-height: 44px;
+  font-size: 0.9rem;
+  overflow-wrap: normal;
+  line-height: 1.4;
+}
+.danger-text {
+  color: var(--accent-soft);
+}
+.danger-button {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: transparent;
+  font-weight: 650;
+}
+.reset-undo {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+.reset-dialog {
+  max-width: 32rem;
+}
+.reset-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.reset-dialog .custom-dialog-header,
+.reset-dialog-actions {
+  flex: 0 0 auto;
+}
+.reset-dialog .custom-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.reset-dialog-actions {
+  margin: 0;
+  padding: 0.9rem max(1.25rem, env(safe-area-inset-right))
+    calc(0.9rem + env(safe-area-inset-bottom))
+    max(1.25rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.reset-dialog .custom-dialog-body > p {
+  margin: 0 0 1rem;
+}
+.reset-dialog .switch-setting {
+  margin: 0.75rem 0;
+}
+@media (max-width: 650px) {
+  .exercise-report-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lifetime-report {
+    padding: 1.2rem;
+  }
+}
 @media (max-width: 600px) and (orientation: portrait) {
   .landscape-hint {
     display: flex;

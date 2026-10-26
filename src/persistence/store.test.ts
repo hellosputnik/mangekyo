@@ -2,6 +2,10 @@ import "fake-indexeddb/auto";
 import { it, expect } from "vitest";
 import { load, save } from "./store";
 import { initialData, defaults } from "../engine/model";
+import {
+  resetStatistics,
+  undoStatisticsReset,
+} from "../engine/statistics-reset";
 it("persists structured state and recovers running sessions as interrupted", async () => {
   const data = initialData();
   data.current = {
@@ -39,4 +43,33 @@ it("restores the selected language and migrates old preferences to device langua
   const migrated = await load();
   expect(migrated.preferences.language).toBe("system");
   expect(migrated.preferences.goal).toBe(data.preferences.goal);
+});
+it("keeps a statistics reset and its undo copy through reload", async () => {
+  const data = initialData();
+  data.sessions = [
+    {
+      id: "history",
+      kind: "pursuit",
+      eye: "Left",
+      configuration: { ...defaults },
+      startedAt: "2026-10-25T12:00:00Z",
+      status: "abandoned",
+      activeMilliseconds: 3000,
+      slices: [],
+      trials: [],
+      difficulty: 0,
+    },
+  ];
+  const reset = resetStatistics(data, {
+    measurements: false,
+    difficulty: false,
+  });
+  await save(reset);
+  const reloaded = await load();
+  expect(reloaded.sessions).toEqual([]);
+  expect(reloaded.statisticsReset?.sessions[0].activeMilliseconds).toBe(3000);
+  const restored = undoStatisticsReset(reloaded);
+  await save(restored);
+  expect((await load()).sessions).toEqual(data.sessions);
+  expect((await load()).statisticsReset).toBeUndefined();
 });

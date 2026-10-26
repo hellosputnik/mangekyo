@@ -150,8 +150,17 @@ export function createLocalization(
       seconds: number(remainder),
     });
   };
+  const trainingTime = (milliseconds: number): string => {
+    const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+    if (seconds < 3600) return duration(seconds);
+    return t("statistics.hoursMinutes", {
+      hours: number(Math.floor(seconds / 3600)),
+      minutes: number(Math.floor((seconds % 3600) / 60)),
+    });
+  };
   return {
     duration,
+    trainingTime,
     language,
     locale,
     t,

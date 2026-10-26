@@ -55,7 +55,7 @@ it("names navigation destinations and marks the active page", () => {
   );
   expect(html.match(/aria-current="page"/g)).toHaveLength(1);
   expect(html).toContain("Routines");
-  expect(html).toContain("Progress");
+  expect(html).toContain("Statistics");
 });
 it.each([
   ["en", "Default (mixed)", "Custom"],

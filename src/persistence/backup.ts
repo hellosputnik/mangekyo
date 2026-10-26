@@ -7,6 +7,7 @@ import {
   type Session,
   type Routine,
   type Measurement,
+  type StatisticsReset,
 } from "../engine/model";
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
@@ -96,6 +97,33 @@ function validSession(value: unknown): value is Session {
       finite(trial.difficulty, 0, 12),
   );
 }
+function validMeasurement(value: unknown): value is Measurement {
+  return (
+    record(value) &&
+    typeof value.id === "string" &&
+    typeof value.date === "string" &&
+    eye(value.eye) &&
+    typeof value.method === "string" &&
+    typeof value.value === "string"
+  );
+}
+function validStatisticsReset(value: unknown): value is StatisticsReset {
+  return (
+    record(value) &&
+    typeof value.resetAt === "string" &&
+    Number.isFinite(Date.parse(value.resetAt)) &&
+    Array.isArray(value.sessions) &&
+    value.sessions.every(validSession) &&
+    (value.measurements === undefined ||
+      (Array.isArray(value.measurements) &&
+        value.measurements.every(validMeasurement))) &&
+    (value.levels === undefined ||
+      (record(value.levels) &&
+        Object.keys(names).every((kind) =>
+          finite((value.levels as Record<string, unknown>)[kind], 0, 12),
+        )))
+  );
+}
 export function mergeBackup(current: Data, input: unknown): Data {
   if (
     !record(input) ||
@@ -104,6 +132,24 @@ export function mergeBackup(current: Data, input: unknown): Data {
   )
     throw Error("Invalid sessions");
   const sessions: Session[] = [...input.sessions];
+  if (
+    input.statisticsReset !== undefined &&
+    !validStatisticsReset(input.statisticsReset)
+  )
+    throw Error("Invalid statistics undo copy");
+  const statisticsReset = input.statisticsReset
+    ? {
+        ...input.statisticsReset,
+        sessions: input.statisticsReset.sessions.map((session) => ({
+          ...session,
+          configuration: validate(session.configuration),
+          status:
+            session.status === "running"
+              ? ("interrupted" as const)
+              : session.status,
+        })),
+      }
+    : undefined;
   if (input.current) {
     if (!validSession(input.current)) throw Error("Invalid recovery");
     sessions.push({ ...input.current, status: "interrupted" });
@@ -130,18 +176,7 @@ export function mergeBackup(current: Data, input: unknown): Data {
   )
     throw Error("Invalid routines");
   const measurements = input.measurements ?? [];
-  if (
-    !Array.isArray(measurements) ||
-    !measurements.every(
-      (item) =>
-        record(item) &&
-        typeof item.id === "string" &&
-        typeof item.date === "string" &&
-        eye(item.eye) &&
-        typeof item.method === "string" &&
-        typeof item.value === "string",
-    )
-  )
+  if (!Array.isArray(measurements) || !measurements.every(validMeasurement))
     throw Error("Invalid measurements");
   const preferences = { ...initialData().preferences };
   if (input.preferences) {
@@ -180,6 +215,7 @@ export function mergeBackup(current: Data, input: unknown): Data {
   ];
   return {
     ...current,
+    ...(!current.statisticsReset && statisticsReset ? { statisticsReset } : {}),
     preferences: input.preferences ? preferences : current.preferences,
     sessions: merge(
       sessions
