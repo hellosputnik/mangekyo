@@ -57,14 +57,28 @@ it("names navigation destinations and marks the active page", () => {
   expect(html).toContain("Routines");
   expect(html).toContain("Progress");
 });
-it("presents the default mix, five paths, and Custom as named selectable presets", () => {
-  const html = renderToStaticMarkup(
-    <LocalizationContext.Provider value={createLocalization("vi")}>
-      <PursuitPresets value="Mixed" onChange={() => {}} />
-    </LocalizationContext.Provider>,
-  );
-  expect(html.match(/<button/g)).toHaveLength(7);
-  expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
-  expect(html).toContain("Cả năm đường đi · mặc định");
-  expect(html).toContain("Tùy chỉnh");
-});
+it.each([
+  ["en", "Default (mixed)", "Custom"],
+  ["vi", "Mặc định (kết hợp)", "Tùy chỉnh"],
+] as const)(
+  "names the default preset clearly in %s",
+  (language, defaultLabel, customLabel) => {
+    const html = renderToStaticMarkup(
+      <LocalizationContext.Provider value={createLocalization(language)}>
+        <PursuitPresets
+          value="Mixed"
+          onChange={() => {}}
+          onCustomize={() => {}}
+          dialogId="custom-dialog"
+        />
+      </LocalizationContext.Provider>,
+    );
+    expect(html.match(/<button/g)).toHaveLength(2);
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+    expect(html).toContain(defaultLabel);
+    expect(html).toContain(customLabel);
+    expect(html).not.toContain("Mixed paths");
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-controls="custom-dialog"');
+  },
+);

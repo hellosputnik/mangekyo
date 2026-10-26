@@ -22,17 +22,11 @@ export const english = {
   "pattern.Circle": "Circular",
   "pattern.Figure eight": "Figure eight",
   "pattern.Wandering": "Wandering",
-  "pattern.Mixed": "Mixed paths",
+  "pattern.Mixed": "Default (mixed)",
   "pursuit.motion": "Motion path",
   "pursuit.custom": "Custom",
-  "pursuit.mixedSummary": "All five paths · default",
-  "pursuit.mixedNote":
-    "An equal share of active time for each path, with smooth transitions. In a five-minute session, the path changes about once a minute.",
-  "pursuit.presetNote":
-    "Presets use the default size, speed, and contrast. Choose Custom to adjust every detail.",
+  "pursuit.mixedNote": "All five paths, with smooth transitions.",
   "pursuit.customSettings": "Custom settings",
-  "pursuit.customNote":
-    "Choose a single path or a mix, then adjust target size, motion, contrast, and colors.",
   "stimulus.Opening": "Opening",
   "stimulus.Orientation": "Orientation",
   "stimulus.Shape": "Shape",

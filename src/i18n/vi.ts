@@ -23,17 +23,11 @@ export const vietnamese = {
   "pattern.Circle": "Tròn",
   "pattern.Figure eight": "Hình số tám",
   "pattern.Wandering": "Uốn lượn",
-  "pattern.Mixed": "Kết hợp các đường đi",
+  "pattern.Mixed": "Mặc định (kết hợp)",
   "pursuit.motion": "Đường di chuyển",
   "pursuit.custom": "Tùy chỉnh",
-  "pursuit.mixedSummary": "Cả năm đường đi · mặc định",
-  "pursuit.mixedNote":
-    "Mỗi đường đi chiếm phần thời gian tập bằng nhau, chuyển tiếp nhẹ nhàng. Trong buổi tập năm phút, đường đi thay đổi khoảng mỗi phút.",
-  "pursuit.presetNote":
-    "Các mẫu dùng kích thước, tốc độ và độ tương phản mặc định. Chọn Tùy chỉnh để điều chỉnh từng chi tiết.",
+  "pursuit.mixedNote": "Cả năm đường đi, chuyển tiếp nhẹ nhàng.",
   "pursuit.customSettings": "Cài đặt tùy chỉnh",
-  "pursuit.customNote":
-    "Chọn một đường đi hoặc kết hợp, rồi điều chỉnh kích thước mục tiêu, chuyển động, độ tương phản và màu sắc.",
   "stimulus.Opening": "Khe hở",
   "stimulus.Orientation": "Hướng",
   "stimulus.Shape": "Hình dạng",

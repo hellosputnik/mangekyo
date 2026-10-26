@@ -11,7 +11,7 @@ Reviewed setup, training, rest, progress, routines, and settings in English and 
 | Eye selection was hidden in a menu without a visual reference. | Native left/right/both radio options with diagrams, selected checks, and a clearly labeled user viewpoint. Shared by setup, routines, and professional measurements. Selection remains self-reported. |
 | Duration menus made simple changes cumbersome. | Native slider and exact minutes/seconds entry. Errors preserve the valid setting and prevent invalid starts/saves. Longer exact values extend the slider range. |
 | Oversized exercise cards pushed setup down the page. | Compact two-by-two chooser, one selected description, and focused setup. Desktop puts setup beside choices; mobile retains a single reading order. |
-| Pursuit details required an unnecessary settings disclosure. | Mixed and five individual motion presets with path illustrations, plus Custom for all detailed controls. Default five-minute Mixed allocates roughly a minute each to horizontal, vertical, circular, figure-eight, and wandering motion. Pauses do not advance it. |
+| Pursuit setup was too large and complicated. | Two compact options: Default (mixed) and Custom. Custom opens a modal settings sheet; path choice and detailed controls live there. The default five-minute mix still allocates roughly a minute per path. |
 | Changing a mixed path could cause a target jump. | A React-independent motion function blends position and velocity at joins. The mix is deterministic from active time, preserving its position across recovery. Custom can also use Mixed. |
 | Navigation resembled a solid content panel. | Floating glass-style capsule, consistent icons/labels, moving selection, safe-area offsets, and immediate press feedback. Opaque fallbacks for reduced transparency, increased contrast, and missing backdrop support. Reduced motion removes transitions. |
 | Directional answers appeared in a flat row without a clear question. | Explicit questions, spatial direction pad, matching quadrant layout for contrast, and disabled responses while paused. |
@@ -26,7 +26,7 @@ Canvas retains display-timed drawing. Timer labels refresh at most ten times per
 
 ## Verification
 
-- `npm test`: **81 tests pass**, including timing, recovery, persistence, progression, translations, scoped offline caches, and controls. New coverage includes exact duration limits, blank/malformed drafts, zero-length breaks, eye/range/navigation semantics, preset selection, equal mixed-path allocation at several durations, continuous position/velocity, bounded trajectories, pause/recovery, and legacy/mixed backup compatibility.
+- `npm test`: **82 tests pass**, including timing, recovery, persistence, progression, translations, scoped offline caches, and controls. New coverage includes exact duration limits, blank/malformed drafts, zero-length breaks, eye/range/navigation semantics, preset selection, equal mixed-path allocation at several durations, continuous position/velocity, bounded trajectories, pause/recovery, and legacy/mixed backup compatibility.
 - `npm run build`: strict TypeScript and production Vite/service-worker generation pass.
 - Browser checks at **320×740**, **390×844**, **844×390**, and **1280×900**. No horizontal overflow in tested settings, setup, Custom controls, or training screens. These are browser viewport checks, not physical Safari tests.
 - At 390px, setup buttons, disclosures, eye options, range input, and navigation measured at least 44px in each dimension. All motion presets also meet this at 320px. Switch tracks are smaller visually; their entire label rows are clickable and at least 62px high.
@@ -42,3 +42,15 @@ Canvas retains display-timed drawing. Timer labels refresh at most ten times per
 ## Remaining device checks
 
 Physical iPhone Safari and Home Screen testing remain necessary for safe areas, the software keyboard, Dynamic Type, VoiceOver, interruptions, offline launch, and installation/update behavior. macOS Safari also needs a device pass. Browser emulation does not establish physical-device performance, input latency, or clinical effectiveness.
+
+## Follow-up: compact modes and Custom sheet
+
+The user's Safari preview showed the prior auto-sized card grid expanding far beyond its intended 72/88px minimum heights. That was unintended. Earlier Chromium viewport checks missed it, and direct native Safari inspection could not be completed in this pass. The exact Safari sizing calculation remains unverified.
+
+Replaced the entire card composition with two text buttons, **Default (mixed)** and **Custom**, in one content-sized row. The row no longer depends on intrinsic SVG sizing or native flex-button layout. Default preserves the existing five-path sequence; stored `Mixed` identifiers remain compatible. Removed the redundant subtitle and long explanatory copy.
+
+Custom opens a native modal dialog styled as a bottom sheet on mobile. It contains path selection and all pursuit parameters. Done, Escape, and tapping the backdrop dismiss it. The page behind it is inert, background scrolling is locked while open, and focus returns to Custom. Edits remain when reopening; selecting Default restores preset parameters. The header stays visible while scrolling, with safe-area padding around its controls.
+
+Browser checks show a **48px-high mode row** for English at 320px/390px and Vietnamese at 390px. At 320px the longer Vietnamese label wraps and the row grows to about 61px, with no horizontal overflow. Verified opening, changing the path/target size, Done, reopening with those changes retained, Escape, focus return, and restoration of background scrolling. The existing timer/mixed-motion tests remain unchanged. These browser checks do not establish a physical Safari pass.
+
+Updated previews: [compact setup](screenshots/iphone-presets-compact.jpg), [Custom settings](screenshots/iphone-custom-settings.jpg), [Vietnamese setup](screenshots/iphone-presets.jpg).

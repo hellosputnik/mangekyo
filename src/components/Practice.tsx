@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   names,
   pursuitPatterns,
@@ -34,7 +34,7 @@ function AdvancedFields({
   const { t, number, optionLabel } = useI18n();
   return (
     <>
-      <div id="exercise-settings" className="settings-grid">
+      <div className="settings-grid">
         {kind === "pursuit" && (
           <label>
             {t("config.pattern")}
@@ -161,6 +161,23 @@ export function Practice({
   const { t, number, exerciseName, exerciseDescription } = useI18n();
   const [durationValid, setDurationValid] = useState(true);
   const selectedPreset = configuration.pursuitPreset ?? "Custom";
+  const [customOpen, setCustomOpen] = useState(false);
+  const customDialog = useRef<HTMLDialogElement>(null);
+  const customDialogId = useId();
+  useEffect(() => {
+    const dialog = customDialog.current;
+    if (!dialog) return;
+    if (customOpen && !dialog.open) dialog.showModal();
+    if (!customOpen && dialog.open) dialog.close();
+  }, [customOpen]);
+  useEffect(() => {
+    if (!customOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [customOpen]);
   return (
     <>
       <div className="practice-layout">
@@ -231,30 +248,11 @@ export function Practice({
               <PursuitPresets
                 value={selectedPreset}
                 onChange={selectPursuitPreset}
+                onCustomize={() => setCustomOpen(true)}
+                dialogId={customDialogId}
               />
-              <p className="preset-description">
-                {t(
-                  selectedPreset === "Mixed"
-                    ? "pursuit.mixedNote"
-                    : selectedPreset === "Custom"
-                      ? "pursuit.customNote"
-                      : "pursuit.presetNote",
-                )}
-              </p>
-              {selectedPreset === "Custom" && (
-                <section
-                  className="custom-settings"
-                  aria-labelledby="custom-settings-title"
-                >
-                  <h3 id="custom-settings-title">
-                    {t("pursuit.customSettings")}
-                  </h3>
-                  <AdvancedFields
-                    kind={kind}
-                    configuration={configuration}
-                    setting={setting}
-                  />
-                </section>
+              {selectedPreset === "Mixed" && (
+                <p className="preset-description">{t("pursuit.mixedNote")}</p>
               )}
             </section>
           )}
@@ -299,6 +297,44 @@ export function Practice({
           )}
         </section>
       </div>
+      <dialog
+        ref={customDialog}
+        id={customDialogId}
+        className="custom-dialog"
+        aria-labelledby={`${customDialogId}-title`}
+        onCancel={() => setCustomOpen(false)}
+        onClose={() => setCustomOpen(false)}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          if (
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom
+          ) {
+            setCustomOpen(false);
+          }
+        }}
+      >
+        <div className="custom-dialog-header">
+          <h2 id={`${customDialogId}-title`}>{t("pursuit.customSettings")}</h2>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setCustomOpen(false)}
+          >
+            {t("common.done")}
+          </button>
+        </div>
+        <div className="custom-dialog-body">
+          <AdvancedFields
+            kind="pursuit"
+            configuration={configuration}
+            setting={setting}
+          />
+        </div>
+      </dialog>
       <details className="safety-disclosure">
         <summary>
           <span>
