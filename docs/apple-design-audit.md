@@ -62,3 +62,9 @@ The exercise tiles combined a horizontal icon, reserved checkmark padding, and `
 Browser checks measured every word's text range to ensure it occupied one line and stayed inside its card: English at widths 320, 350, 375, 390, 430, 844, and 1280; Vietnamese at 320, 390, and 430. No broken words or horizontal document overflow were observed. Selecting an exercise still updates its pressed state. The existing 82 tests and production build pass. These remain Chromium browser checks; no direct Safari pass is claimed.
 
 Previews: [English exercise choices](screenshots/iphone-exercises-en.jpg), [Vietnamese exercise choices](screenshots/iphone-exercises-vi.jpg).
+
+## Follow-up: exercise artwork
+
+Replaced the font-character artwork with a typed SVG set in `src/components/ExerciseArtwork.tsx`. Saccadic targets use two focal targets and a diagonal jump arrow; contrast discrimination uses a split-tone circle. Pursuit and visual discrimination retain their infinity/C motifs with matching stroke, color, and proportions. Icons occupy fixed square slots and are decorative to assistive technology; the full button labels remain the accessible names. Exercise stimuli and settings are unchanged.
+
+Verified equal icon dimensions at 320px and 390px, no horizontal overflow, and preserved whole-word labels. All 82 tests and the production build pass. [Updated phone artwork](screenshots/iphone-exercise-icons.jpg).

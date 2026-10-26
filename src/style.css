@@ -477,31 +477,18 @@ header {
   box-shadow: inset 0 0 0 1px #ffaaa433;
 }
 .exercise-art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  font-family: Georgia, serif;
-  font-size: 2.6rem;
-  line-height: 1;
-  color: #f38d8b;
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  color: var(--accent-soft);
 }
-.art-saccades {
-  font-size: 2.3rem;
-  white-space: nowrap;
-  color: #d8aeaa;
-}
-.art-visual {
-  font-family: Arial, sans-serif;
-  font-size: 2rem;
-  color: #e9b4aa;
-}
-.art-contrast {
-  font-family: Arial, sans-serif;
-  font-size: 2rem;
-  color: #e8afb0;
+.exercise-art svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .card-copy {
   min-width: 0;
@@ -1619,11 +1606,6 @@ footer {
   .exercise-art {
     width: 1.8rem;
     height: 1.8rem;
-    font-size: 2rem;
-  }
-  .art-visual,
-  .art-contrast {
-    font-size: 1.6rem;
   }
   .card-copy strong {
     font-size: 0.9rem;
@@ -1773,6 +1755,7 @@ footer {
   }
   .exercise-art {
     width: 1.6rem;
+    height: 1.6rem;
   }
   .card-copy strong {
     font-size: 0.875rem;

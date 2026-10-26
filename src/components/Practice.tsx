@@ -13,6 +13,7 @@ import { DurationControl } from "./controls/DurationControl";
 import { ToggleSwitch } from "./controls/ToggleSwitch";
 import { Icon } from "./Icon";
 import { PursuitPresets } from "./PursuitPresets";
+import { ExerciseArtwork } from "./ExerciseArtwork";
 interface Props {
   minutes: number;
   goal: number;
@@ -218,7 +219,7 @@ export function Practice({
               <span>{t("practice.exerciseCount", { count: number(4) })}</span>
             </div>
             <div className="exercise-grid">
-              {(Object.keys(names) as ExerciseKind[]).map((item, index) => (
+              {(Object.keys(names) as ExerciseKind[]).map((item) => (
                 <button
                   type="button"
                   className={`exercise-card ${kind === item ? "selected" : ""}`}
@@ -227,11 +228,8 @@ export function Practice({
                   onClick={() => setKind(item)}
                 >
                   <span className="exercise-card-content">
-                    <span
-                      className={`exercise-art art-${item}`}
-                      aria-hidden="true"
-                    >
-                      {["∞", "· ·", "C", "▥"][index]}
+                    <span className="exercise-art" aria-hidden="true">
+                      <ExerciseArtwork kind={item} />
                     </span>
                     <span className="card-copy">
                       <strong>{exerciseName(item)}</strong>
