@@ -9,6 +9,9 @@ import {
   type Measurement,
   type StatisticsReset,
 } from "../engine/model";
+import { visualDifficultyLimit } from "../exercises/visual";
+const difficultyLimit = (kind: unknown) =>
+  kind === "visual" ? visualDifficultyLimit : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -27,7 +30,7 @@ function validSession(value: unknown): value is Session {
     typeof value.startedAt !== "string" ||
     !Number.isFinite(Date.parse(value.startedAt)) ||
     !finite(value.activeMilliseconds, 0, 3600000) ||
-    !finite(value.difficulty, 0, 12) ||
+    !finite(value.difficulty, 0, difficultyLimit(value.kind)) ||
     !Array.isArray(value.slices) ||
     !Array.isArray(value.trials) ||
     !record(value.configuration)
@@ -94,7 +97,9 @@ function validSession(value: unknown): value is Session {
       record(trial) &&
       typeof trial.correct === "boolean" &&
       finite(trial.responseMilliseconds, 0, 3600000) &&
-      finite(trial.difficulty, 0, 12),
+      finite(trial.difficulty, 0, difficultyLimit(value.kind)) &&
+      (trial.stimulusDiameter === undefined ||
+        finite(trial.stimulusDiameter, 0.1, 1000)),
   );
 }
 function validMeasurement(value: unknown): value is Measurement {
@@ -120,7 +125,11 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
     (value.levels === undefined ||
       (record(value.levels) &&
         Object.keys(names).every((kind) =>
-          finite((value.levels as Record<string, unknown>)[kind], 0, 12),
+          finite(
+            (value.levels as Record<string, unknown>)[kind],
+            0,
+            difficultyLimit(kind),
+          ),
         )))
   );
 }
@@ -191,6 +200,11 @@ export function mergeBackup(current: Data, input: unknown): Data {
       throw Error("Invalid language preference");
     }
     preferences.language = language ?? current.preferences.language ?? "system";
+    if (input.preferences.answerSound !== undefined) {
+      if (typeof input.preferences.answerSound !== "boolean")
+        throw Error("Invalid answer feedback preference");
+      preferences.answerSound = input.preferences.answerSound;
+    }
     for (const key of ["goal", "rest", "reminder"] as const) {
       const maximum = { goal: 240, rest: 3600, reminder: 60 }[key];
       if (!finite(input.preferences[key], key === "goal" ? 1 : 0, maximum))

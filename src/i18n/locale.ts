@@ -7,6 +7,10 @@ import type {
 } from "../engine/model";
 import { english, type MessageKey } from "./en";
 import { vietnamese } from "./vi";
+import {
+  formatSessionMoment,
+  type SessionMoment,
+} from "../analytics/session-time";
 
 export type Language = "en" | "vi";
 export type LanguagePreference = Language | "system";
@@ -158,9 +162,50 @@ export function createLocalization(
       minutes: number(Math.floor((seconds % 3600) / 60)),
     });
   };
+  const calendarDate = (
+    value: string,
+    options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
+  ): string =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(
+      new Date(`${value}T12:00:00Z`),
+    );
+  const calendarRange = (start: string, end: string): string => {
+    if (start === end)
+      return calendarDate(start, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    const formatter = new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    return typeof formatter.formatRange === "function"
+      ? formatter.formatRange(
+          new Date(`${start}T12:00:00Z`),
+          new Date(`${end}T12:00:00Z`),
+        )
+      : `${calendarDate(start)} – ${calendarDate(end)}`;
+  };
+  const clockHour = (hour: number, minute?: number): string =>
+    new Intl.DateTimeFormat(locale, {
+      hour: "numeric",
+      ...(minute === undefined ? {} : { minute: "2-digit" }),
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute ?? 0)));
   return {
     duration,
     trainingTime,
+    calendarDate,
+    calendarRange,
+    clockHour,
+    sessionMomentText: (
+      moment: SessionMoment,
+      options: Intl.DateTimeFormatOptions,
+    ) => formatSessionMoment(moment, locale, options),
     language,
     locale,
     t,

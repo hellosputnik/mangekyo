@@ -42,7 +42,7 @@ function sessionDate(session: Session): string {
   );
 }
 
-function summarize(sessions: Session[]): PracticeSummary {
+export function summarizePractice(sessions: Session[]): PracticeSummary {
   const activeMilliseconds = sessions.reduce(
     (sum, session) => sum + session.activeMilliseconds,
     0,
@@ -97,7 +97,7 @@ export function buildStatistics(data: Data, today = new Date()) {
   const sessions = allSessions(data).sort(
     (left, right) => Date.parse(left.startedAt) - Date.parse(right.startedAt),
   );
-  const summary = summarize(sessions);
+  const summary = summarizePractice(sessions);
   const exercises: ExerciseReport[] = (
     Object.keys(names) as ExerciseKind[]
   ).map((kind) => {
@@ -107,7 +107,7 @@ export function buildStatistics(data: Data, today = new Date()) {
         ? records.filter((session) => session.trials.length)
         : [];
     return {
-      ...summarize(records),
+      ...summarizePractice(records),
       kind,
       latestLevel: responseRecords.length
         ? records.at(-1)!.difficulty + 1
@@ -124,7 +124,7 @@ export function buildStatistics(data: Data, today = new Date()) {
     };
   });
   const eyes = (["Left", "Right", "Both"] as const).map((eye) => ({
-    ...summarize(sessions.filter((session) => session.eye === eye)),
+    ...summarizePractice(sessions.filter((session) => session.eye === eye)),
     eye,
   }));
   const week = Array.from({ length: 7 }, (_, index) => {

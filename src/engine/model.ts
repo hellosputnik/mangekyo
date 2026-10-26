@@ -98,6 +98,8 @@ export interface Trial {
   correct: boolean;
   responseMilliseconds: number;
   difficulty: number;
+  /** Presented visual target diameter in CSS pixels; absent in legacy records. */
+  stimulusDiameter?: number;
 }
 export interface Session {
   id: string;
@@ -134,6 +136,7 @@ export interface Preferences {
   rest: number;
   manual: boolean;
   sound: boolean;
+  answerSound: boolean;
   reducedMotion: boolean;
   highContrast: boolean;
   reminder: number;
@@ -173,6 +176,7 @@ export const initialData = (): Data => ({
     rest: 60,
     manual: false,
     sound: false,
+    answerSound: false,
     reducedMotion: false,
     highContrast: false,
     reminder: 5,

@@ -1,6 +1,8 @@
 import { it, expect, vi } from "vitest";
 import { VisualExercise } from "./exercise";
 import { defaults } from "../engine/model";
+import { recordResponse } from "./responses";
+import type { Session } from "../engine/model";
 it("initializes deterministic answers and accepts response trials", () => {
   const exercise = new VisualExercise("visual", defaults, () => 0.5);
   exercise.initialize();
@@ -25,6 +27,54 @@ it("stops rendering stimuli after termination", () => {
   exercise.terminate();
   exercise.render(context, 390, 400);
   expect(context.arc).toHaveBeenCalledOnce();
+});
+it("renders the same shrinking size recorded for an answer, including past the former cap", () => {
+  const context = {
+    fillStyle: "",
+    strokeStyle: "",
+    globalAlpha: 1,
+    lineWidth: 1,
+    fillRect: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    stroke: vi.fn(),
+    getTransform: () => ({ a: 3 }),
+  } as unknown as CanvasRenderingContext2D;
+  const exercise = new VisualExercise("visual", defaults, () => 0);
+  exercise.initialize();
+  exercise.update(0, 12);
+  exercise.render(context, 358, 320);
+  const formerRadius = vi.mocked(context.arc).mock.calls[0][2];
+  exercise.update(0, 30);
+  exercise.render(context, 358, 320);
+  const radius = vi.mocked(context.arc).mock.calls[1][2];
+  expect(radius).toBeLessThan(formerRadius / 2);
+  const session: Session = {
+    id: "rendered",
+    kind: "visual",
+    eye: "Left",
+    configuration: defaults,
+    startedAt: "2026-10-26T10:00:00Z",
+    status: "running",
+    activeMilliseconds: 0,
+    slices: [],
+    trials: [],
+    difficulty: 30,
+  };
+  recordResponse(session, true, 1000, {
+    width: 358,
+    height: 320,
+    pixelRatio: 3,
+  });
+  expect(session.trials[0].stimulusDiameter).toBeCloseTo(radius * 2);
+  exercise.update(0, 256);
+  exercise.render(context, 358, 320);
+  expect(vi.mocked(context.arc).mock.calls[2][2]).toBeCloseTo(2 / 3);
+  expect(context.lineWidth).toBeCloseTo(1 / 3);
 });
 
 function contrastContext() {

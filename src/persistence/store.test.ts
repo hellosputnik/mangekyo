@@ -73,3 +73,37 @@ it("keeps a statistics reset and its undo copy through reload", async () => {
   expect((await load()).sessions).toEqual(data.sessions);
   expect((await load()).statisticsReset).toBeUndefined();
 });
+it("recovers continuous difficulty, target sizes and optional answer sound without replaying answers", async () => {
+  const data = initialData();
+  data.preferences.answerSound = true;
+  data.current = {
+    id: "continuous",
+    kind: "visual",
+    eye: "Left",
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T10:00:00Z",
+    status: "running",
+    activeMilliseconds: 1000,
+    slices: [],
+    difficulty: 34,
+    trials: [
+      {
+        correct: true,
+        difficulty: 33,
+        responseMilliseconds: 1000,
+        stimulusDiameter: 12.5,
+      },
+    ],
+  };
+  await save(data);
+  const recovered = await load();
+  expect(recovered.current?.status).toBe("interrupted");
+  expect(recovered.current?.difficulty).toBe(34);
+  expect(recovered.current?.trials).toEqual(data.current.trials);
+  expect(recovered.preferences.answerSound).toBe(true);
+  const { answerSound: ignored, ...legacyPreferences } = data.preferences;
+  await save({ ...data, preferences: legacyPreferences } as ReturnType<
+    typeof initialData
+  >);
+  expect((await load()).preferences.answerSound).toBe(false);
+});

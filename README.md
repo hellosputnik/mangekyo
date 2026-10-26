@@ -59,11 +59,12 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 - Every exercise has visible **Default / Custom** controls in the same place. Custom opens the shared settings sheet with that exercise's relevant controls. Each exercise keeps its own draft settings and duration while switching within the open app; Default restores stimulus settings while retaining duration and viewing distance. Sessions, including routine steps, record the selected exercise's configuration.
 - Pursuit: a compact choice between **Default** and **Custom**, matching the other exercises. Default gives horizontal, vertical, circular, figure-eight, and smooth wandering paths an equal share of active time within the five-minute session. Custom opens a modal settings sheet for path selection, size, speed, contrast, complexity, colors, and viewing distance. Duration is always adjustable. Pausing/recovery preserves the mix position.
 - Saccades: reproducible pseudo-random jumps; custom target size, contrast, exposure, pause, jump distance, colors, and optional acknowledgement. No gaze measurement.
-- Visual response tasks: C-like opening, directional pattern, directional triangle, with custom size, contrast, and colors. Contrast tasks: localized gratings or circles with adjustable size, contrast, and background. Contrast pattern size works for both forms and fits within non-overlapping panels on small stages. Four touch answers. Every five responses, accuracy adjusts an independent exercise level within bounds. Scheduling never advances difficulty.
+- Visual response tasks: C-like opening, directional pattern, directional triangle, with custom size, contrast, and colors. Each correct answer reduces the visual target size; two mistakes in the last three answers enlarge it. Progression continues beyond the former 12-level cap. Contrast tasks: localized gratings or circles with adjustable size, contrast, and background, within non-overlapping panels on small stages. Contrast retains its independent five-answer accuracy rule. Scheduling never advances difficulty.
+- Response exercises show a correct-answer checkmark, +1 point, best correct run, and a small milestone every five consecutive correct answers. Incorrect answers retain earned points. Feedback never blocks the next answer. Scores recover with saved trials and appear on the rest screen and in session details. Optional correct-answer sound/vibration defaults off, separately from rest-end notifications.
 - 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
 - Monotonic active timer; neutral Pause and one End session action with automatic saving. Resume is emphasized while paused. Routine sessions offer Skip exercise. Reaching the configured duration marks completion; ending sooner keeps valid time and records Stopped early. Background interruption still requires explicit reload recovery.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
-- Statistics: lifetime active time, sessions, practice days, answers, average session duration, exercise report cards, weighted answer accuracy, median response time, recent results, a seven-day activity chart, and totals by eye. Session history retains exercise-specific configurations; professional measurements stay separate.
+- Statistics: day/week/month activity browsing, date selection, interactive chart filtering, timed session lists, and detailed session sheets. Lifetime active time, sessions, practice days, average session duration, exercise report cards, weighted answer accuracy, median response time, recent results, and totals by eye remain available below. Session details retain exercise-specific configurations; professional measurements stay separate.
 - Confirmed statistics reset, optional clearing of professional measurements or exercise difficulty, and a persistent Undo copy that preserves practice added afterward.
 - JSON export and validated merge import. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. Schedule preferences are restored; in-progress routines are recovered locally, not resumed from imports.
 - Offline app-shell caching, update prompt, optional wake lock, optional rest-end sound/vibration, and high-contrast/gentler-motion controls.
@@ -87,8 +88,9 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 - `src/engine/statistics-reset.ts`: scoped report reset and recovery without interrupting an active session.
 - `src/exercises/exercise.ts`: common exercise lifecycle and Canvas stimulus renderer.
 - `src/exercises/pursuit.ts`: motion presets, active-time path selection, and continuous mixed-path transitions.
+- `src/exercises/visual.ts` and `responses.ts`: size progression, per-answer stimulus records, points and correct runs, independent of React and scheduling.
 - `src/persistence/`: IndexedDB snapshots and validated backup merging.
-- `src/analytics/`: deduplicated active-time aggregation, lifetime reports, and response metrics.
+- `src/analytics/`: deduplicated active-time aggregation, calendar periods, recorded time-zone formatting, lifetime reports, and response metrics.
 - `src/components/`: focused practice, statistics, record, navigation, and routine views; shared eye, duration, stepper, and switch controls in `controls/`.
 - `src/main.tsx`: application coordination, session lifecycle, and settings.
 
@@ -96,7 +98,13 @@ Canvas backing resolution uses device pixel ratio (capped at 3 for memory use). 
 
 ## Statistics and reset
 
-The Statistics tab (Thống kê in Vietnamese) presents a lifetime report from saved session records. Partial sessions retain their active time. Practice days come from positive-time local calendar slices, including sessions crossing midnight; older records without slices use their start date. Duplicate IDs are counted once, with a current session taking precedence. The seven-day chart uses stored local dates and scales to the largest day, independently of the daily goal.
+The Statistics tab (Thống kê in Vietnamese) starts with calendar activity inspired by [Apple Health's period selection and chart details](https://support.apple.com/guide/iphone/view-your-health-data-iphe3d379c32/ios). Choose Day, Week, or Month, move between periods, or select a date. Tap/drag the chart to filter sessions by date or start hour; Show all clears the selection. Weeks follow the selected regional locale, including Monday-first Vietnamese weeks. Month navigation respects calendar lengths and leap years.
+
+Open a session row for start/end date, recorded time zone and UTC offset, active/planned time, eye, status, answer results, best correct run, and full settings. New visual responses include the range of presented target sizes. Session lists show ten entries at a time with Show more; the full historical list remains available too. A session spanning midnight appears on each affected day with that day's active-time credit.
+
+The chart uses positive-time local calendar slices; duplicate session IDs count once and a current session takes precedence. Partial sessions retain valid time. Day view groups each day's credited time by the session's **start hour**, not exact minute-by-minute activity: saved slices do not contain individual interval timestamps. Time continuing from an earlier day's session is reported separately. Start/end clocks use the recorded IANA time zone (or saved UTC offset), while legacy records without either explicitly use the device time zone. Travel does not move saved daily credit to a different date. Charts scale to their data, independently of the daily goal.
+
+The lifetime report and balanced exercise cards remain below calendar activity.
 
 Exercise report cards aggregate their recorded eyes and settings. Response accuracy is correct answers divided by all answers for that exercise, rather than an average of session percentages. Median response time includes correct and incorrect answers. The six latest response sessions show their individual accuracy; their conditions can differ. Pursuit and saccades report time and sessions without assigning a gaze score. Exercise scores are training performance, separate from eyesight or clinical outcomes.
 
@@ -107,6 +115,14 @@ All exercise cards share a four-metric summary, last-practice date, and Details 
 Undo retains one previous copy locally through reloads. It merges the old records with new practice and measurements without duplicating IDs. If difficulty was reset, Undo restores it only for exercises with no new session since reset. Another reset replaces the previous Undo copy. JSON exports include this copy; validated imports keep it separate from current statistics until Undo is selected.
 
 Report previews in [the design audit](docs/apple-design-audit.md) use synthetic example records, not a person's training or clinical results.
+
+## Visual size progression and feedback
+
+A correct visual-discrimination response advances one step, reducing the nominal target radius by 6%. A single mistake holds the size; two mistakes among the last three answers step back three levels (about 20% larger). Repeated errors can return to the configured starting size. The initial radius fits the actual stage before scaling, so large custom targets also shrink immediately. The only size floor is a nominal four backing-pixel diameter at the renderer's device-pixel ratio, with a minimum one-pixel stroke. This is a rendering limit, not a visual acuity threshold.
+
+Difficulty is saved per exercise and clamped to the current stage's renderable range on rotation. New trials record the nominal presented diameter in CSS pixels before advancing. Levels from the older five-answer, 0.91-scale visual progression are preserved, but are not directly comparable with these new steps; compare recorded settings and target sizes where available. Historical trials without size metadata do not receive invented values. Contrast progression is unchanged. Time goals and completion runs never change difficulty.
+
+One correct answer earns one point. Best run means consecutive correct answers **within that session**, not consecutive days. No points are removed for errors or missed days. Scores are practice results, never evidence of improving eyesight. Visual confirmation always works; optional sound/vibration is best effort and may be unavailable under Safari policies. Reload restores points from recorded trials without replaying feedback.
 
 ## Validation and physical-device checklist
 

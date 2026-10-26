@@ -5,6 +5,8 @@ import {
   resetStatistics,
   undoStatisticsReset,
 } from "../engine/statistics-reset";
+import { recordResponse } from "../exercises/responses";
+import { visualDifficultyLimit } from "../exercises/visual";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -139,6 +141,65 @@ it("exports and imports the reset undo copy without restoring it into active sta
     mergeBackup(data, {
       ...reset,
       statisticsReset: { ...reset.statisticsReset, levels: { visual: -1 } },
+    }),
+  ).toThrow();
+});
+it("round trips visual progression past level 12, presented sizes, feedback preference, and reset recovery", () => {
+  const data = initialData();
+  data.preferences.answerSound = true;
+  data.current = {
+    id: "continuous",
+    kind: "visual",
+    eye: "Left",
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T10:00:00Z",
+    status: "running",
+    activeMilliseconds: 0,
+    slices: [],
+    trials: [],
+    difficulty: 0,
+  };
+  for (let index = 0; index < 35; index++)
+    recordResponse(data.current, true, 1000, {
+      width: 358,
+      height: 320,
+      pixelRatio: 3,
+    });
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.sessions[0].difficulty).toBe(35);
+  expect(imported.sessions[0].trials).toEqual(data.current.trials);
+  expect(imported.preferences.answerSound).toBe(true);
+  data.sessions = [{ ...data.current, status: "abandoned" }];
+  data.current = null;
+  data.levels.visual = 35;
+  const reset = resetStatistics(data, {
+    measurements: false,
+    difficulty: true,
+  });
+  expect(
+    mergeBackup(initialData(), reset).statisticsReset?.levels?.visual,
+  ).toBe(35);
+  expect(
+    undoStatisticsReset(mergeBackup(initialData(), reset)).levels.visual,
+  ).toBe(35);
+  const invalid = structuredClone(imported);
+  invalid.sessions[0].difficulty = visualDifficultyLimit + 1;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+  invalid.sessions[0].difficulty = 35;
+  invalid.sessions[0].trials[0].stimulusDiameter = NaN;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+});
+it("defaults answer sound off in legacy backups and rejects malformed feedback preferences", () => {
+  const data = initialData();
+  const { answerSound: ignored, ...legacyPreferences } = data.preferences;
+  expect(
+    mergeBackup(initialData(), { ...data, preferences: legacyPreferences })
+      .preferences.answerSound,
+  ).toBe(false);
+  expect(() =>
+    mergeBackup(initialData(), {
+      ...data,
+      preferences: { ...data.preferences, answerSound: "yes" },
     }),
   ).toThrow();
 });

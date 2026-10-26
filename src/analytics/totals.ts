@@ -1,5 +1,7 @@
 import { localDate, type Data, type Session } from "../engine/model";
-export function allSessions(data: Data): Session[] {
+export function allSessions(
+  data: Pick<Data, "sessions" | "current">,
+): Session[] {
   const sessions = new Map(
     data.sessions.map((session) => [session.id, session]),
   );

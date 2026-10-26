@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   initialData,
@@ -11,7 +11,8 @@ import {
   type Routine,
   type Session,
 } from "./engine/model";
-import { ActiveTimer, adapt } from "./engine/timer";
+import { ActiveTimer } from "./engine/timer";
+import { playAnswerConfirmation } from "./engine/feedback";
 import {
   initialPracticeSetups,
   selectPracticeMode,
@@ -21,6 +22,9 @@ import { load, save } from "./persistence/store";
 import { totalForDate } from "./analytics/totals";
 import { VisualExercise } from "./exercises/exercise";
 import { currentPursuitPath } from "./exercises/pursuit";
+import { maximumVisualDifficulty } from "./exercises/visual";
+import { recordResponse, responseScore } from "./exercises/responses";
+import { AnswerFeedback, type AnswerResult } from "./components/AnswerFeedback";
 import { advanceRoutine, advanceBreak } from "./engine/routines";
 import { mergeBackup } from "./persistence/backup";
 import { Routines } from "./components/Routines";
@@ -80,6 +84,16 @@ function App() {
   const [offline, setOffline] = useState(!navigator.onLine);
   const [update, setUpdate] = useState<ServiceWorker | null>(null);
   const [feedback, setFeedback] = useState<MessageKey | "">("");
+  const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
+  useEffect(() => {
+    if (!answerResult?.highlight) return;
+    const timeout = window.setTimeout(() => {
+      setAnswerResult((previous) =>
+        previous ? { ...previous, highlight: false } : null,
+      );
+    }, 650);
+    return () => window.clearTimeout(timeout);
+  }, [answerResult?.sequence]);
   const [routine, setRoutine] = useState<Routine>(() => ({
     id: crypto.randomUUID(),
     name: t("routine.defaultName"),
@@ -159,6 +173,7 @@ function App() {
   }, []);
   const pause = (interrupted = false) => {
     timer.current?.pause(interrupted);
+    setAnswerResult(null);
     persist(state.current);
   };
   useEffect(() => {
@@ -177,6 +192,10 @@ function App() {
     };
   }, []);
   const current = data.current;
+  const score = useMemo(
+    () => responseScore(current?.trials ?? []),
+    [current?.id, current?.trials.length],
+  );
   useEffect(() => {
     if (!current) return;
     const renderer = new VisualExercise(current.kind, current.configuration);
@@ -216,6 +235,8 @@ function App() {
     ];
     latest.levels[session.kind] = session.difficulty;
     latest.current = null;
+    setAnswerResult(null);
+    setFeedback("");
     timer.current = null;
     const rest = latest.run?.routine.rest ?? latest.preferences.rest;
     latest.breakState = {
@@ -262,6 +283,19 @@ function App() {
         if (element && exercise.current) {
           const bounds = element.getBoundingClientRect();
           const ratio = Math.min(window.devicePixelRatio || 1, 3);
+          if (
+            session.kind === "visual" &&
+            bounds.width > 40 &&
+            bounds.height > 40
+          )
+            session.difficulty = Math.min(
+              session.difficulty,
+              maximumVisualDifficulty(session.configuration, {
+                width: bounds.width,
+                height: bounds.height,
+                pixelRatio: ratio,
+              }),
+            );
           if (
             element.width !== Math.round(bounds.width * ratio) ||
             element.height !== Math.round(bounds.height * ratio)
@@ -391,6 +425,7 @@ function App() {
     timer.current.resume();
     lastReminder.current = 0;
     setFeedback("");
+    setAnswerResult(null);
     persist({ ...state.current, current: session, breakState: null });
   };
   const resume = () => {
@@ -400,20 +435,44 @@ function App() {
     }
   };
   const answer = (choice: number) => {
-    if (!current || current.status !== "running" || !exercise.current) return;
+    if (
+      !current ||
+      current.status !== "running" ||
+      !exercise.current ||
+      document.hidden
+    )
+      return;
+    timer.current?.checkpoint();
+    if (current.activeMilliseconds >= current.configuration.duration * 1000) {
+      finish();
+      return;
+    }
+    const bounds = canvas.current?.getBoundingClientRect();
+    if (!bounds || bounds.width <= 40 || bounds.height <= 40) return;
     const correct = exercise.current.answer(choice);
-    current.trials.push({
+    const result = recordResponse(
+      current,
       correct,
-      responseMilliseconds: current.activeMilliseconds - trialStart.current,
-      difficulty: current.difficulty,
-    });
+      current.activeMilliseconds - trialStart.current,
+      {
+        width: bounds.width,
+        height: bounds.height,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 3),
+      },
+    );
+    if (!result) return;
     trialStart.current = current.activeMilliseconds;
-    if (current.trials.length % 5 === 0)
-      current.difficulty = adapt(
-        current.difficulty,
-        current.trials.slice(-5).map((trial) => trial.correct),
-      );
-    setFeedback(correct ? "feedback.correct" : "feedback.next");
+    setAnswerResult({
+      choice,
+      correct,
+      sequence: current.trials.length,
+      currentRun: result.currentRun,
+      enlarged: result.enlarged,
+      highlight: true,
+    });
+    setFeedback("");
+    if (correct && state.current.preferences.answerSound)
+      playAnswerConfirmation();
     persist(state.current);
   };
   const navigate = (page: Page) => {
@@ -422,6 +481,13 @@ function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   const minutes = totalForDate(data) / 60000;
+  const lastSession = data.sessions.at(-1);
+  const lastScore =
+    data.breakState &&
+    lastSession &&
+    (lastSession.kind === "visual" || lastSession.kind === "contrast")
+      ? responseScore(lastSession.trials)
+      : null;
   const setting = (
     key: keyof Configuration,
     value: string | number | boolean,
@@ -552,9 +618,9 @@ function App() {
                   ? `${patternLabel(currentPursuitPath(current.configuration, current.activeMilliseconds / 1000))} · ${t("session.pursuitHint")}`
                   : current.kind === "saccades"
                     ? t("session.saccadeHint")
-                    : t("session.levelResponses", {
-                        level: number(current.difficulty + 1),
-                        count: number(current.trials.length),
+                    : t("session.score", {
+                        points: number(score.points),
+                        best: number(score.bestRun),
                       })}
               </span>
             </div>
@@ -589,7 +655,7 @@ function App() {
                   ).map((label, index) => (
                     <button
                       type="button"
-                      className={`answer-${index}`}
+                      className={`answer-${index}${answerResult?.choice === index && answerResult.correct && answerResult.highlight ? " answer-correct" : ""}`}
                       disabled={current.status !== "running"}
                       key={index}
                       onClick={() => answer(index)}
@@ -609,8 +675,14 @@ function App() {
                   {t("session.found")}
                 </button>
               )}
-            <div className="feedback" role="status">
-              {feedback ? t(feedback) : ""}
+            <div className="feedback" role="status" aria-atomic="true">
+              {answerResult ? (
+                <AnswerFeedback result={answerResult} />
+              ) : feedback ? (
+                t(feedback)
+              ) : (
+                ""
+              )}
             </div>
             <SessionControls
               status={current.status}
@@ -641,6 +713,14 @@ function App() {
                   })
                 : t("rest.saved")}
             </p>
+            {lastScore && (
+              <p className="rest-result">
+                {t("session.score", {
+                  points: number(lastScore.points),
+                  best: number(lastScore.bestRun),
+                })}
+              </p>
+            )}
             {data.run &&
               shouldRecommendLandscape(
                 data.run.routine.steps[data.run.index].kind,
@@ -848,6 +928,7 @@ function App() {
                         [
                           ["manual", t("routine.manual")],
                           ["sound", t("settings.sound")],
+                          ["answerSound", t("settings.answerSound")],
                           ["reducedMotion", t("settings.reducedMotion")],
                           ["highContrast", t("settings.highContrast")],
                         ] as const

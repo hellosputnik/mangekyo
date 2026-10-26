@@ -7,6 +7,7 @@ import { SessionHistory } from "./SessionHistory";
 import { ProfessionalMeasurements } from "./ProfessionalMeasurements";
 import { StatisticsResetControls } from "./StatisticsResetControls";
 import { Icon } from "./Icon";
+import { ActivityBrowser } from "./ActivityBrowser";
 
 export function Statistics({
   data,
@@ -34,12 +35,10 @@ export function Statistics({
     eyeLabel,
   } = useI18n();
   const report = buildStatistics(data);
-  const { summary, week } = report;
-  const weekTime = week.reduce((sum, day) => sum + day.activeMilliseconds, 0);
-  const weekDays = week.filter((day) => day.activeMilliseconds > 0).length;
-  const weekMaximum = Math.max(1, ...week.map((day) => day.activeMilliseconds));
+  const { summary } = report;
   return (
     <div className="statistics-page">
+      <ActivityBrowser data={data} />
       <section className="lifetime-report" aria-labelledby="lifetime-title">
         <div className="report-heading">
           <h2 id="lifetime-title">{t("statistics.lifetime")}</h2>
@@ -88,49 +87,6 @@ export function Statistics({
             )}
           </div>
         )}
-      </section>
-      <section className="statistics-week" aria-labelledby="week-title">
-        <div className="report-heading">
-          <h2 id="week-title">{t("statistics.week")}</h2>
-          <strong>{trainingTime(weekTime)}</strong>
-        </div>
-        <p>{t("statistics.weekDays", { count: number(weekDays) })}</p>
-        <ol className="activity-week" aria-label={t("statistics.dailyDetails")}>
-          {week.map((day) => (
-            <li
-              key={day.date}
-              aria-label={`${date(day.date)}: ${trainingTime(day.activeMilliseconds)}`}
-            >
-              <span className="activity-column" aria-hidden="true">
-                <i
-                  style={{
-                    height: `${(day.activeMilliseconds / weekMaximum) * 100}%`,
-                  }}
-                />
-              </span>
-              <span aria-hidden="true">
-                {date(day.date, { weekday: "short" })}
-              </span>
-            </li>
-          ))}
-        </ol>
-        <details className="daily-details">
-          <summary>{t("statistics.dailyDetails")}</summary>
-          <dl>
-            {week.map((day) => (
-              <div key={day.date}>
-                <dt>
-                  {date(day.date, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </dt>
-                <dd>{trainingTime(day.activeMilliseconds)}</dd>
-              </div>
-            ))}
-          </dl>
-        </details>
       </section>
       <section
         className="exercise-reports"

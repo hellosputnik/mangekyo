@@ -116,8 +116,12 @@ it("shows saccade timing in history without unrelated pursuit path and speed lab
       />
     </LocalizationContext.Provider>,
   );
-  expect(html).toContain("Target 72px");
-  expect(html).toContain("exposure 2.5s · pause 1s · jump distance 0.6");
+  expect(html).toContain("Target diameter (CSS px)");
+  expect(html).toContain(">72</dd>");
+  expect(html).toContain("Target exposure (seconds)");
+  expect(html).toContain(">2.5</dd>");
+  expect(html).toContain("Pause between jumps (seconds)");
+  expect(html).toContain("Jump distance");
   expect(html).not.toContain("Default (mixed)");
   expect(html).not.toContain("speed");
 });

@@ -98,3 +98,18 @@ it("formats lifetime training time without a clock-style minute overflow", () =>
   expect(createLocalization("en").trainingTime(125000)).toBe("2 min 5 sec");
   expect(createLocalization("vi").trainingTime(0)).toBe("0 giây");
 });
+it("formats civil calendar dates without shifting them into another time zone", () => {
+  const localization = createLocalization("vi");
+  expect(
+    localization.calendarDate("2026-10-25", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: "Pacific/Kiritimati",
+    }),
+  ).toBe("25/10/2026");
+  expect(localization.calendarRange("2026-10-19", "2026-10-25")).toContain(
+    "2026",
+  );
+  expect(localization.clockHour(15, 0)).toBe("15:00");
+});

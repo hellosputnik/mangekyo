@@ -1,5 +1,6 @@
 import { type Configuration, type ExerciseKind } from "../engine/model";
 import { pursuitPoint } from "./pursuit";
+import { visualTargetRadius } from "./visual";
 export interface Exercise {
   initialize(): void;
   update(seconds: number, level: number): void;
@@ -72,15 +73,19 @@ export class VisualExercise implements Exercise {
       }
     }
     if (this.kind === "visual") {
-      const size = Math.min(
-        width / 3,
-        height / 3,
-        Math.max(5, settings.size * 1.6 * Math.pow(0.91, this.level)),
+      const pixelRatio = Math.max(
+        1,
+        Math.min(3, context.getTransform?.().a ?? 1),
       );
+      const size = visualTargetRadius(settings, this.level, {
+        width,
+        height,
+        pixelRatio,
+      });
       context.save();
       context.translate(x, y);
       context.rotate((this.target * Math.PI) / 2);
-      context.lineWidth = Math.max(2, size / 4);
+      context.lineWidth = Math.max(1 / pixelRatio, size / 4);
       if (settings.stimulus === "Opening") {
         context.beginPath();
         context.arc(0, 0, size, 0.4, Math.PI * 2 - 0.4);
