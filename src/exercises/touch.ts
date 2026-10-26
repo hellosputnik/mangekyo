@@ -1,8 +1,19 @@
 import { bounded, type FollowMetrics, type Session } from "../engine/model";
-import { adapt } from "../engine/timer";
 import type { Exercise } from "./exercise";
 import { pursuitPoint } from "./pursuit";
 import { responseScore } from "./responses";
+import {
+  changeTouchLevel,
+  ensureTouchChallenge,
+  failTouchChallenge,
+  followLevelGoalMilliseconds,
+  followMotionFactor,
+  recordTapChallenge,
+  resetTouchRun,
+  tapTimeLimit,
+  touchTargetDiameter,
+  type TouchCue,
+} from "./touch-challenge";
 
 export interface Point {
   x: number;
@@ -31,12 +42,15 @@ export class TouchExercise implements Exercise {
   private grabOffset: Point | null = null;
   private press: Point | null = null;
   private lastSample: number | null = null;
+  private cues: TouchCue[] = [];
   constructor(
     private session: Session,
     private random: () => number = Math.random,
   ) {}
   initialize() {
     this.running = true;
+    ensureTouchChallenge(this.session);
+    resetTouchRun(this.session);
     if (this.session.kind === "tap" && !this.session.tapState)
       this.placeTarget();
     if (this.session.kind === "follow") {
@@ -46,6 +60,27 @@ export class TouchExercise implements Exercise {
   }
   update(seconds: number) {
     this.seconds = seconds;
+    const target = this.session.tapState;
+    if (
+      this.session.kind === "tap" &&
+      this.session.status === "running" &&
+      target &&
+      !target.expired &&
+      this.session.activeMilliseconds - target.presentedAtMilliseconds >
+        tapTimeLimit(this.session.configuration, this.session.difficulty)
+    ) {
+      target.expired = true;
+      const cue = failTouchChallenge(this.session);
+      if (cue) this.cues.push(cue);
+    }
+  }
+  drainCues(): TouchCue[] {
+    return this.cues.splice(0);
+  }
+  makeEasier() {
+    resetTouchRun(this.session);
+    const cue = changeTouchLevel(this.session, -1);
+    if (cue) this.cues.push(cue);
   }
   setViewport(width: number, height: number) {
     if (width <= 0 || height <= 0 || !Number.isFinite(width + height))
@@ -72,17 +107,11 @@ export class TouchExercise implements Exercise {
     }
     return changed;
   }
-  toleranceRadius() {
-    const factor = this.session.kind === "tap" ? 0.95 : 0.97;
-    const configured = Math.max(
-      22,
-      (this.session.configuration.touchTolerance / 2) *
-        factor ** this.session.difficulty,
-    );
+  private baseToleranceRadius() {
     return Math.max(
       22,
       Math.min(
-        configured,
+        this.session.configuration.touchTolerance / 2,
         (this.width - 24) / 2,
         (this.height -
           (this.session.kind === "follow" ? fingerOffset + 32 : 24)) /
@@ -90,8 +119,17 @@ export class TouchExercise implements Exercise {
       ),
     );
   }
+  toleranceRadius() {
+    const factor = this.session.kind === "tap" ? 0.95 : 0.97;
+    const configured = Math.max(
+      22,
+      (this.session.configuration.touchTolerance / 2) *
+        factor ** this.session.difficulty,
+    );
+    return Math.max(22, Math.min(configured, this.baseToleranceRadius()));
+  }
   private area() {
-    const margin = this.toleranceRadius() + 12;
+    const margin = this.baseToleranceRadius() + 12;
     const bottomMargin =
       this.session.kind === "follow"
         ? Math.max(margin, fingerOffset + 28)
@@ -115,12 +153,15 @@ export class TouchExercise implements Exercise {
       y: bounded(point.y, area.top, area.bottom, area.top),
     };
   }
-  targetPoint(seconds = this.seconds): Point {
+  targetPoint(
+    seconds = this.seconds,
+    phaseSeconds = this.session.challenge?.motionSeconds ?? seconds,
+  ): Point {
     const area = this.area();
     const normalized =
       this.session.kind === "tap"
         ? [this.session.tapState?.x ?? 0.5, this.session.tapState?.y ?? 0.5]
-        : pursuitPoint(this.session.configuration, seconds).map(
+        : pursuitPoint(this.session.configuration, seconds, phaseSeconds).map(
             (value) => (value + 1) / 2,
           );
     return {
@@ -197,31 +238,57 @@ export class TouchExercise implements Exercise {
     const target = this.targetPoint(this.session.activeMilliseconds / 1000);
     const error = distance(point, target);
     const correct = error <= this.toleranceRadius();
+    const responseMilliseconds = Math.max(
+      0,
+      this.session.activeMilliseconds -
+        (this.session.tapState?.presentedAtMilliseconds ?? 0),
+    );
+    const timeLimitMilliseconds = tapTimeLimit(
+      this.session.configuration,
+      this.session.difficulty,
+    );
+    const stimulusDiameter = Math.min(
+      touchTargetDiameter(this.session),
+      this.toleranceRadius() * 1.5,
+    );
+    const precisionRadius = Math.min(
+      this.toleranceRadius(),
+      Math.max(6, stimulusDiameter / 2),
+    );
+    const qualified =
+      correct &&
+      error <= precisionRadius &&
+      responseMilliseconds <= timeLimitMilliseconds &&
+      !this.session.tapState?.expired;
     this.session.trials.push({
       correct,
-      responseMilliseconds: Math.max(
-        0,
-        this.session.activeMilliseconds -
-          (this.session.tapState?.presentedAtMilliseconds ?? 0),
-      ),
+      responseMilliseconds,
       difficulty: this.session.difficulty,
       touchDistance: error,
       touchTolerance: this.toleranceRadius() * 2,
-      stimulusDiameter: Math.min(
-        this.session.configuration.size,
-        this.toleranceRadius() * 1.5,
-      ),
+      stimulusDiameter,
+      qualified,
+      timeLimitMilliseconds,
+      precisionRadius,
     });
-    if (this.session.trials.length % 5 === 0)
-      this.session.difficulty = adapt(
-        this.session.difficulty,
-        this.session.trials.slice(-5).map((trial) => trial.correct),
-      );
+    const cue = recordTapChallenge(
+      this.session,
+      qualified,
+      Boolean(this.session.tapState?.expired),
+    );
+    if (cue) this.cues.push(cue);
+    else if (correct && !qualified)
+      this.cues.push({
+        kind: error > precisionRadius ? "closer" : "slower",
+        level: this.session.difficulty,
+      });
     if (correct) this.placeTarget();
-    else if (this.session.tapState)
+    else if (this.session.tapState) {
       this.session.tapState.presentedAtMilliseconds =
         this.session.activeMilliseconds;
-    return { correct, ...responseScore(this.session.trials) };
+      this.session.tapState.expired = false;
+    }
+    return { correct, qualified, ...responseScore(this.session.trials) };
   }
   private placeTarget() {
     const previous = this.session.tapState;
@@ -229,8 +296,8 @@ export class TouchExercise implements Exercise {
     const spanX = area.right - area.left,
       spanY = area.bottom - area.top;
     const separation = Math.min(
-      this.toleranceRadius() * 3,
-      Math.hypot(spanX, spanY) * 0.45,
+      this.toleranceRadius() * (3 + this.session.difficulty * 0.08),
+      Math.hypot(spanX, spanY) * (0.45 + this.session.difficulty * 0.01),
     );
     let x = 0.5,
       y = 0.5;
@@ -259,6 +326,7 @@ export class TouchExercise implements Exercise {
     const metrics = this.session.follow;
     if (!this.grabOffset || this.lastSample === null || !metrics) return;
     const end = this.session.activeMilliseconds;
+    const challenge = ensureTouchChallenge(this.session);
     let cursor = this.lastSample;
     while (cursor < end) {
       if (metrics.windowMilliseconds >= 10000) {
@@ -269,11 +337,27 @@ export class TouchExercise implements Exercise {
         32,
         end - cursor,
         10000 - metrics.windowMilliseconds,
+        challenge.mastered
+          ? Infinity
+          : (challenge.progressMilliseconds < 3000
+              ? 3000
+              : followLevelGoalMilliseconds) - challenge.progressMilliseconds,
       );
       const error = distance(
         this.cursor,
-        this.targetPoint((cursor + amount / 2) / 1000),
+        this.targetPoint(
+          (cursor + amount / 2) / 1000,
+          challenge.motionSeconds +
+            (amount / 2000) *
+              followMotionFactor(
+                this.session.configuration,
+                this.session.difficulty,
+              ),
+        ),
       );
+      challenge.motionSeconds +=
+        (amount / 1000) *
+        followMotionFactor(this.session.configuration, this.session.difficulty);
       const inside = error <= this.toleranceRadius();
       metrics.trackedMilliseconds += amount;
       metrics.distanceWeightedMilliseconds += error * amount;
@@ -286,16 +370,30 @@ export class TouchExercise implements Exercise {
           metrics.bestRunMilliseconds,
           metrics.currentRunMilliseconds,
         );
-      } else metrics.currentRunMilliseconds = 0;
+        challenge.outsideMilliseconds = 0;
+        const previousProgress = challenge.progressMilliseconds;
+        if (!challenge.mastered) challenge.progressMilliseconds += amount;
+        if (previousProgress < 3000 && challenge.progressMilliseconds >= 3000)
+          this.cues.push({ kind: "milestone", level: this.session.difficulty });
+        if (
+          !challenge.mastered &&
+          challenge.progressMilliseconds >= followLevelGoalMilliseconds
+        ) {
+          const cue = changeTouchLevel(this.session, 1, cursor + amount);
+          if (cue) this.cues.push(cue);
+        }
+      } else {
+        metrics.currentRunMilliseconds = 0;
+        challenge.outsideMilliseconds += amount;
+        if (challenge.outsideMilliseconds > 250)
+          challenge.progressMilliseconds = 0;
+        if (challenge.outsideMilliseconds >= 5000) {
+          const cue = changeTouchLevel(this.session, -1, cursor + amount);
+          challenge.outsideMilliseconds = 0;
+          if (cue) this.cues.push(cue);
+        }
+      }
       if (metrics.windowMilliseconds >= 10000) {
-        const ratio =
-          metrics.windowOnTargetMilliseconds / metrics.windowMilliseconds;
-        this.session.difficulty = bounded(
-          this.session.difficulty + (ratio >= 0.8 ? 1 : ratio < 0.5 ? -1 : 0),
-          0,
-          12,
-          0,
-        );
         metrics.windowMilliseconds = 0;
         metrics.windowOnTargetMilliseconds = 0;
       }
@@ -303,15 +401,17 @@ export class TouchExercise implements Exercise {
     }
     this.lastSample = end;
   }
-  release() {
+  release(resetChallenge = false) {
     this.sample();
     this.grabOffset = null;
     this.press = null;
     this.lastSample = null;
     if (this.session.follow) this.session.follow.currentRunMilliseconds = 0;
+    if (resetChallenge || this.session.kind === "follow")
+      resetTouchRun(this.session);
   }
   terminate() {
-    this.release();
+    this.release(true);
     this.running = false;
   }
   render(context: CanvasRenderingContext2D, width: number, height: number) {
@@ -334,7 +434,7 @@ export class TouchExercise implements Exercise {
     context.arc(
       target.x,
       target.y,
-      Math.min(settings.size / 2, radius * 0.75),
+      Math.min(touchTargetDiameter(this.session) / 2, radius * 0.75),
       0,
       Math.PI * 2,
     );

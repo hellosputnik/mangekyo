@@ -38,5 +38,22 @@ export function summarizeTouch(sessions: Session[]) {
       (best, metrics) => Math.max(best, metrics.bestRunMilliseconds),
       0,
     ),
+    highestLevel: sessions.length
+      ? sessions.reduce(
+          (highest, session) =>
+            Math.max(
+              highest,
+              session.challenge?.highestLevel ?? session.difficulty,
+            ),
+          0,
+        ) + 1
+      : null,
+    levelsUnlocked: sessions.reduce(
+      (sum, session) => sum + (session.challenge?.levelUps ?? 0),
+      0,
+    ),
+    qualifiedHits: sessions
+      .flatMap((session) => session.trials)
+      .filter((trial) => trial.qualified === true).length,
   };
 }

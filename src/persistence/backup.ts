@@ -10,8 +10,13 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { maximumTouchLevel } from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
-  kind === "visual" ? visualDifficultyLimit : 12;
+  kind === "visual"
+    ? visualDifficultyLimit
+    : kind === "tap" || kind === "follow"
+      ? maximumTouchLevel
+      : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -44,6 +49,50 @@ function validSession(value: unknown): value is Session {
     return false;
   const settings = value.configuration;
   if (
+    (settings.tapPaceSeconds !== undefined &&
+      !finite(settings.tapPaceSeconds, 1, 10)) ||
+    (settings.gentleMotion !== undefined &&
+      typeof settings.gentleMotion !== "boolean")
+  )
+    return false;
+  if (value.challenge !== undefined) {
+    const challenge = value.challenge;
+    if (
+      !["tap", "follow"].includes(String(value.kind)) ||
+      !record(challenge) ||
+      challenge.version !== 1 ||
+      typeof challenge.mastered !== "boolean" ||
+      !["startingLevel", "highestLevel"].every(
+        (key) =>
+          finite(challenge[key], 0, maximumTouchLevel) &&
+          Number.isInteger(challenge[key]),
+      ) ||
+      !["levelUps", "streak", "chain", "bestChain", "misses"].every(
+        (key) =>
+          finite(challenge[key], 0, 1000000) &&
+          Number.isInteger(challenge[key]),
+      ) ||
+      !finite(challenge.streak, 0, 4) ||
+      !finite(challenge.progressMilliseconds, 0, 6032) ||
+      !finite(challenge.outsideMilliseconds, 0, 5000) ||
+      !finite(challenge.motionSeconds, 0, 14400) ||
+      !Array.isArray(challenge.achievements) ||
+      !challenge.achievements.every(
+        (item) =>
+          record(item) &&
+          ["level-up", "level-down", "mastered"].includes(String(item.kind)) &&
+          finite(item.level, 0, maximumTouchLevel) &&
+          Number.isInteger(item.level) &&
+          finite(
+            item.activeMilliseconds,
+            0,
+            value.activeMilliseconds as number,
+          ),
+      )
+    )
+      return false;
+  }
+  if (
     (settings.touchTolerance !== undefined &&
       !finite(settings.touchTolerance, 44, 160)) ||
     (settings.hand !== undefined &&
@@ -63,6 +112,12 @@ function validSession(value: unknown): value is Session {
         0,
         value.activeMilliseconds,
       ))
+  )
+    return false;
+  if (
+    record(value.tapState) &&
+    value.tapState.expired !== undefined &&
+    typeof value.tapState.expired !== "boolean"
   )
     return false;
   if (value.follow !== undefined) {
@@ -139,7 +194,12 @@ function validSession(value: unknown): value is Session {
       (trial.touchDistance === undefined ||
         finite(trial.touchDistance, 0, 100000)) &&
       (trial.touchTolerance === undefined ||
-        finite(trial.touchTolerance, 44, 160)),
+        finite(trial.touchTolerance, 44, 160)) &&
+      (trial.qualified === undefined || typeof trial.qualified === "boolean") &&
+      (trial.timeLimitMilliseconds === undefined ||
+        finite(trial.timeLimitMilliseconds, 1, 10000)) &&
+      (trial.precisionRadius === undefined ||
+        finite(trial.precisionRadius, 1, 80)),
   );
 }
 function validMeasurement(value: unknown): value is Measurement {

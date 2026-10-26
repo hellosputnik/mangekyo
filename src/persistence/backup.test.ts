@@ -294,3 +294,64 @@ it("imports four-exercise legacy backups without losing records or reset recover
   expect(imported.statisticsReset?.levels?.follow).toBe(0);
   expect(undoStatisticsReset(imported).sessions[0].id).toBe("old");
 });
+it("round trips earned touch levels beyond 12 and the exact challenge conditions and achievements", () => {
+  const data = initialData();
+  const session = {
+    id: "levels",
+    kind: "tap" as const,
+    eye: "Left" as const,
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "running" as const,
+    activeMilliseconds: 0,
+    slices: [],
+    trials: [],
+    difficulty: 0,
+  };
+  const exercise = new TouchExercise(session, () => 0.5);
+  exercise.initialize();
+  exercise.setViewport(390, 500);
+  for (let hit = 0; hit < 75; hit++) {
+    session.activeMilliseconds += 300;
+    exercise.update(session.activeMilliseconds / 1000);
+    const target = exercise.targetPoint();
+    exercise.pointerDown(target);
+    exercise.pointerUp(target);
+  }
+  data.sessions = [
+    {
+      ...session,
+      status: "abandoned",
+      slices: [
+        {
+          date: "2026-10-26",
+          timezone: "UTC",
+          offset: 0,
+          milliseconds: session.activeMilliseconds,
+        },
+      ],
+    },
+  ];
+  data.levels.tap = session.difficulty;
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.sessions[0].difficulty).toBe(15);
+  expect(imported.sessions[0].challenge).toEqual(data.sessions[0].challenge);
+  expect(imported.sessions[0].trials[0]).toMatchObject({
+    qualified: true,
+    timeLimitMilliseconds: 2500,
+    precisionRadius: 14,
+  });
+  const undo = undoStatisticsReset(
+    mergeBackup(
+      initialData(),
+      resetStatistics(data, { difficulty: true, measurements: false }),
+    ),
+  );
+  expect(undo.levels.tap).toBe(15);
+  const invalid = JSON.parse(JSON.stringify(data));
+  invalid.sessions[0].challenge.achievements[0].level = 1000;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+  invalid.sessions[0].challenge = data.sessions[0].challenge;
+  invalid.sessions[0].trials[0].timeLimitMilliseconds = -1;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+});

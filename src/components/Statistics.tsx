@@ -214,6 +214,14 @@ export function Statistics({
                         {t("touch.performanceNote")}
                       </p>
                     )}
+                    {isTouchExercise(exercise.kind) &&
+                      touch.highestLevel !== null && (
+                        <p className="exercise-report-note">
+                          {t("challenge.highest")}: {number(touch.highestLevel)}{" "}
+                          · {t("challenge.unlockedCount")}:{" "}
+                          {number(touch.levelsUnlocked)}
+                        </p>
+                      )}
                     <p className="exercise-report-note">
                       {t("statistics.outcomes", {
                         completed: number(exercise.completedCount),

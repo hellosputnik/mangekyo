@@ -44,6 +44,8 @@ export interface Configuration {
   distance: number;
   touchTolerance: number;
   hand: "Left" | "Right";
+  tapPaceSeconds: number;
+  gentleMotion?: boolean;
 }
 export const defaults: Configuration = {
   duration: 300,
@@ -64,6 +66,7 @@ export const defaults: Configuration = {
   distance: 40,
   touchTolerance: 72,
   hand: "Right",
+  tapPaceSeconds: 2.5,
 };
 export const names: Record<ExerciseKind, string> = {
   pursuit: "Smooth pursuit",
@@ -106,6 +109,7 @@ export function validate(configuration: Configuration): Configuration {
     distance: bounded(configuration.distance, 15, 200, 40),
     touchTolerance: bounded(configuration.touchTolerance, 44, 160, 72),
     hand: configuration.hand === "Left" ? "Left" : "Right",
+    tapPaceSeconds: bounded(configuration.tapPaceSeconds, 1, 10, 2.5),
   };
 }
 export interface Slice {
@@ -122,6 +126,9 @@ export interface Trial {
   stimulusDiameter?: number;
   touchDistance?: number;
   touchTolerance?: number;
+  qualified?: boolean;
+  timeLimitMilliseconds?: number;
+  precisionRadius?: number;
 }
 export interface FollowMetrics {
   trackedMilliseconds: number;
@@ -136,6 +143,27 @@ export interface TapState {
   x: number;
   y: number;
   presentedAtMilliseconds: number;
+  expired?: boolean;
+}
+export interface ChallengeAchievement {
+  kind: "level-up" | "level-down" | "mastered";
+  level: number;
+  activeMilliseconds: number;
+}
+export interface TouchChallengeState {
+  version: 1;
+  startingLevel: number;
+  highestLevel: number;
+  levelUps: number;
+  streak: number;
+  chain: number;
+  bestChain: number;
+  misses: number;
+  progressMilliseconds: number;
+  outsideMilliseconds: number;
+  motionSeconds: number;
+  mastered: boolean;
+  achievements: ChallengeAchievement[];
 }
 export interface Session {
   id: string;
@@ -152,6 +180,7 @@ export interface Session {
   follow?: FollowMetrics;
   tapState?: TapState;
   awaitingTouch?: boolean;
+  challenge?: TouchChallengeState;
 }
 export interface Step {
   kind: ExerciseKind;

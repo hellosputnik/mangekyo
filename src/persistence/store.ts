@@ -1,5 +1,6 @@
 import { initialData, validate, type Data } from "../engine/model";
 import { normalizeLanguagePreference } from "../i18n/locale";
+import { resetTouchRun } from "../exercises/touch-challenge";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("mangekyo", 1);
@@ -35,7 +36,10 @@ export async function load(): Promise<Data> {
         data.current.awaitingTouch = false;
         if (data.current.follow) data.current.follow.currentRunMilliseconds = 0;
       }
-      if (data.current) data.current.status = "interrupted";
+      if (data.current) {
+        data.current.status = "interrupted";
+        resetTouchRun(data.current);
+      }
       resolve(data);
     };
     request.onerror = () => reject(request.error);

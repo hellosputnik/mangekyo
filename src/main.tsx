@@ -14,7 +14,11 @@ import {
   type Session,
 } from "./engine/model";
 import { ActiveTimer } from "./engine/timer";
-import { playAnswerConfirmation } from "./engine/feedback";
+import {
+  playAnswerConfirmation,
+  playPracticeFeedback,
+  unlockPracticeAudio,
+} from "./engine/feedback";
 import {
   initialPracticeSetups,
   selectPracticeMode,
@@ -25,6 +29,11 @@ import { totalForDate } from "./analytics/totals";
 import type { Exercise } from "./exercises/exercise";
 import { createExercise } from "./exercises/factory";
 import { TouchExercise, type Point } from "./exercises/touch";
+import { highestTouchLevel, type TouchCue } from "./exercises/touch-challenge";
+import {
+  TouchChallenge,
+  TouchChallengeNotice,
+} from "./components/TouchChallenge";
 import { summarizeTouch } from "./analytics/touch";
 import { currentPursuitPath } from "./exercises/pursuit";
 import { maximumVisualDifficulty } from "./exercises/visual";
@@ -90,6 +99,16 @@ function App() {
   const [offline, setOffline] = useState(!navigator.onLine);
   const [update, setUpdate] = useState<ServiceWorker | null>(null);
   const [feedback, setFeedback] = useState<MessageKey | "">("");
+  const [touchCue, setTouchCue] = useState<{
+    value: TouchCue;
+    sequence: number;
+  } | null>(null);
+  const touchCueSequence = useRef(0);
+  useEffect(() => {
+    if (!touchCue) return;
+    const timeout = window.setTimeout(() => setTouchCue(null), 2400);
+    return () => window.clearTimeout(timeout);
+  }, [touchCue?.sequence]);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   useEffect(() => {
     if (!answerResult?.highlight) return;
@@ -136,6 +155,30 @@ function App() {
     setData({ ...next });
     void save(next).catch(() => setError("error.save"));
   };
+  const consumeTouchCues = () => {
+    if (!(exercise.current instanceof TouchExercise)) return false;
+    const cues = exercise.current.drainCues();
+    if (!cues.length) return false;
+    const cue =
+      cues
+        .slice()
+        .reverse()
+        .find(
+          (value) =>
+            value.kind === "level-up" ||
+            value.kind === "mastered" ||
+            value.kind === "level-down",
+        ) ?? cues.at(-1)!;
+    setTouchCue({ value: cue, sequence: ++touchCueSequence.current });
+    const celebratory = cue.kind === "level-up" || cue.kind === "mastered";
+    if (
+      state.current.preferences.answerSound &&
+      (celebratory || cue.kind === "milestone")
+    )
+      playPracticeFeedback(celebratory ? "level" : "milestone");
+    if (celebratory || cue.kind === "level-down") persist(state.current);
+    return celebratory || cue.kind === "milestone";
+  };
   useEffect(() => {
     void load()
       .then((value) => {
@@ -181,7 +224,10 @@ function App() {
   const releaseTouch = () => {
     const pointer = touchPointer.current;
     touchPointer.current = null;
-    if (exercise.current instanceof TouchExercise) exercise.current.release();
+    if (exercise.current instanceof TouchExercise) {
+      exercise.current.release(true);
+      exercise.current.drainCues();
+    }
     if (pointer !== null && canvas.current?.hasPointerCapture(pointer))
       canvas.current.releasePointerCapture(pointer);
   };
@@ -191,6 +237,7 @@ function App() {
     if (state.current.current?.kind === "follow")
       state.current.current.awaitingTouch = awaitingTouch && !interrupted;
     setAnswerResult(null);
+    if (interrupted || !awaitingTouch) setTouchCue(null);
     persist(state.current);
   };
   useEffect(() => {
@@ -279,6 +326,7 @@ function App() {
             timer.current?.checkpoint();
             if (exercise.current instanceof TouchExercise)
               exercise.current.sample();
+            consumeTouchCues();
           }
           if (
             session.activeMilliseconds >=
@@ -346,6 +394,7 @@ function App() {
               session.difficulty,
             );
             exercise.current.render(context, bounds.width, bounds.height);
+            consumeTouchCues();
           }
         }
         if (session.status === "running" && now - lastInterfaceUpdate >= 100) {
@@ -366,7 +415,7 @@ function App() {
       cancelAnimationFrame(frame);
       resize.disconnect();
     };
-  }, [current?.id, current?.status]);
+  }, [current?.id, current?.status, current?.difficulty]);
   useEffect(() => {
     if (
       !data.breakState ||
@@ -443,6 +492,9 @@ function App() {
       speed: data.preferences.reducedMotion
         ? Math.min(selectedConfiguration.speed, 0.08)
         : selectedConfiguration.speed,
+      ...(selected === "follow"
+        ? { gentleMotion: data.preferences.reducedMotion }
+        : {}),
     });
     const session: Session = {
       id: crypto.randomUUID(),
@@ -459,9 +511,11 @@ function App() {
     };
     timer.current = new ActiveTimer(session);
     if (selected !== "follow") timer.current.resume();
+    if (state.current.preferences.answerSound) unlockPracticeAudio();
     lastReminder.current = 0;
     setFeedback("");
     setAnswerResult(null);
+    setTouchCue(null);
     persist({ ...state.current, current: session, breakState: null });
   };
   const resume = () => {
@@ -543,6 +597,7 @@ function App() {
     const bounds = event.currentTarget.getBoundingClientRect();
     renderer.setViewport(bounds.width, bounds.height);
     if (!renderer.pointerDown(touchPoint(event))) return;
+    if (state.current.preferences.answerSound) unlockPracticeAudio();
     event.preventDefault();
     touchPointer.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -583,6 +638,8 @@ function App() {
       return;
     }
     const result = exercise.current.pointerUp(touchPoint(event));
+    if (session.kind === "tap") setTouchCue(null);
+    const playedCue = consumeTouchCues();
     touchPointer.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -599,7 +656,11 @@ function App() {
           retry: true,
         });
         setFeedback("");
-        if (result.correct && state.current.preferences.answerSound)
+        if (
+          result.correct &&
+          state.current.preferences.answerSound &&
+          !playedCue
+        )
           playAnswerConfirmation();
       }
       persist(state.current);
@@ -627,6 +688,26 @@ function App() {
       : null;
   const touchSummary =
     current?.kind === "follow" ? summarizeTouch([current]) : null;
+  const bestTouchLevel = useMemo(
+    () =>
+      current && isTouchExercise(current.kind)
+        ? highestTouchLevel(
+            [
+              ...data.sessions.filter(
+                (session) => session.kind === current.kind,
+              ),
+              current,
+            ],
+            data.levels[current.kind],
+          )
+        : 0,
+    [
+      data.sessions,
+      current?.id,
+      current?.challenge?.highestLevel,
+      current?.difficulty,
+    ],
+  );
   const lastTouchSummary =
     data.breakState && lastSession?.kind === "follow"
       ? summarizeTouch([lastSession])
@@ -705,7 +786,7 @@ function App() {
           </main>
         ) : current ? (
           <main
-            className={`training ${current.kind === "visual" || current.kind === "contrast" ? "has-answers" : ""}`}
+            className={`training ${current.kind === "visual" || current.kind === "contrast" ? "has-answers" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
           >
             <div className="training-top">
               <div>
@@ -730,6 +811,39 @@ function App() {
                 <small>{t("session.remaining")}</small>
               </span>
             </div>
+            {isTouchExercise(current.kind) && (
+              <TouchChallenge
+                session={current}
+                bestLevel={bestTouchLevel}
+                points={
+                  current.kind === "tap"
+                    ? score.points
+                    : Math.floor(
+                        (touchSummary?.onTargetMilliseconds ?? 0) / 1000,
+                      )
+                }
+                sound={data.preferences.answerSound}
+                onSound={() => {
+                  const enabled = !state.current.preferences.answerSound;
+                  if (enabled) unlockPracticeAudio();
+                  persist({
+                    ...state.current,
+                    preferences: {
+                      ...state.current.preferences,
+                      answerSound: enabled,
+                    },
+                  });
+                }}
+                onEasier={() => {
+                  if (!(exercise.current instanceof TouchExercise)) return;
+                  if (state.current.current?.status === "running")
+                    pause(false, state.current.current.kind === "follow");
+                  exercise.current.makeEasier();
+                  consumeTouchCues();
+                  persist(state.current);
+                }}
+              />
+            )}
             <div className="canvas-wrap">
               <canvas
                 ref={canvas}
@@ -866,10 +980,12 @@ function App() {
                 </button>
               )}
             <div className="feedback" role="status" aria-atomic="true">
-              {current.kind === "follow" &&
-              current.status === "running" &&
-              exercise.current instanceof TouchExercise &&
-              exercise.current.isOnTarget() ? (
+              {touchCue ? (
+                <TouchChallengeNotice cue={touchCue.value} session={current} />
+              ) : current.kind === "follow" &&
+                current.status === "running" &&
+                exercise.current instanceof TouchExercise &&
+                exercise.current.isOnTarget() ? (
                 <span className="answer-affirmation">
                   <span aria-hidden="true">✓</span>
                   {t("touch.inHalo")}
@@ -932,6 +1048,14 @@ function App() {
                       ? "—"
                       : percent(lastTouchSummary.onTargetRatio),
                   best: formatTime(lastTouchSummary.bestRunMilliseconds),
+                })}
+              </p>
+            )}
+            {lastSession?.challenge && (
+              <p className="rest-result">
+                {t("challenge.summary", {
+                  start: number(lastSession.challenge.startingLevel + 1),
+                  highest: number(lastSession.challenge.highestLevel + 1),
                 })}
               </p>
             )}

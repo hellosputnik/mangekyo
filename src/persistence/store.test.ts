@@ -3,6 +3,7 @@ import { it, expect } from "vitest";
 import { load, save } from "./store";
 import { initialData, defaults } from "../engine/model";
 import { emptyFollowMetrics } from "../exercises/touch";
+import { ensureTouchChallenge } from "../exercises/touch-challenge";
 import {
   resetStatistics,
   undoStatisticsReset,
@@ -149,4 +150,36 @@ it("recovers following as interrupted without a held finger and migrates older e
   expect(restored.levels.follow).toBe(0);
   expect(restored.current?.configuration.touchTolerance).toBe(72);
   expect(restored.current?.configuration.hand).toBe("Right");
+});
+it("recovers earned levels and motion phase without carrying an unfinished level run across reload", async () => {
+  const data = initialData();
+  data.current = {
+    id: "earned",
+    kind: "follow",
+    eye: "Left",
+    configuration: { ...defaults },
+    startedAt: "2026-10-26T12:00:00Z",
+    status: "running",
+    activeMilliseconds: 8000,
+    slices: [],
+    trials: [],
+    difficulty: 2,
+  };
+  const challenge = ensureTouchChallenge(data.current);
+  Object.assign(challenge, {
+    highestLevel: 4,
+    progressMilliseconds: 2500,
+    motionSeconds: 9.2,
+    levelUps: 2,
+  });
+  await save(data);
+  const recovered = await load();
+  expect(recovered.current?.status).toBe("interrupted");
+  expect(recovered.current?.difficulty).toBe(2);
+  expect(recovered.current?.challenge).toMatchObject({
+    highestLevel: 4,
+    levelUps: 2,
+    progressMilliseconds: 0,
+    motionSeconds: 9.2,
+  });
 });

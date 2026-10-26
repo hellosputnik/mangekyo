@@ -64,9 +64,10 @@ function pathPoint(
 export function pursuitPoint(
   configuration: Configuration,
   activeSeconds: number,
+  phaseSeconds = activeSeconds,
 ): readonly [number, number] {
   const seconds = Math.max(0, activeSeconds);
-  const phase = seconds * configuration.speed * Math.PI * 2;
+  const phase = Math.max(0, phaseSeconds) * configuration.speed * Math.PI * 2;
   const path = currentPursuitPath(configuration, seconds);
   const point = pathPoint(path, phase, configuration.complexity);
   if (configuration.pattern !== "Mixed") return point;

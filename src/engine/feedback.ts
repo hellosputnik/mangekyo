@@ -1,24 +1,71 @@
-/** Best-effort feedback, called only from an explicit answer gesture. */
-export function playAnswerConfirmation() {
-  try {
-    navigator.vibrate?.(10);
-    const audio = new AudioContext();
-    const oscillator = audio.createOscillator();
-    const gain = audio.createGain();
-    const start = audio.currentTime;
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(740, start);
-    oscillator.frequency.setValueAtTime(988, start + 0.055);
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.025, start + 0.008);
-    gain.gain.linearRampToValueAtTime(0, start + 0.13);
-    oscillator.connect(gain);
-    gain.connect(audio.destination);
-    oscillator.start();
-    oscillator.stop(start + 0.14);
-    oscillator.onended = () => void audio.close();
-    void audio.resume().catch(() => {});
-  } catch {
-    // Visual feedback remains available when audio or vibration is unsupported.
+export type PracticeSound = "correct" | "milestone" | "level";
+
+/** Unlock from a user gesture; later tracking milestones reuse that same context. */
+export class PracticeSoundPlayer {
+  private audio: AudioContext | null = null;
+  constructor(
+    private createContext: () => AudioContext = () => new AudioContext(),
+    private vibrate: (milliseconds: number) => unknown = (milliseconds) =>
+      navigator.vibrate?.(milliseconds),
+  ) {}
+  unlock() {
+    try {
+      if (!this.audio || this.audio.state === "closed")
+        this.audio = this.createContext();
+      if (this.audio.state === "suspended")
+        void this.audio.resume().catch(() => {});
+    } catch {
+      /* Optional browser support. */
+    }
+  }
+  play(kind: PracticeSound) {
+    this.unlock();
+    try {
+      this.vibrate(kind === "level" ? 20 : 10);
+    } catch {
+      /* Vibration is independently optional. */
+    }
+    try {
+      const audio = this.audio;
+      if (!audio || audio.state !== "running") return;
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      const notes =
+        kind === "level"
+          ? [660, 880, 1100]
+          : kind === "milestone"
+            ? [660, 880]
+            : [740, 988];
+      const interval = kind === "level" ? 0.075 : 0.055;
+      const length = notes.length * interval + 0.025;
+      const start = audio.currentTime;
+      oscillator.type = "sine";
+      notes.forEach((frequency, index) =>
+        oscillator.frequency.setValueAtTime(
+          frequency,
+          start + index * interval,
+        ),
+      );
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(
+        kind === "level" ? 0.03 : 0.02,
+        start + 0.008,
+      );
+      gain.gain.linearRampToValueAtTime(0, start + length);
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(start + length + 0.01);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      };
+    } catch {
+      /* Visual feedback always remains available. */
+    }
   }
 }
+const player = new PracticeSoundPlayer();
+export const unlockPracticeAudio = () => player.unlock();
+export const playPracticeFeedback = (kind: PracticeSound) => player.play(kind);
+export const playAnswerConfirmation = () => player.play("correct");

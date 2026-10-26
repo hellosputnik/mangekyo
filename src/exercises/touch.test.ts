@@ -85,7 +85,7 @@ describe("tap targets", () => {
       exercise.pointerDown(target);
       exercise.pointerUp(target);
     }
-    expect(record.difficulty).toBe(12);
+    expect(record.difficulty).toBe(14);
     expect(exercise.toleranceRadius() * 2).toBe(44);
     expect(record.trials.every((trial) => trial.touchTolerance! >= 44)).toBe(
       true,

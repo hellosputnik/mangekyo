@@ -189,6 +189,22 @@ function AdvancedFields({
               ))}
             </div>
           </fieldset>
+          {kind === "tap" && (
+            <label>
+              {t("challenge.basePace")} ·{" "}
+              {number(configuration.tapPaceSeconds, 1)}
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="0.5"
+                value={configuration.tapPaceSeconds}
+                onChange={(event) =>
+                  setting("tapPaceSeconds", Number(event.target.value))
+                }
+              />
+            </label>
+          )}
           <p className="fine">{t("touch.performanceNote")}</p>
         </>
       )}

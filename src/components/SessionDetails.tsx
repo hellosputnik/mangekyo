@@ -107,6 +107,11 @@ export function SessionDetails({
         ),
       },
     );
+  if (session.kind === "tap")
+    settings.push({
+      label: t("challenge.basePace"),
+      value: number(configuration.tapPaceSeconds, 1),
+    });
   if (session.kind !== "contrast")
     settings.push({
       label: t("config.foreground"),
@@ -295,6 +300,44 @@ export function SessionDetails({
       )}
       {isTouchExercise(session.kind) && (
         <p className="fine">{t("touch.performanceNote")}</p>
+      )}
+      {session.challenge && (
+        <section className="session-results">
+          <h3>{t("challenge.title")}</h3>
+          {session.challenge.achievements.some(
+            (item) => item.kind === "mastered",
+          ) && <p className="answer-affirmation">{t("challenge.mastered")}</p>}
+          <dl className="session-facts">
+            <div>
+              <dt>{t("challenge.startLevel")}</dt>
+              <dd>{number(session.challenge.startingLevel + 1)}</dd>
+            </div>
+            <div>
+              <dt>{t("challenge.highest")}</dt>
+              <dd>{number(session.challenge.highestLevel + 1)}</dd>
+            </div>
+            <div>
+              <dt>{t("challenge.unlockedCount")}</dt>
+              <dd>{number(session.challenge.levelUps)}</dd>
+            </div>
+            <div>
+              <dt>
+                {t(
+                  session.kind === "tap"
+                    ? "challenge.fastHits"
+                    : "session.scoreLabel",
+                )}
+              </dt>
+              <dd>
+                {number(
+                  session.kind === "tap"
+                    ? touch.qualifiedHits
+                    : Math.floor(touch.onTargetMilliseconds / 1000),
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
       )}
       {dayEntries.length > 1 && (
         <section className="session-days">
