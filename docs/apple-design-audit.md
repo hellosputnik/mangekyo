@@ -54,3 +54,11 @@ Custom opens a native modal dialog styled as a bottom sheet on mobile. It contai
 Browser checks show a **48px-high mode row** for English at 320px/390px and Vietnamese at 390px. At 320px the longer Vietnamese label wraps and the row grows to about 61px, with no horizontal overflow. Verified opening, changing the path/target size, Done, reopening with those changes retained, Escape, focus return, and restoration of background scrolling. The existing timer/mixed-motion tests remain unchanged. These browser checks do not establish a physical Safari pass.
 
 Updated previews: [compact setup](screenshots/iphone-presets-compact.jpg), [Custom settings](screenshots/iphone-custom-settings.jpg), [Vietnamese setup](screenshots/iphone-presets.jpg).
+
+## Follow-up: exercise-name wrapping
+
+The exercise tiles combined a horizontal icon, reserved checkmark padding, and `overflow-wrap: anywhere`. That left too little text width and allowed the final `n` in “discrimination” to wrap alone. Removed arbitrary word breaking and moved the icons above the labels so each title uses the available card width. Full exercise names and stored identifiers remain unchanged. The card buttons now use a block shell with an internal layout grid, and the saccade mark no longer wraps its dots.
+
+Browser checks measured every word's text range to ensure it occupied one line and stayed inside its card: English at widths 320, 350, 375, 390, 430, 844, and 1280; Vietnamese at 320, 390, and 430. No broken words or horizontal document overflow were observed. Selecting an exercise still updates its pressed state. The existing 82 tests and production build pass. These remain Chromium browser checks; no direct Safari pass is claimed.
+
+Previews: [English exercise choices](screenshots/iphone-exercises-en.jpg), [Vietnamese exercise choices](screenshots/iphone-exercises-vi.jpg).

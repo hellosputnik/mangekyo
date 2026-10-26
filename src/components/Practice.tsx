@@ -226,16 +226,18 @@ export function Practice({
                   aria-pressed={kind === item}
                   onClick={() => setKind(item)}
                 >
-                  <span
-                    className={`exercise-art art-${item}`}
-                    aria-hidden="true"
-                  >
-                    {["∞", "· ·", "C", "▥"][index]}
-                  </span>
-                  <span className="card-copy">
-                    <strong>{exerciseName(item)}</strong>
-                    <span className="card-check" aria-hidden="true">
-                      {kind === item && <Icon name="Check" />}
+                  <span className="exercise-card-content">
+                    <span
+                      className={`exercise-art art-${item}`}
+                      aria-hidden="true"
+                    >
+                      {["∞", "· ·", "C", "▥"][index]}
+                    </span>
+                    <span className="card-copy">
+                      <strong>{exerciseName(item)}</strong>
+                      <span className="card-check" aria-hidden="true">
+                        {kind === item && <Icon name="Check" />}
+                      </span>
                     </span>
                   </span>
                 </button>
