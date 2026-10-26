@@ -1,26 +1,21 @@
-import type { ExerciseKind } from "../engine/model";
 import type { PracticeMode } from "../engine/practice";
 import { useI18n } from "../i18n/react";
 
 export function PracticePresets({
-  kind,
   value,
   onChange,
   onCustomize,
   dialogId,
 }: {
-  kind: ExerciseKind;
   value: PracticeMode;
   onChange: (mode: PracticeMode) => void;
   onCustomize: () => void;
   dialogId: string;
 }) {
-  const { t, patternLabel } = useI18n();
+  const { t } = useI18n();
   return (
     <fieldset className="practice-presets">
-      <legend>
-        {t(kind === "pursuit" ? "pursuit.motion" : "practice.settings")}
-      </legend>
+      <legend>{t("practice.settings")}</legend>
       <div className="motion-grid">
         <button
           type="button"
@@ -28,7 +23,7 @@ export function PracticePresets({
           aria-pressed={value === "Default"}
           onClick={() => onChange("Default")}
         >
-          {kind === "pursuit" ? patternLabel("Mixed") : t("practice.default")}
+          {t("practice.default")}
         </button>
         <button
           type="button"

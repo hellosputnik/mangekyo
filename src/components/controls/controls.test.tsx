@@ -58,15 +58,14 @@ it("names navigation destinations and marks the active page", () => {
   expect(html).toContain("Statistics");
 });
 it.each([
-  ["en", "Default (mixed)", "Custom"],
-  ["vi", "Mặc định (kết hợp)", "Tùy chỉnh"],
+  ["en", "Default", "Custom"],
+  ["vi", "Mặc định", "Tùy chỉnh"],
 ] as const)(
   "names the default preset clearly in %s",
   (language, defaultLabel, customLabel) => {
     const html = renderToStaticMarkup(
       <LocalizationContext.Provider value={createLocalization(language)}>
         <PracticePresets
-          kind="pursuit"
           value="Default"
           onChange={() => {}}
           onCustomize={() => {}}

@@ -6,6 +6,7 @@ import { ExerciseArtwork } from "./ExerciseArtwork";
 import { SessionHistory } from "./SessionHistory";
 import { ProfessionalMeasurements } from "./ProfessionalMeasurements";
 import { StatisticsResetControls } from "./StatisticsResetControls";
+import { Icon } from "./Icon";
 
 export function Statistics({
   data,
@@ -22,8 +23,16 @@ export function Statistics({
   onReset: (options: ResetStatisticsOptions) => void;
   onUndo: () => void;
 }) {
-  const { t, number, percent, trainingTime, date, exerciseName, eyeLabel } =
-    useI18n();
+  const {
+    t,
+    number,
+    percent,
+    time,
+    trainingTime,
+    date,
+    exerciseName,
+    eyeLabel,
+  } = useI18n();
   const report = buildStatistics(data);
   const { summary, week } = report;
   const weekTime = week.reduce((sum, day) => sum + day.activeMilliseconds, 0);
@@ -146,13 +155,13 @@ export function Statistics({
                 <dl className="exercise-report-metrics">
                   <div>
                     <dt>{t("statistics.activeTime")}</dt>
-                    <dd>{trainingTime(exercise.activeMilliseconds)}</dd>
+                    <dd>{time(exercise.activeMilliseconds)}</dd>
                   </div>
                   <div>
                     <dt>{t("statistics.sessions")}</dt>
                     <dd>{number(exercise.sessionCount)}</dd>
                   </div>
-                  {responseExercise && (
+                  {responseExercise ? (
                     <>
                       <div>
                         <dt>{t("statistics.answerAccuracy")}</dt>
@@ -176,58 +185,94 @@ export function Statistics({
                         </dd>
                       </div>
                     </>
+                  ) : (
+                    <>
+                      <div>
+                        <dt>{t("statistics.practiceDays")}</dt>
+                        <dd>{number(exercise.activeDays)}</dd>
+                      </div>
+                      <div>
+                        <dt>{t("statistics.averageSession")}</dt>
+                        <dd>{time(exercise.averageSessionMilliseconds)}</dd>
+                      </div>
+                    </>
                   )}
                 </dl>
-                {responseExercise ? (
-                  <p className="exercise-report-note">
-                    {exercise.responseCount
-                      ? t("statistics.correctAnswers", {
-                          correct: number(exercise.correctCount),
-                          total: number(exercise.responseCount),
-                        })
-                      : t("statistics.noResponses")}
-                  </p>
-                ) : (
-                  <p className="exercise-report-note">
-                    {t("statistics.noGazeScore")}
-                  </p>
-                )}
-                {exercise.recentResults.length > 0 && (
-                  <div className="recent-results">
-                    <h4>{t("statistics.recentAccuracy")}</h4>
-                    <ol>
-                      {exercise.recentResults.map((result) => (
-                        <li
-                          key={result.id}
-                          aria-label={t("statistics.resultDescription", {
-                            date: date(result.date),
-                            eye: eyeLabel(result.eye),
-                            accuracy: percent(result.accuracy),
-                            count: number(result.responseCount),
-                          })}
-                        >
-                          <span aria-hidden="true" className="result-column">
-                            <i
-                              style={{ height: `${result.accuracy * 100}%` }}
-                            />
-                          </span>
-                          <span aria-hidden="true">
-                            {percent(result.accuracy)}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
                 <p className="exercise-report-footer">
                   {exercise.lastDate
                     ? t("statistics.lastPractice", {
                         date: date(exercise.lastDate),
                       })
                     : t("statistics.notPracticed")}
-                  {exercise.latestLevel !== null &&
-                    ` · ${t("progress.level", { level: number(exercise.latestLevel) })}`}
                 </p>
+                <details className="exercise-report-details">
+                  <summary>
+                    <span>{t("statistics.details")}</span>
+                    <Icon name="Chevron" />
+                  </summary>
+                  <div className="exercise-report-detail-content">
+                    <p className="exercise-report-note">
+                      {t("statistics.outcomes", {
+                        completed: number(exercise.completedCount),
+                        stopped: number(exercise.stoppedCount),
+                        interrupted: number(exercise.interruptedCount),
+                      })}
+                    </p>
+                    {responseExercise ? (
+                      <p className="exercise-report-note">
+                        {exercise.responseCount
+                          ? t("statistics.correctAnswers", {
+                              correct: number(exercise.correctCount),
+                              total: number(exercise.responseCount),
+                            })
+                          : t("statistics.noResponses")}
+                      </p>
+                    ) : (
+                      <p className="exercise-report-note">
+                        {t("statistics.noGazeScore")}
+                      </p>
+                    )}
+                    {exercise.latestLevel !== null && (
+                      <p className="exercise-report-note">
+                        {t("progress.level", {
+                          level: number(exercise.latestLevel),
+                        })}
+                      </p>
+                    )}
+                    {exercise.recentResults.length > 0 && (
+                      <div className="recent-results">
+                        <h4>{t("statistics.recentAccuracy")}</h4>
+                        <ol>
+                          {exercise.recentResults.map((result) => (
+                            <li
+                              key={result.id}
+                              aria-label={t("statistics.resultDescription", {
+                                date: date(result.date),
+                                eye: eyeLabel(result.eye),
+                                accuracy: percent(result.accuracy),
+                                count: number(result.responseCount),
+                              })}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="result-column"
+                              >
+                                <i
+                                  style={{
+                                    height: `${result.accuracy * 100}%`,
+                                  }}
+                                />
+                              </span>
+                              <span aria-hidden="true">
+                                {percent(result.accuracy)}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                </details>
               </article>
             );
           })}

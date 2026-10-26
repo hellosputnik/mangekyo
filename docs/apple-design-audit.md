@@ -112,3 +112,15 @@ All **117 tests**, the production build, and whitespace checks pass. Added cover
 A synthetic 28-session week produced 2 hr 17 min, seven practice days, 266 answers, visual accuracy 105/140 = 75%, and contrast accuracy 77/126 ≈ 61%. On the isolated local test origin, a full reset survived reload and began a visual task at Level 1. A new 13-second partial session with one answer was retained when Undo restored the previous records, yielding 29 sessions and 267 answers. That result also survived reload. The browser's file picker stalled during initial example-data import; no production records were used or reset. These are Chromium viewport checks; physical iPhone Safari, VoiceOver, Dynamic Type, and Home Screen checks remain outstanding.
 
 The following previews contain **synthetic example data**: [lifetime report](screenshots/iphone-statistics-example.jpg), [exercise report cards](screenshots/iphone-statistics-cards.jpg), [Vietnamese report](screenshots/iphone-statistics-vi.jpg).
+
+## Follow-up: visual parity and balanced summaries
+
+The user's preference for balance and harmony is now an explicit product rule in the README. Equivalent controls share their labels, scale, spacing, and interaction; longer supporting information uses consistent disclosures.
+
+Every exercise now shows **Practice settings → Default / Custom**, or **Cài đặt bài tập → Mặc định / Tùy chỉnh**. Removed the pursuit-specific heading and extra default caption. The visible label for the stored `Mixed` path is simply Default, including in Custom and history. Stored identifiers, the five-path sequence, timing, and existing records remain unchanged.
+
+Report cards share a heading area, four meaningful metrics, last-practice footer, and a 44px Details disclosure. Tracking cards add practice days and average session length; response cards retain accuracy and median response time. Completion counts, correct-answer counts, recorded level, and recent charts appear in Details. Short labels and minutes:seconds practice durations keep summaries compact. Cards grow naturally when expanded; no fixed overall card height or filler chart is used.
+
+All **117 existing tests**, the production build, and whitespace checks pass. Updated the existing default-label expectations. Browser checks in English and Vietnamese at 320×740, 390×844, and 844×390 measured all four collapsed report cards at about **332px** with the synthetic test records, each with four metrics and a 44px Details target. There was no horizontal overflow. At 390px, all four setup overviews measured the same height, and Default/Custom buttons were **48px** high in both languages. Verified expansion of visual results and confirmed Custom displays Default while retaining the stored `Mixed` value. Direct physical Safari, Dynamic Type, and VoiceOver verification remain outstanding.
+
+Previews: [consistent practice controls](screenshots/iphone-balanced-practice.jpg), [balanced report cards with synthetic example data](screenshots/iphone-balanced-report-cards.jpg).

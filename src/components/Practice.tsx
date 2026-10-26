@@ -258,15 +258,11 @@ export function Practice({
           </section>
           <section className="practice-options">
             <PracticePresets
-              kind={kind}
               value={mode}
               onChange={selectMode}
               onCustomize={() => setCustomOpen(true)}
               dialogId={customDialogId}
             />
-            {kind === "pursuit" && mode === "Default" && (
-              <p className="preset-description">{t("pursuit.mixedNote")}</p>
-            )}
           </section>
         </div>
         <section className="setup" aria-labelledby="setup-title">
