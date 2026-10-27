@@ -127,175 +127,181 @@ export function ActivityBrowser({ data }: { data: Data }) {
           {t("activity.today")}
         </button>
       </div>
-      <fieldset className="activity-ranges">
-        <legend className="visually-hidden">{t("activity.rangeLabel")}</legend>
-        <div>
-          {activityRanges.map((value) => (
+      <div className="activity-layout">
+        <div className="activity-overview">
+          <fieldset className="activity-ranges">
+            <legend className="visually-hidden">
+              {t("activity.rangeLabel")}
+            </legend>
+            <div>
+              {activityRanges.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={range === value}
+                  onClick={() => chooseRange(value)}
+                >
+                  {t(`activity.range.${value}`)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="activity-period-navigation">
             <button
               type="button"
-              key={value}
-              aria-pressed={range === value}
-              onClick={() => chooseRange(value)}
+              className="icon-button quiet"
+              disabled={!previousAvailable}
+              aria-label={t(`activity.previous.${range}`)}
+              onClick={() => chooseDate(previous)}
             >
-              {t(`activity.range.${value}`)}
+              <Icon name="Previous" />
             </button>
-          ))}
-        </div>
-      </fieldset>
-      <div className="activity-period-navigation">
-        <button
-          type="button"
-          className="icon-button quiet"
-          disabled={!previousAvailable}
-          aria-label={t(`activity.previous.${range}`)}
-          onClick={() => chooseDate(previous)}
-        >
-          <Icon name="Previous" />
-        </button>
-        <label className="activity-date-picker">
-          <span aria-hidden="true">{title}</span>
-          <Icon name="Calendar" />
-          <input
-            type="date"
-            value={anchor}
-            min={view.minimumDate}
-            max={view.maximumDate}
-            aria-label={t("activity.chooseDate")}
-            onChange={(event) => commitDate(event.currentTarget.value)}
-            onInput={(event) => commitDate(event.currentTarget.value)}
-            onBlur={(event) => commitDate(event.currentTarget.value)}
+            <label className="activity-date-picker">
+              <span aria-hidden="true">{title}</span>
+              <Icon name="Calendar" />
+              <input
+                type="date"
+                value={anchor}
+                min={view.minimumDate}
+                max={view.maximumDate}
+                aria-label={t("activity.chooseDate")}
+                onChange={(event) => commitDate(event.currentTarget.value)}
+                onInput={(event) => commitDate(event.currentTarget.value)}
+                onBlur={(event) => commitDate(event.currentTarget.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="icon-button quiet"
+              disabled={!nextAvailable}
+              aria-label={t(`activity.next.${range}`)}
+              onClick={() => chooseDate(next)}
+            >
+              <Icon name="Chevron" />
+            </button>
+          </div>
+          <div className="activity-period-summary">
+            <div className="activity-readout" aria-live="polite" aria-atomic="true">
+              <span>{selectedLabel}</span>
+              <strong>
+                {trainingTime(
+                  bucket?.activeMilliseconds ?? view.activeMilliseconds,
+                )}
+              </strong>
+              <small>
+                {bucket
+                  ? t("statistics.sessionCount", {
+                      count: number(bucket.sessionCount),
+                    })
+                  : t("activity.periodSessions", {
+                      count: number(view.sessionCount),
+                      days: number(view.activeDays),
+                    })}
+              </small>
+            </div>
+            <button
+              type="button"
+              className="quiet"
+              disabled={selected === null}
+              onClick={() => chooseBucket(null)}
+            >
+              {t("activity.showAll")}
+            </button>
+          </div>
+          <ActivityChart
+            buckets={view.buckets}
+            range={range}
+            selected={selected}
+            defaultIndex={defaultIndex}
+            onSelect={chooseBucket}
           />
-        </label>
-        <button
-          type="button"
-          className="icon-button quiet"
-          disabled={!nextAvailable}
-          aria-label={t(`activity.next.${range}`)}
-          onClick={() => chooseDate(next)}
-        >
-          <Icon name="Chevron" />
-        </button>
-      </div>
-      <div className="activity-period-summary">
-        <div className="activity-readout" aria-live="polite" aria-atomic="true">
-          <span>{selectedLabel}</span>
-          <strong>
-            {trainingTime(
-              bucket?.activeMilliseconds ?? view.activeMilliseconds,
+          <p className="activity-chart-hint">
+            {t(
+              range === "Day" ? "activity.chartHintDay" : "activity.chartHintDates",
             )}
-          </strong>
-          <small>
-            {bucket
-              ? t("statistics.sessionCount", {
-                  count: number(bucket.sessionCount),
-                })
-              : t("activity.periodSessions", {
-                  count: number(view.sessionCount),
-                  days: number(view.activeDays),
-                })}
-          </small>
-        </div>
-        <button
-          type="button"
-          className="quiet"
-          disabled={selected === null}
-          onClick={() => chooseBucket(null)}
-        >
-          {t("activity.showAll")}
-        </button>
-      </div>
-      <ActivityChart
-        buckets={view.buckets}
-        range={range}
-        selected={selected}
-        defaultIndex={defaultIndex}
-        onSelect={chooseBucket}
-      />
-      <p className="activity-chart-hint">
-        {t(
-          range === "Day" ? "activity.chartHintDay" : "activity.chartHintDates",
-        )}
-      </p>
-      {view.continuedMilliseconds > 0 && (
-        <p className="activity-continuation">
-          {t("activity.continuedTime", {
-            time: trainingTime(view.continuedMilliseconds),
-          })}
-        </p>
-      )}
-      <div className="activity-sessions">
-        <h3>{t("statistics.sessions")}</h3>
-        {!selectedEntries.length && (
-          <p className="activity-no-sessions">{t("activity.noSessions")}</p>
-        )}
-        {dates.map((date) => (
-          <section
-            className="activity-date-group"
-            key={date}
-            aria-label={calendarDate(date)}
-          >
-            <h4>
-              {calendarDate(date, {
-                weekday: "long",
-                month: "short",
-                day: "numeric",
+          </p>
+          {view.continuedMilliseconds > 0 && (
+            <p className="activity-continuation">
+              {t("activity.continuedTime", {
+                time: trainingTime(view.continuedMilliseconds),
               })}
-            </h4>
-            <ol>
-              {visibleEntries
-                .filter((entry) => entry.date === date)
-                .map((entry) => {
-                  const started = sessionMomentText(entry.start, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
-                  return (
-                    <li key={entry.key}>
-                      <button
-                        type="button"
-                        className="activity-session"
-                        aria-label={t("activity.openSession", {
-                          exercise: exerciseName(entry.session.kind),
-                          time: `${calendarDate(entry.date)}, ${entry.continued ? t("activity.continued") : started}`,
-                          eye: eyeLabel(entry.session.eye),
-                          duration: trainingTime(entry.activeMilliseconds),
-                        })}
-                        onClick={() => setOpenEntry(entry)}
-                      >
-                        <span className="activity-session-art">
-                          <ExerciseArtwork kind={entry.session.kind} />
-                        </span>
-                        <span className="activity-session-copy">
-                          <strong>{exerciseName(entry.session.kind)}</strong>
-                          <span>
-                            {entry.continued
-                              ? t("activity.continued")
-                              : started}{" "}
-                            · {eyeLabel(entry.session.eye)}
-                          </span>
-                          <small>{statusLabel(entry.session.status)}</small>
-                        </span>
-                        <span className="activity-session-time">
-                          <strong>{time(entry.activeMilliseconds)}</strong>
-                          <small>{t("activity.activeShort")}</small>
-                        </span>
-                        <Icon name="Chevron" />
-                      </button>
-                    </li>
-                  );
+            </p>
+          )}
+        </div>
+        <div className="activity-sessions">
+          <h3>{t("statistics.sessions")}</h3>
+          {!selectedEntries.length && (
+            <p className="activity-no-sessions">{t("activity.noSessions")}</p>
+          )}
+          {dates.map((date) => (
+            <section
+              className="activity-date-group"
+              key={date}
+              aria-label={calendarDate(date)}
+            >
+              <h4>
+                {calendarDate(date, {
+                  weekday: "long",
+                  month: "short",
+                  day: "numeric",
                 })}
-            </ol>
-          </section>
-        ))}
-        {selectedEntries.length > visibleCount && (
-          <button
-            type="button"
-            className="activity-more"
-            onClick={() => setVisibleCount((count) => count + 20)}
-          >
-            {t("statistics.moreHistory")}
-          </button>
-        )}
+              </h4>
+              <ol>
+                {visibleEntries
+                  .filter((entry) => entry.date === date)
+                  .map((entry) => {
+                    const started = sessionMomentText(entry.start, {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
+                    return (
+                      <li key={entry.key}>
+                        <button
+                          type="button"
+                          className="activity-session"
+                          aria-label={t("activity.openSession", {
+                            exercise: exerciseName(entry.session.kind),
+                            time: `${calendarDate(entry.date)}, ${entry.continued ? t("activity.continued") : started}`,
+                            eye: eyeLabel(entry.session.eye),
+                            duration: trainingTime(entry.activeMilliseconds),
+                          })}
+                          onClick={() => setOpenEntry(entry)}
+                        >
+                          <span className="activity-session-art">
+                            <ExerciseArtwork kind={entry.session.kind} />
+                          </span>
+                          <span className="activity-session-copy">
+                            <strong>{exerciseName(entry.session.kind)}</strong>
+                            <span>
+                              {entry.continued
+                                ? t("activity.continued")
+                                : started}{" "}
+                              · {eyeLabel(entry.session.eye)}
+                            </span>
+                            <small>{statusLabel(entry.session.status)}</small>
+                          </span>
+                          <span className="activity-session-time">
+                            <strong>{time(entry.activeMilliseconds)}</strong>
+                            <small>{t("activity.activeShort")}</small>
+                          </span>
+                          <Icon name="Chevron" />
+                        </button>
+                      </li>
+                    );
+                  })}
+              </ol>
+            </section>
+          ))}
+          {selectedEntries.length > visibleCount && (
+            <button
+              type="button"
+              className="activity-more"
+              onClick={() => setVisibleCount((count) => count + 20)}
+            >
+              {t("statistics.moreHistory")}
+            </button>
+          )}
+        </div>
       </div>
       <p className="activity-timezone-note">{t("activity.timezoneNote")}</p>
       <SessionDetailSheet

@@ -1699,22 +1699,6 @@ footer {
     background: #ffffff08;
   }
 }
-@media (min-width: 1000px) {
-  .setup {
-    position: sticky;
-    top: 1.5rem;
-  }
-  .exercise-grid {
-    gap: 0.9rem;
-  }
-  .exercise-card {
-    min-height: 88px;
-  }
-  .routines-layout .saved-routines {
-    position: sticky;
-    top: 1.5rem;
-  }
-}
 @media (max-width: 800px) {
   header {
     padding: 1rem var(--page-gutter);
@@ -2963,5 +2947,222 @@ input.activity-chart-input::-moz-range-thumb {
     font-size: 0.85rem;
     line-height: 1.5;
     color: var(--text-secondary);
+  }
+}
+
+/* Desktop uses one content grid; compact and phone layouts keep their own flow. */
+@media (min-width: 64rem) {
+  .app {
+    --desktop-content-width: 68rem;
+    --desktop-gutter: 2rem;
+    --desktop-gap: 1.5rem;
+    --desktop-panel-padding: 1.5rem;
+  }
+  .app > header,
+  .content {
+    width: 100%;
+    max-width: calc(var(--desktop-content-width) + 2 * var(--desktop-gutter));
+    padding-inline: var(--desktop-gutter);
+  }
+  .app > header {
+    padding-block: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .connection {
+    flex-basis: 100%;
+    text-align: right;
+  }
+  .app-nav {
+    position: relative;
+    inset: auto;
+    transform: none;
+    width: auto;
+    flex: 0 1 32rem;
+    margin-left: auto;
+    padding: 4px;
+    border-radius: 1rem;
+    box-shadow: inset 0 1px 0 #ffffff0c;
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .app-nav button {
+    flex-direction: row;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+  }
+  .app-nav button svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  .nav-selection {
+    inset: 4px auto 4px 4px;
+    width: calc((100% - 8px) / 4);
+    border-radius: 0.75rem;
+  }
+  .content {
+    padding-block: 2.5rem;
+  }
+  .page-heading {
+    max-width: none;
+    margin-bottom: 2rem;
+  }
+  .page-heading h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+  }
+  footer {
+    width: calc(100% - 2 * var(--desktop-gutter));
+    max-width: var(--desktop-content-width);
+    padding-block: 1.5rem 2rem;
+  }
+  .practice-layout,
+  .routines-layout,
+  .settings-layout,
+  .activity-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--desktop-gap);
+    align-items: start;
+  }
+  .practice-overview,
+  .activity-overview,
+  .activity-sessions,
+  .settings-layout > .panel {
+    min-width: 0;
+  }
+  .daily,
+  .setup,
+  .panel,
+  .activity-browser,
+  .lifetime-report,
+  .statistics-eyes {
+    padding: var(--desktop-panel-padding);
+    border-radius: 1.25rem;
+  }
+  .daily {
+    margin-bottom: var(--desktop-gap);
+  }
+  .setup,
+  .routines-layout .saved-routines {
+    position: sticky;
+    top: var(--desktop-gap);
+  }
+  .exercise-grid {
+    gap: 0.75rem;
+  }
+  .exercise-card {
+    min-height: 6rem;
+  }
+  .practice-options {
+    margin-top: var(--desktop-gap);
+  }
+  .library-description {
+    min-height: 0;
+    margin-bottom: 0;
+  }
+  .safety-disclosure {
+    margin-top: 2rem;
+  }
+  .settings-layout > .panel {
+    max-width: none;
+    margin: 0;
+    grid-column: 1;
+  }
+  .settings-layout > .schedule-settings {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+  .panel > p,
+  .safety-disclosure > p {
+    max-width: 65ch;
+  }
+  .statistics-page {
+    gap: var(--desktop-gap);
+  }
+  .activity-browser,
+  .statistics-eyes {
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .activity-browser > .report-heading {
+    margin-bottom: var(--desktop-gap);
+  }
+  .activity-ranges {
+    margin-top: 0;
+  }
+  .activity-sessions {
+    margin-top: 0;
+    max-height: 32rem;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  .activity-session-copy > strong {
+    min-height: 0;
+  }
+  .activity-timezone-note {
+    margin-top: var(--desktop-gap);
+  }
+  .lifetime-report {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.85fr) minmax(0, 2.15fr);
+    column-gap: 2rem;
+  }
+  .lifetime-report > .report-heading,
+  .report-outcomes,
+  .statistics-empty {
+    grid-column: 1 / -1;
+  }
+  .lifetime-duration {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 3rem;
+  }
+  .lifetime-caption {
+    grid-column: 1;
+  }
+  .lifetime-metrics {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-self: center;
+  }
+  .report-outcomes {
+    margin-top: 1.5rem;
+  }
+  .exercise-report-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    gap: var(--desktop-gap);
+    margin-top: var(--desktop-gap);
+  }
+  .exercise-report {
+    padding: var(--desktop-panel-padding);
+    border-radius: 1.25rem;
+  }
+  .statistics-eyes dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--desktop-gap);
+  }
+  .statistics-data-actions {
+    grid-template-columns: repeat(2, minmax(0, 10rem));
+  }
+  .training {
+    width: 100%;
+    max-width: 84rem;
+    margin-inline: auto;
+    padding: 1.5rem var(--desktop-gutter);
+    gap: 0.75rem;
+  }
+  .training-controls {
+    width: min(100%, 32rem);
+    align-self: center;
+  }
+  .answer-section {
+    width: min(100%, 26rem);
+    align-self: center;
   }
 }

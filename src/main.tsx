@@ -751,6 +751,9 @@ function App() {
               <span className="brand-mark">✳</span> mangekyo
               <span className="brand-caption">{t("brand.caption")}</span>
             </a>
+            {ready && !data.breakState && (
+              <Navigation current={tab} onChange={navigate} />
+            )}
             {offline && (
               <span className="connection" role="status">
                 {t("connection.offline")}
@@ -1192,7 +1195,7 @@ function App() {
                 />
               )}
               {tab === "Settings" && (
-                <>
+                <div className="settings-layout">
                   <section className="panel language-settings">
                     <label>
                       {t("language.title")}
@@ -1224,7 +1227,7 @@ function App() {
                     </label>
                     <p>{t("language.note")}</p>
                   </section>
-                  <section className="panel">
+                  <section className="panel schedule-settings">
                     <h2>{t("settings.schedule")}</h2>
                     <p>{t("settings.scheduleNote")}</p>
                     <div className="settings-controls">
@@ -1295,7 +1298,7 @@ function App() {
                       <p className="fine">{t("settings.hapticsNote")}</p>
                     </div>
                   </section>
-                  <section className="panel">
+                  <section className="panel data-settings">
                     <h2>{t("settings.data")}</h2>
                     <p>{t("settings.install")}</p>
                     <p>{t("settings.storageNote")}</p>
@@ -1326,20 +1329,19 @@ function App() {
                     </label>
                     <p role="status">{feedback ? t(feedback) : ""}</p>
                   </section>
-                  <section className="panel">
+                  <section className="panel limitation-settings">
                     <h2>{t("settings.limits")}</h2>
                     <p>{t("settings.limitsPerformance")}</p>
                     <p>{t("settings.limitsTracking")}</p>
                     <p>{t("settings.limitsComfort")}</p>
                   </section>
-                </>
+                </div>
               )}
             </main>
             <footer>
               <span>万華鏡 · MANGEKYO</span>
               <span>{t("footer.note")}</span>
             </footer>
-            <Navigation current={tab} onChange={navigate} />
           </>
         )}
       </div>
