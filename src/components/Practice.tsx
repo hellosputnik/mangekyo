@@ -294,6 +294,7 @@ export function Practice({
                   type="button"
                   className={`exercise-card ${kind === item ? "selected" : ""}`}
                   key={item}
+                  title={exerciseName(item)}
                   aria-pressed={kind === item}
                   onClick={() => setKind(item)}
                 >
@@ -302,7 +303,7 @@ export function Practice({
                       <ExerciseArtwork kind={item} />
                     </span>
                     <span className="card-copy">
-                      <strong>{exerciseName(item)}</strong>
+                      <strong>{t(`exercise.short.${item}`)}</strong>
                       <span className="card-check" aria-hidden="true">
                         {kind === item && <Icon name="Check" />}
                       </span>
@@ -357,8 +358,7 @@ export function Practice({
             disabled={!ready || !durationValid}
             onClick={start}
           >
-            {t("practice.begin")}
-            <span aria-hidden="true">→</span>
+            <span className="button-label">{t("practice.begin")}</span>
           </button>
         </section>
       </div>

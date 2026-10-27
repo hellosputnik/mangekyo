@@ -43,7 +43,7 @@ it.each([
 it("emphasizes resuming only while paused", () => {
   const html = controls("paused");
   expect(html).toContain('class="primary"');
-  expect(html).toContain("Resume practice");
+  expect(html).toContain(">Resume</span>");
   expect(html).toContain("End session");
 });
 it("offers neutral Pause while waiting for an explicitly armed finger grab", () => {
@@ -53,7 +53,7 @@ it("offers neutral Pause while waiting for an explicitly armed finger grab", () 
 });
 it("requires explicit confirmation after an interruption", () => {
   const html = controls("interrupted");
-  expect(html).toContain("Confirm &amp; resume");
+  expect(html).toContain(">Resume</span>");
   expect(html.match(/<button/g)).toHaveLength(2);
 });
 it("names the routine action Skip exercise without an additional finish action", () => {

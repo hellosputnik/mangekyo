@@ -1019,7 +1019,9 @@ function App() {
             <div className="rest-art">◌</div>
             <h1>{t("rest.title")}</h1>
             <p>{t("rest.description")}</p>
-            <div className="rest-clock">
+            <div
+              className={`rest-clock${data.breakState.manual ? " rest-clock-manual" : ""}`}
+            >
               {data.breakState.manual
                 ? t("rest.manualTime")
                 : formatTime(data.breakState.remaining * 1000)}

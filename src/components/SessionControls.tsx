@@ -27,17 +27,21 @@ export function SessionControls({
         onClick={() => (running ? onPause() : onResume())}
       >
         <Icon name={running ? "Pause" : "Play"} />
-        {t(
-          running
-            ? "session.pause"
-            : status === "interrupted"
-              ? "session.confirmResume"
-              : "session.resume",
-        )}
+        <span className="button-label">
+          {t(
+            running
+              ? "session.pause"
+              : status === "interrupted"
+                ? "session.confirmResume"
+                : "session.resume",
+          )}
+        </span>
       </button>
       <button type="button" className="session-end" onClick={() => onEnd()}>
         <Icon name="Stop" />
-        {t(routine ? "session.skip" : "session.endSession")}
+        <span className="button-label">
+          {t(routine ? "session.skip" : "session.endSession")}
+        </span>
       </button>
     </div>
   );

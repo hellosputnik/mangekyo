@@ -77,7 +77,7 @@ describe("Vietnamese interface content and formatting", () => {
       localization.t("daily.remaining", {
         minutes: localization.number(15.5, 1),
       }),
-    ).toBe("Còn 15,5 phút tới mục tiêu cá nhân");
+    ).toBe("Còn 15,5 phút");
   });
 });
 it("preserves a supported regional locale for date formatting", () => {

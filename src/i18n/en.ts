@@ -14,6 +14,12 @@ export const english = {
   "exercise.contrast": "Contrast discrimination",
   "exercise.tap": "Tap targets",
   "exercise.follow": "Follow the target",
+  "exercise.short.pursuit": "Pursuit",
+  "exercise.short.saccades": "Saccades",
+  "exercise.short.visual": "Visual detail",
+  "exercise.short.contrast": "Contrast",
+  "exercise.short.tap": "Tap targets",
+  "exercise.short.follow": "Follow target",
   "description.tap": "Tap each target. Build a steady, accurate rhythm.",
   "description.follow":
     "Drag the handle to keep your cursor with the moving dot.",
@@ -128,8 +134,8 @@ export const english = {
   "session.interrupted":
     "Your session was interrupted. No time away was counted.",
   "session.paused": "Your active timer is paused.",
-  "session.confirmResume": "Confirm & resume",
-  "session.resume": "Resume practice",
+  "session.confirmResume": "Resume",
+  "session.resume": "Resume",
   "session.activeTime": "{time} active",
   "session.pursuitHint": "Follow with your eyes · keep your head comfortable",
   "session.saccadeHint": "Shift your gaze to each target",

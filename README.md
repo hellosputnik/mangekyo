@@ -176,3 +176,5 @@ Unstarted exercise settings are drafts in memory and reset on reload. A started 
 The reusable Codex `$apple-design` port is included at `tools/skills/apple-design/`, with the original MIT license and upstream reference. It is installed for this user at `~/.agents/skills/apple-design`. See [the applied design audit](docs/apple-design-audit.md) for findings, changes, and verification limits.
 
 Visual parity is a product rule: equivalent elements share labels, proportions, spacing, and interaction patterns. Keep summary cards balanced and place longer exercise-specific information behind consistent disclosures. Allow text and expanded content to grow for accessibility. The shared Default/Custom controls use one heading and layout across all exercises.
+
+Exercise choices use compact localized labels, with full names in setup, history and accessible help. Action labels are centered and concise; layouts can reflow instead of clipping or shrinking words. The mobile shell shares horizontal gutters, and grouped controls use consistent spacing and matching heights. Recovery still requires an explicit Resume action even though its label is shorter.

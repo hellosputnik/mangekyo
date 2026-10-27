@@ -70,6 +70,7 @@ export function StatisticsResetControls({
           ref={resetButton}
           type="button"
           className="danger-text"
+          title={t("statistics.resetTitle")}
           disabled={!hasData || busy}
           onClick={() => {
             setOptions({ measurements: false, difficulty: false });
