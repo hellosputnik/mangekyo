@@ -640,4 +640,11 @@ export const vietnamese = {
   "tap.seconds": "giây",
   "tap.attempts": "Số lượt",
   "tap.timeouts": "Hết giờ",
+  "pursuit.variableSpeed": "Thay đổi tốc độ",
+  "pursuit.variation": "Mức thay đổi tốc độ",
+  "pursuit.variableNote":
+    "Nhịp ngẫu nhiên mới cho mỗi buổi tập. Tốc độ thay đổi từ từ sau vài giây; tạm dừng sẽ giữ nguyên vị trí trong nhịp tập.",
+  "pursuit.speedMode": "Nhịp tập",
+  "pursuit.variable": "Thay đổi",
+  "pursuit.steady": "Đều",
 } satisfies Record<MessageKey, string>;

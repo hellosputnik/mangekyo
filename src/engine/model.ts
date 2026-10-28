@@ -45,6 +45,8 @@ export interface Configuration {
   complexity: number;
   pattern: Pattern;
   pursuitPreset?: PursuitPreset;
+  pursuitVariableSpeed?: boolean;
+  pursuitSpeedVariation?: number;
   foreground: string;
   background: string;
   exposure: number;
@@ -72,6 +74,8 @@ export const defaults: Configuration = {
   complexity: 1,
   pattern: "Mixed",
   pursuitPreset: "Mixed",
+  pursuitVariableSpeed: false,
+  pursuitSpeedVariation: 0.35,
   foreground: "#ff8383",
   background: "#170f0f",
   exposure: 1.5,
@@ -127,6 +131,13 @@ export function validate(configuration: Configuration): Configuration {
       pursuitPatterns.includes(configuration.pursuitPreset)
         ? configuration.pursuitPreset
         : "Custom",
+    pursuitVariableSpeed: configuration.pursuitVariableSpeed === true,
+    pursuitSpeedVariation: bounded(
+      configuration.pursuitSpeedVariation ?? 0.35,
+      0.1,
+      0.6,
+      0.35,
+    ),
     exposure: bounded(configuration.exposure, 0.5, 10, 1.5),
     jumpPause: bounded(configuration.jumpPause, 0, 10, 0.5),
     jumpDistance: bounded(configuration.jumpDistance, 0.1, 1, 0.8),
@@ -227,6 +238,7 @@ export interface Session {
     changed: boolean;
   };
   protocol?: string;
+  pursuitSeed?: number;
   inputMethod?: "pointer" | "keyboard" | "mixed";
   setupMode?: PracticeMode;
   checkIn?: { version: 1; targetTrials: 12 };

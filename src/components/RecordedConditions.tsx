@@ -39,6 +39,16 @@ export function RecordedConditions({ session }: { session: Session }) {
           : t("filters.unknownScreen"),
       ],
     );
+  if (session.kind === "pursuit")
+    rows.push([
+      t("pursuit.speedMode"),
+      t(settings.pursuitVariableSpeed ? "pursuit.variable" : "pursuit.steady"),
+    ]);
+  if (session.kind === "pursuit" && settings.pursuitVariableSpeed)
+    rows.push([
+      t("pursuit.variation"),
+      percent(settings.pursuitSpeedVariation ?? 0.35),
+    ]);
   if (session.kind === "saccades")
     rows.push(
       [t("config.exposure"), number(settings.exposure, 1)],

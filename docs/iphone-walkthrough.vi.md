@@ -61,3 +61,7 @@ Chọn Căn chỉnh trong tám bài tập. Tập thử cần có hai nút Trái/
 - Chọn Chạm điểm → Mặc định. Không chạm: vòng đếm phải hết rồi mục tiêu tự đổi chỗ sau khoảng 2,5 giây. Tạm dừng hoặc khóa máy rồi quay lại: chỉ tiếp tục sau khi xác nhận, không mất thêm thời gian của mục tiêu trong lúc nghỉ. Chạm trượt không được đặt lại đồng hồ mục tiêu.
 - Trong Tùy chỉnh, tắt Giới hạn thời gian. Tải lại rồi kiểm tra tùy chọn còn tắt; mục tiêu cần ở nguyên đến khi chạm trúng. Bật lại để chỉnh thời gian mỗi mục tiêu. Mặc định cần bật giới hạn.
 - Với Phân biệt, một câu đúng không làm hình nhỏ ngay. Cần nhiều câu đúng, độ chính xác ổn định và nhịp trả lời phù hợp mới giảm kích thước. Trả lời chậm nhưng đúng vẫn có thể tiến tiếp. Hình và vị trí giữ nguyên kiểu hiển thị trước đây.
+
+## Tốc độ dõi mục tiêu
+
+Trong Dõi mục tiêu → Tùy chỉnh, bật Thay đổi tốc độ và thử Mức thay đổi tốc độ. Mục tiêu cần tăng/giảm tốc từ từ, không nhảy vị trí khi đổi tốc độ. Tạm dừng, tải lại rồi xác nhận Tiếp tục: vị trí và nhịp tập phải được giữ lại; thời gian rời ứng dụng không tính. Buổi tập mới dùng nhịp ngẫu nhiên mới. Chọn Mặc định để trở lại nhịp đều. Thử cả tùy chọn chuyển động nhẹ hơn trong Cài đặt; nhịp thay đổi vẫn phải tôn trọng giới hạn đó. Kiểm tra bản ghi có lưu nhịp và mức thay đổi. Thử riêng chữ lớn, xoay ngang và VoiceOver trên iPhone thật.

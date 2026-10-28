@@ -106,6 +106,7 @@ export function parsePracticePreferences(
       ["alignmentOffset", 1, 64],
       ["alignmentGap", 0, 80],
       ["alignmentWidth", 1, 12],
+      ["pursuitSpeedVariation", 0.1, 0.6],
     ] as const) {
       const value = settings[key];
       if (
@@ -155,6 +156,8 @@ export function parsePracticePreferences(
       !["Grating", "Shape"].includes(String(settings.contrastStimulus)) ||
       !["Left", "Right"].includes(String(settings.hand)) ||
       typeof settings.tapConfirm !== "boolean" ||
+      (settings.pursuitVariableSpeed !== undefined &&
+        typeof settings.pursuitVariableSpeed !== "boolean") ||
       (settings.tapTimed !== undefined &&
         typeof settings.tapTimed !== "boolean") ||
       (settings.gentleMotion !== undefined &&

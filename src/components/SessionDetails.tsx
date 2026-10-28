@@ -86,6 +86,20 @@ export function SessionDetails({
         value: t(configuration.tapConfirm ? "common.on" : "common.off"),
       },
     );
+  if (session.kind === "pursuit")
+    settings.push({
+      label: t("pursuit.speedMode"),
+      value: t(
+        configuration.pursuitVariableSpeed
+          ? "pursuit.variable"
+          : "pursuit.steady",
+      ),
+    });
+  if (session.kind === "pursuit" && configuration.pursuitVariableSpeed)
+    settings.push({
+      label: t("pursuit.variation"),
+      value: percent(configuration.pursuitSpeedVariation ?? 0.35),
+    });
   if (session.kind === "visual")
     settings.push({
       label: t("config.visualTask"),

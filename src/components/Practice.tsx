@@ -46,7 +46,7 @@ function AdvancedFields({
   configuration,
   setting,
 }: Pick<Props, "kind" | "configuration" | "setting">) {
-  const { t, number, optionLabel } = useI18n();
+  const { t, number, percent, optionLabel } = useI18n();
   return (
     <>
       <div className="settings-grid">
@@ -87,6 +87,31 @@ function AdvancedFields({
               ))}
             </select>
           </label>
+        )}
+        {kind === "pursuit" && (
+          <>
+            <ToggleSwitch
+              label={t("pursuit.variableSpeed")}
+              checked={configuration.pursuitVariableSpeed === true}
+              onChange={(checked) => setting("pursuitVariableSpeed", checked)}
+            />
+            {configuration.pursuitVariableSpeed && (
+              <label>
+                {t("pursuit.variation")} ·{" "}
+                {percent(configuration.pursuitSpeedVariation ?? 0.35)}
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.6"
+                  step="0.05"
+                  value={configuration.pursuitSpeedVariation ?? 0.35}
+                  onChange={(event) =>
+                    setting("pursuitSpeedVariation", Number(event.target.value))
+                  }
+                />
+              </label>
+            )}
+          </>
         )}
         {kind === "visual" && (
           <label>
@@ -209,6 +234,9 @@ function AdvancedFields({
           />
         )}
       </div>
+      {kind === "pursuit" && configuration.pursuitVariableSpeed && (
+        <p className="fine">{t("pursuit.variableNote")}</p>
+      )}
       <p className="fine">{t("practice.eyeNote")}</p>
       {isTouchExercise(kind) && (
         <>

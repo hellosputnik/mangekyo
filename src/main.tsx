@@ -55,7 +55,10 @@ import {
   TouchChallengeNotice,
 } from "./components/TouchChallenge";
 import { summarizeTouch } from "./analytics/touch";
-import { currentPursuitPath } from "./exercises/pursuit";
+import {
+  currentPursuitPath,
+  initializePursuitMotion,
+} from "./exercises/pursuit";
 import {
   maximumVisualDifficulty,
   visualStartingDifficultyLimit,
@@ -580,11 +583,15 @@ function App() {
             speed: data.preferences.reducedMotion
               ? Math.min(selectedConfiguration.speed, 0.08)
               : selectedConfiguration.speed,
-            ...(selected === "follow"
+            ...(selected === "follow" || selected === "pursuit"
               ? { gentleMotion: data.preferences.reducedMotion }
               : {}),
           },
     );
+    if (selected === "pursuit" && data.preferences.reducedMotion) {
+      settings.speed = Math.min(settings.speed, 0.08);
+      settings.gentleMotion = true;
+    }
     const session: Session = {
       id: crypto.randomUUID(),
       kind: selected,
@@ -609,7 +616,7 @@ function App() {
               visualStartingDifficultyLimit,
             )
           : state.current.levels[selected],
-      protocol: exerciseProtocol(selected, checkIn),
+      protocol: exerciseProtocol(selected, checkIn, settings),
       setupMode: recordedConfiguration
         ? (recordedMode ?? "Custom")
         : practiceSetups[selected].mode,
@@ -619,6 +626,7 @@ function App() {
       session.configuration.duration = 600;
       configureCheckIn(session);
     }
+    initializePursuitMotion(session);
     keyboardPosition.current = null;
     setKeyboardCursor(null);
     restoreTouchProfile(session, state.current.touchProfiles);

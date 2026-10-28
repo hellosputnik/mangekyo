@@ -632,5 +632,12 @@ export const english = {
   "tap.seconds": "seconds",
   "tap.attempts": "Attempts",
   "tap.timeouts": "Timed out",
+  "pursuit.variableSpeed": "Vary speed",
+  "pursuit.variation": "Speed variation",
+  "pursuit.variableNote":
+    "A fresh random pace each session. Speed changes gradually every few seconds; pausing preserves your place.",
+  "pursuit.speedMode": "Pace",
+  "pursuit.variable": "Variable",
+  "pursuit.steady": "Steady",
 } as const;
 export type MessageKey = keyof typeof english;

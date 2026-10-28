@@ -1,5 +1,5 @@
 import { type Configuration, type ExerciseKind } from "../engine/model";
-import { pursuitPoint } from "./pursuit";
+import { pursuitPoint, pursuitMotion } from "./pursuit";
 import { visualTargetRadius } from "./visual";
 import { crowdingGeometry } from "./crowding";
 import { alignmentGeometry } from "./alignment";
@@ -24,6 +24,7 @@ export class VisualExercise implements Exercise {
     private kind: ExerciseKind,
     private configuration: Configuration,
     private random: () => number = Math.random,
+    private pursuitSeed = 0,
   ) {}
   initialize() {
     this.running = true;
@@ -69,7 +70,11 @@ export class VisualExercise implements Exercise {
     context.strokeStyle = settings.foreground;
     context.globalAlpha = settings.contrast;
     if (this.kind === "pursuit") {
-      const point = pursuitPoint(settings, this.seconds);
+      const point = pursuitPoint(
+        settings,
+        this.seconds,
+        pursuitMotion(settings, this.seconds, this.pursuitSeed).phaseSeconds,
+      );
       x += point[0] * reachX;
       y += point[1] * reachY;
       context.beginPath();

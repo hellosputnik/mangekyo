@@ -1,9 +1,11 @@
 import {
   defaults,
+  bounded,
   motionPaths,
   type Configuration,
   type MotionPath,
   type PursuitPreset,
+  type Session,
 } from "../engine/model";
 
 export function applyPursuitPreset(
@@ -17,11 +19,89 @@ export function applyPursuitPreset(
     pattern: preset,
     size: defaults.size,
     speed: defaults.speed,
+    pursuitVariableSpeed: false,
+    pursuitSpeedVariation: defaults.pursuitSpeedVariation,
     contrast: defaults.contrast,
     complexity: defaults.complexity,
     foreground: defaults.foreground,
     background: defaults.background,
   };
+}
+
+/** One sequence per real session; stored apart from reusable setup preferences. */
+export function initializePursuitMotion(
+  session: Session,
+  random: () => number = Math.random,
+) {
+  if (
+    session.kind === "pursuit" &&
+    session.configuration.pursuitVariableSpeed &&
+    session.pursuitSeed === undefined
+  )
+    session.pursuitSeed = Math.floor(
+      bounded(random(), 0, 1 - Number.EPSILON, 0.5) * 4294967296,
+    );
+}
+
+function randomValue(seed: number, index: number) {
+  let value = (seed + Math.imul(index + 1, 0x9e3779b9)) | 0;
+  value = Math.imul(value ^ (value >>> 16), 0x21f0aaad);
+  value = Math.imul(value ^ (value >>> 15), 0x735a2d97);
+  return ((value ^ (value >>> 15)) >>> 0) / 4294967296;
+}
+
+export function pursuitSpeedRange(configuration: Configuration) {
+  const maximum = configuration.gentleMotion ? 0.08 : 1;
+  const base = Math.min(
+    maximum,
+    bounded(configuration.speed, 0.02, 1, defaults.speed),
+  );
+  const variation = bounded(
+    configuration.pursuitSpeedVariation ?? 0.35,
+    0.1,
+    0.6,
+    0.35,
+  );
+  return {
+    base,
+    minimum: base * (1 - variation),
+    maximum: Math.min(maximum, base * (1 + variation)),
+  };
+}
+
+/** Integrate smooth speed changes from active time, independently of frame rate. */
+export function pursuitMotion(
+  configuration: Configuration,
+  activeSeconds: number,
+  seed = 0,
+) {
+  const seconds = bounded(activeSeconds, 0, 3600, 0);
+  if (!configuration.pursuitVariableSpeed)
+    return { phaseSeconds: seconds, speed: configuration.speed };
+  const range = pursuitSpeedRange(configuration);
+  let remaining = seconds;
+  let cycles = 0;
+  let speed = range.base;
+  for (let index = 0; remaining > 0; index++) {
+    const duration = 3 + randomValue(seed, index * 2) * 4;
+    const nextSpeed =
+      range.minimum +
+      randomValue(seed, index * 2 + 1) * (range.maximum - range.minimum);
+    const elapsed = Math.min(remaining, duration);
+    const progress = elapsed / duration;
+    const weight = progress ** 3 * (10 - 15 * progress + 6 * progress ** 2);
+    const integral = 2.5 * progress ** 4 - 3 * progress ** 5 + progress ** 6;
+    cycles += speed * elapsed + (nextSpeed - speed) * duration * integral;
+    remaining -= elapsed;
+    if (remaining <= 0)
+      return {
+        phaseSeconds:
+          cycles / bounded(configuration.speed, 0.02, 1, defaults.speed),
+        speed: speed + (nextSpeed - speed) * weight,
+      };
+    speed = nextSpeed;
+  }
+  return { phaseSeconds: 0, speed };
 }
 
 /** Active seconds are supplied by the session timer, never a wall clock. */

@@ -141,6 +141,12 @@ Undo retains one previous copy locally through reloads. It merges the old record
 
 Report previews in [the design audit](docs/apple-design-audit.md) use synthetic example records, not a person's training or clinical results.
 
+## Variable pursuit pace
+
+Smooth pursuit keeps its existing steady timing under Default. In **Custom → Vary speed**, enable a fresh random pace for each session and choose 10–60% variation (35% initially) around the chosen base rate. The chosen path and the existing mixed-path sequence stay the same. Speed transitions smoothly toward new random values over random 3–7-second intervals. This varies the rate along the path; actual on-screen velocity also depends on the path and stage geometry.
+
+The engine integrates the speed curve from accumulated active time rather than multiplying elapsed time by the current speed. The stored per-session seed restores the same position and pace after pause/reload or backup recovery. Repeat and a new routine step receive fresh sequences, while named setups retain the variation preference. Gentler motion caps the rate at 0.08 cycles/second, including Repeat; the ordinary instantaneous cap is 1. Variable sessions record their base rate, variation and sequence seed under a separate protocol. These are experimental task variations, not evidence of a clinical benefit.
+
 ## Visual size progression and feedback
 
 Visual discrimination retains its stationary stimulus, size curve and answer controls. A shrink step now needs at least five correct answers at the current size, at least four correct among the latest five answers and a correct latest answer. Median latency of the latest five correct answers selects the evidence requirement: up to 1.8s needs five correct and eight active seconds; up to 3.5s needs eight correct and fourteen active seconds; slower answers need ten correct and twenty active seconds. Slower accurate users can still progress. Each earned step reduces nominal radius by 6%. One mistake holds size; two mistakes among the last three at that size step back three levels. The nominal four-backing-pixel diameter floor and one-pixel minimum stroke remain rendering limits, not acuity thresholds.

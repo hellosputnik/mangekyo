@@ -20,7 +20,13 @@ export const emptyStatisticsFilter: StatisticsFilter = {
   conditions: "All",
 };
 
-export function exerciseProtocol(kind: ExerciseKind, checkIn = false) {
+export function exerciseProtocol(
+  kind: ExerciseKind,
+  checkIn = false,
+  configuration?: Configuration,
+) {
+  if (kind === "pursuit" && configuration?.pursuitVariableSpeed)
+    return "pursuit-variable-1";
   if (kind === "alignment") return "alignment-offset-1";
   if (kind === "tap") return tapProtocol;
   return kind === "follow"
@@ -51,6 +57,11 @@ export function conditionSettings(kind: ExerciseKind, settings: Configuration) {
       settings.complexity,
       settings.gentleMotion ?? false,
     );
+  if (kind === "pursuit") {
+    common.push(settings.pursuitVariableSpeed === true);
+    if (settings.pursuitVariableSpeed)
+      common.push(settings.pursuitSpeedVariation ?? 0.35);
+  }
   if (kind === "saccades")
     common.push(
       settings.exposure,

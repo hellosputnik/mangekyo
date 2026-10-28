@@ -112,6 +112,7 @@ function validSession(value: unknown): value is Session {
     ["alignmentOffset", 1, 64],
     ["alignmentGap", 0, 80],
     ["alignmentWidth", 1, 12],
+    ["pursuitSpeedVariation", 0.1, 0.6],
   ] as const) {
     if (settings[key] !== undefined && !finite(settings[key], min, max))
       return false;
@@ -158,6 +159,15 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   if (
+    (settings.pursuitVariableSpeed !== undefined &&
+      typeof settings.pursuitVariableSpeed !== "boolean") ||
+    (value.pursuitSeed !== undefined &&
+      (!finite(value.pursuitSeed, 0, 4294967295) ||
+        !Number.isInteger(value.pursuitSeed))) ||
+    (value.kind === "pursuit" &&
+      settings.pursuitVariableSpeed === true &&
+      value.activeMilliseconds > 0 &&
+      value.pursuitSeed === undefined) ||
     (settings.tapTimed !== undefined &&
       typeof settings.tapTimed !== "boolean") ||
     (settings.tapPaceSeconds !== undefined &&
