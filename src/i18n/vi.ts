@@ -25,7 +25,7 @@ export const vietnamese = {
   "description.follow":
     "Kéo nút điều khiển để vòng tròn theo sát chấm di chuyển.",
   "touch.tapInstruction":
-    "Chạm trong quầng tròn quanh mục tiêu. Chạm trúng để chuyển vị trí; nếu trượt, thử lại nhé.",
+    "Chạm vào giữa trước khi vòng đếm hết. Mục tiêu đổi chỗ khi chạm trúng hoặc hết giờ.",
   "touch.followInstruction":
     "Giữ nút bên dưới vòng tròn rồi kéo theo chấm. Nhấc ngón tay để tạm dừng đồng hồ.",
   "touch.holdHandle": "Giữ nút điều khiển để bắt đầu",
@@ -624,4 +624,20 @@ export const vietnamese = {
   "alignment.question": "Đoạn dưới lệch về phía nào?",
   "alignment.recorded":
     "Độ lệch đã hiển thị: {small}–{large} px CSS. Giới hạn theo độ phân giải Canvas, không phải số đo thị lực đã hiệu chuẩn.",
+  "tap.timed": "Giới hạn thời gian",
+  "tap.duration": "Thời gian mỗi mục tiêu (giây)",
+  "tap.timedNote":
+    "Mục tiêu đổi chỗ khi chạm trúng hoặc hết giờ. Tạm dừng sẽ giữ nguyên thời gian còn lại.",
+  "tap.untimedNote":
+    "Mục tiêu ở nguyên đến khi chạm trúng. Chạm đúng giữa vẫn giúp lên mức tiếp theo.",
+  "tap.untimedInstruction":
+    "Chạm vào giữa. Mục tiêu ở nguyên đến khi chạm trúng.",
+  "tap.untimedGoal": "Chạm đúng giữa {count} lần liên tiếp",
+  "tap.untimedProgress": "{count} trên {goal} lần chạm đúng giữa",
+  "tap.expired": "Hết giờ · Mục tiêu tiếp theo",
+  "tap.targetTiming": "Thời gian mục tiêu",
+  "tap.untilHit": "Đến khi chạm trúng",
+  "tap.seconds": "giây",
+  "tap.attempts": "Số lượt",
+  "tap.timeouts": "Hết giờ",
 } satisfies Record<MessageKey, string>;

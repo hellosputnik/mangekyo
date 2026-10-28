@@ -56,7 +56,10 @@ import {
 } from "./components/TouchChallenge";
 import { summarizeTouch } from "./analytics/touch";
 import { currentPursuitPath } from "./exercises/pursuit";
-import { maximumVisualDifficulty } from "./exercises/visual";
+import {
+  maximumVisualDifficulty,
+  visualStartingDifficultyLimit,
+} from "./exercises/visual";
 import { alignmentGeometry } from "./exercises/alignment";
 import { recordResponse, responseScore } from "./exercises/responses";
 import { AnswerFeedback, type AnswerResult } from "./components/AnswerFeedback";
@@ -215,13 +218,19 @@ function App() {
             value.kind === "level-down",
         ) ?? cues.at(-1)!;
     setTouchCue({ value: cue, sequence: ++touchCueSequence.current });
+    if (cues.some((value) => value.kind === "expired")) setAnswerResult(null);
     const celebratory = cue.kind === "level-up" || cue.kind === "mastered";
     if (celebratory || cue.kind === "milestone")
       playPracticeFeedback(celebratory ? "level" : "milestone", {
         sound: state.current.preferences.answerSound,
         haptics: state.current.preferences.haptics,
       });
-    if (celebratory || cue.kind === "level-down") persist(state.current);
+    if (
+      celebratory ||
+      cue.kind === "level-down" ||
+      cues.some((value) => value.kind === "expired")
+    )
+      persist(state.current);
     return celebratory || cue.kind === "milestone";
   };
   useEffect(() => {
@@ -586,9 +595,21 @@ function App() {
       activeMilliseconds: 0,
       slices: [],
       trials: [],
-      difficulty: state.current.levels[selected],
-      initialDifficulty: state.current.levels[selected],
-      protocol: exerciseProtocol(selected),
+      difficulty:
+        selected === "visual"
+          ? Math.min(
+              state.current.levels[selected],
+              visualStartingDifficultyLimit,
+            )
+          : state.current.levels[selected],
+      initialDifficulty:
+        selected === "visual"
+          ? Math.min(
+              state.current.levels[selected],
+              visualStartingDifficultyLimit,
+            )
+          : state.current.levels[selected],
+      protocol: exerciseProtocol(selected, checkIn),
       setupMode: recordedConfiguration
         ? (recordedMode ?? "Custom")
         : practiceSetups[selected].mode,
@@ -1199,7 +1220,9 @@ function App() {
               <p className="touch-instructions" id="touch-instructions">
                 {t(
                   current.kind === "tap"
-                    ? "touch.tapInstruction"
+                    ? current.configuration.tapTimed === false
+                      ? "tap.untimedInstruction"
+                      : "touch.tapInstruction"
                     : "touch.followInstruction",
                 )}
               </p>

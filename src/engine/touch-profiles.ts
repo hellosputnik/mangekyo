@@ -1,5 +1,8 @@
 import type { Data, Session } from "./model";
-import { ensureTouchChallenge } from "../exercises/touch-challenge";
+import {
+  ensureTouchChallenge,
+  tapProtocol,
+} from "../exercises/touch-challenge";
 import { resetBalanceWindow } from "../adaptive/balance";
 
 /** Conditions affecting pointing/tracking; language, time goals and duration do not change ability. */
@@ -20,6 +23,9 @@ export function touchProfileKey(session: Session) {
     settings.distance,
     settings.gentleMotion ?? false,
     settings.tapPaceSeconds,
+    ...(session.kind === "tap"
+      ? [tapProtocol, settings.tapTimed !== false]
+      : []),
   ]);
 }
 

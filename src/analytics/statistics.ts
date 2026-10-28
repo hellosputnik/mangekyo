@@ -60,6 +60,7 @@ export function summarizePractice(sessions: Session[]): PracticeSummary {
     .flatMap((session) => session.trials);
   const correctCount = trials.filter((trial) => trial.correct).length;
   const responseTimes = trials
+    .filter((trial) => !trial.timedOut)
     .map((trial) => trial.responseMilliseconds)
     .filter((value) => Number.isFinite(value) && value >= 0)
     .sort((left, right) => left - right);

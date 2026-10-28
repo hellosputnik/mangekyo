@@ -158,6 +158,8 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   if (
+    (settings.tapTimed !== undefined &&
+      typeof settings.tapTimed !== "boolean") ||
     (settings.tapPaceSeconds !== undefined &&
       !finite(settings.tapPaceSeconds, 1, 10)) ||
     (settings.gentleMotion !== undefined &&
@@ -234,8 +236,10 @@ function validSession(value: unknown): value is Session {
     return false;
   if (
     record(value.tapState) &&
-    value.tapState.expired !== undefined &&
-    typeof value.tapState.expired !== "boolean"
+    ((value.tapState.expired !== undefined &&
+      typeof value.tapState.expired !== "boolean") ||
+      (value.tapState.timeLimitMilliseconds !== undefined &&
+        !finite(value.tapState.timeLimitMilliseconds, 800, 10000)))
   )
     return false;
   if (value.follow !== undefined) {
@@ -314,6 +318,12 @@ function validSession(value: unknown): value is Session {
       (trial.touchTolerance === undefined ||
         finite(trial.touchTolerance, 44, 160)) &&
       (trial.qualified === undefined || typeof trial.qualified === "boolean") &&
+      (trial.timedOut === undefined || typeof trial.timedOut === "boolean") &&
+      (trial.timedOut !== true ||
+        (value.kind === "tap" &&
+          trial.correct === false &&
+          trial.qualified === false &&
+          finite(trial.timeLimitMilliseconds, 800, 10000))) &&
       (trial.timeLimitMilliseconds === undefined ||
         finite(trial.timeLimitMilliseconds, 1, 10000)) &&
       (trial.precisionRadius === undefined ||

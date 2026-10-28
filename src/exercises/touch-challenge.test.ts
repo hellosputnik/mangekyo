@@ -47,21 +47,29 @@ function hit(
   return exercise.pointerUp(point)!;
 }
 describe("tap challenge", () => {
-  it("records one failed outcome for an expired target even when its eventual tap earns a point", () => {
+  it("records one timeout, moves immediately, and counts a subsequent hit as a new target", () => {
     const { session, exercise } = setup();
-    session.activeMilliseconds = 3000;
-    exercise.update(3);
-    expect(session.challenge!.balance!.samples).toBe(1);
-    const target = exercise.targetPoint();
-    exercise.pointerDown(target);
-    const result = exercise.pointerUp(target);
-    expect(result).toMatchObject({
-      correct: true,
+    const first = exercise.targetPoint();
+    session.activeMilliseconds = 2501;
+    exercise.update(2.501);
+    expect(exercise.targetPoint()).not.toEqual(first);
+    expect(session.trials).toHaveLength(1);
+    expect(session.trials[0]).toMatchObject({
+      correct: false,
       qualified: false,
+      timedOut: true,
+      responseMilliseconds: 2500,
+    });
+    exercise.update(2.501);
+    expect(session.trials).toHaveLength(1);
+    expect(session.challenge!.balance!.samples).toBe(1);
+    expect(hit(session, exercise, 500)).toMatchObject({
+      correct: true,
+      qualified: true,
       points: 1,
     });
-    expect(session.challenge!.balance!.samples).toBe(1);
-    expect(session.difficulty).toBe(0);
+    expect(session.trials).toHaveLength(2);
+    expect(session.challenge!.balance!.samples).toBe(2);
   });
   it("uses the exact displayed one-decimal deadline, including its boundary, throughout the adaptive range", () => {
     for (
@@ -72,6 +80,7 @@ describe("tap challenge", () => {
       const { session, exercise } = setup();
       session.challenge!.balance!.load = load;
       const deadline = tapTimeLimit(session.configuration, load);
+      session.tapState!.timeLimitMilliseconds = deadline;
       expect(deadline % 100).toBe(0);
       expect(hit(session, exercise, deadline).qualified).toBe(true);
     }
@@ -97,6 +106,7 @@ describe("tap challenge", () => {
       bestChain: 5,
     });
     expect(touchTargetDiameter(session)).toBeLessThan(initialSize);
+    expect(touchTargetDiameter(session)).toBeLessThan(initialSize * 0.75);
     expect(session.challenge?.balance?.load).toBe(4);
     expect(tapTimeLimit(session.configuration, 4)).toBeLessThan(deadline);
     expect(exercise.drainCues()).toEqual([{ kind: "level-up", level: 1 }]);
@@ -106,6 +116,8 @@ describe("tap challenge", () => {
       timeLimitMilliseconds: 2500,
       precisionRadius: 22,
     });
+    for (let count = 0; count < 10; count++) hit(session, exercise);
+    expect(touchTargetDiameter(session)).toBeLessThan(initialSize * 0.4);
   });
   it("awards forgiving hits without letting imprecise or slow tapping advance a level", () => {
     const { session, exercise } = setup();
@@ -115,32 +127,43 @@ describe("tap challenge", () => {
     expect(edge).toMatchObject({ correct: true, qualified: false, points: 3 });
     expect(session.challenge?.streak).toBe(0);
     expect(exercise.drainCues().at(-1)?.kind).toBe("closer");
-    const slow = hit(session, exercise, 2600);
-    expect(slow).toMatchObject({ correct: true, qualified: false, points: 4 });
     expect(session.difficulty).toBe(0);
-    expect(exercise.drainCues().at(-1)?.kind).toBe("slower");
   });
-  it("expires an unfinished run once per target and eases after repeated failures while retaining the best", () => {
+  it("does not reset a deadline on misses, prevents stale releases, and avoids catch-up bursts after stalls", () => {
     const { session, exercise } = setup();
-    for (let index = 0; index < 5; index++) hit(session, exercise);
-    hit(session, exercise);
-    const points = session.trials.filter((trial) => trial.correct).length;
-    session.activeMilliseconds += 3000;
-    exercise.update(session.activeMilliseconds / 1000);
-    expect(session.challenge?.streak).toBe(0);
-    const misses = session.challenge!.misses;
-    exercise.update(session.activeMilliseconds / 1000 + 100);
-    expect(session.challenge?.misses).toBe(misses);
-    expect(session.trials.filter((trial) => trial.correct).length).toBe(points);
-    hit(session, exercise, 3000);
-    hit(session, exercise, 3000);
-    hit(session, exercise, 3000);
+    const first = exercise.targetPoint();
+    session.activeMilliseconds = 2000;
+    exercise.pointerDown({ x: 0, y: 0 });
+    exercise.pointerUp({ x: 0, y: 0 });
+    expect(session.tapState!.presentedAtMilliseconds).toBe(0);
+    exercise.pointerDown(first);
+    session.activeMilliseconds = 2501;
+    expect(exercise.pointerUp(first)).toBeNull();
+    expect(session.trials).toHaveLength(2);
+    expect(session.trials.filter((trial) => trial.timedOut)).toHaveLength(1);
+    session.activeMilliseconds = 60000;
+    exercise.update(60);
+    expect(session.trials.filter((trial) => trial.timedOut)).toHaveLength(2);
+    expect(session.tapState!.presentedAtMilliseconds).toBe(60000);
+    exercise.update(60);
+    expect(session.trials).toHaveLength(3);
+  });
+  it("keeps an untimed Custom target until hit, allowing accurate slower hits to advance", () => {
+    const { session, exercise } = setup();
+    session.configuration.tapTimed = false;
+    const first = exercise.targetPoint();
+    session.activeMilliseconds = 60000;
+    exercise.update(60);
+    expect(exercise.targetPoint()).toEqual(first);
+    expect(session.trials).toHaveLength(0);
+    for (let index = 0; index < 5; index++)
+      expect(hit(session, exercise, 5000).qualified).toBe(true);
     expect(session.difficulty).toBe(1);
-    expect(session.challenge!.balance!.load).toBeLessThan(4);
-    expect(session.challenge?.highestLevel).toBe(1);
     expect(
-      session.trials.filter((trial) => trial.correct).length,
-    ).toBeGreaterThan(points);
+      session.trials.every(
+        (trial) => trial.timeLimitMilliseconds === undefined && !trial.timedOut,
+      ),
+    ).toBe(true);
   });
   it("resets incomplete runs on interruption without replaying earned level cues", () => {
     const { session, exercise } = setup();
@@ -172,7 +195,7 @@ describe("tap challenge", () => {
     expect(session.challenge?.mastered).toBe(false);
     expect(session.trials).toHaveLength(155);
     expect(exercise.toleranceRadius() * 2).toBeGreaterThanOrEqual(44);
-    expect(touchTargetDiameter(session)).toBeGreaterThanOrEqual(16);
+    expect(touchTargetDiameter(session)).toBeGreaterThanOrEqual(8);
     const load = session.challenge!.balance!.load;
     easeBalance(session.challenge!.balance!, session.activeMilliseconds);
     expect(session.difficulty).toBe(31);
@@ -266,7 +289,7 @@ describe("following challenge", () => {
     ).toBeGreaterThanOrEqual(600);
     session.kind = "tap";
     session.challenge!.balance!.load = balanceRules.maximumLoad;
-    expect(touchTargetDiameter(session)).toBe(16);
+    expect(touchTargetDiameter(session)).toBe(8);
   });
   it("awards halfway and level cues from sustained on-target time with exact active timestamps", () => {
     const { session, exercise } = setup("follow", 150, 300);

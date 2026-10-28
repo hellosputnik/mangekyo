@@ -57,6 +57,7 @@ export interface Configuration {
   touchTolerance: number;
   hand: "Left" | "Right";
   tapPaceSeconds: number;
+  tapTimed?: boolean;
   gentleMotion?: boolean;
   crowdingSpacing?: number;
   alignmentOffset?: number;
@@ -83,6 +84,7 @@ export const defaults: Configuration = {
   touchTolerance: 72,
   hand: "Right",
   tapPaceSeconds: 2.5,
+  tapTimed: true,
   crowdingSpacing: 1,
   alignmentOffset: 12,
   alignmentGap: 16,
@@ -132,6 +134,7 @@ export function validate(configuration: Configuration): Configuration {
     touchTolerance: bounded(configuration.touchTolerance, 44, 160, 72),
     hand: configuration.hand === "Left" ? "Left" : "Right",
     tapPaceSeconds: bounded(configuration.tapPaceSeconds, 1, 10, 2.5),
+    tapTimed: configuration.tapTimed !== false,
     crowdingSpacing: bounded(configuration.crowdingSpacing ?? 1, 0.15, 3, 1),
     alignmentOffset: bounded(configuration.alignmentOffset ?? 12, 1, 64, 12),
     alignmentGap: bounded(configuration.alignmentGap ?? 16, 0, 80, 16),
@@ -154,6 +157,7 @@ export interface Trial {
   touchTolerance?: number;
   qualified?: boolean;
   timeLimitMilliseconds?: number;
+  timedOut?: boolean;
   precisionRadius?: number;
   adaptiveLoad?: number;
   crowdingSpacing?: number;
@@ -176,6 +180,7 @@ export interface TapState {
   y: number;
   presentedAtMilliseconds: number;
   expired?: boolean;
+  timeLimitMilliseconds?: number;
 }
 export interface ChallengeAchievement {
   kind: "level-up" | "level-down" | "mastered";

@@ -26,6 +26,30 @@ function record(id: string, overrides: Partial<Session> = {}): Session {
 }
 
 describe("lifetime statistics", () => {
+  it("counts timeout attempts in hit rate without presenting a deadline as a human tap latency", () => {
+    const data = initialData();
+    data.sessions = [
+      record("tap", {
+        kind: "tap",
+        trials: [
+          { correct: true, responseMilliseconds: 400, difficulty: 0 },
+          {
+            correct: false,
+            timedOut: true,
+            qualified: false,
+            responseMilliseconds: 2500,
+            timeLimitMilliseconds: 2500,
+            difficulty: 0,
+          },
+        ],
+      }),
+    ];
+    expect(buildStatistics(data).summary).toMatchObject({
+      accuracy: 0.5,
+      responseCount: 2,
+      medianResponseMilliseconds: 400,
+    });
+  });
   it("weights accuracy by individual answers and uses median response time", () => {
     const data = initialData();
     data.sessions = [

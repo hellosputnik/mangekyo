@@ -55,3 +55,9 @@ Sau khi làm quen, nhờ người dùng tự thực hiện bốn việc: bắt �
 ## Căn chỉnh
 
 Chọn Căn chỉnh trong tám bài tập. Tập thử cần có hai nút Trái/Phải, không lưu thời gian hay điểm. Trong Tùy chỉnh, đổi độ lệch, chiều dài, độ dày và khoảng cách giữa hai đoạn; lưu rồi mở lại cài đặt đó. Kiểm tra vị trí đoạn bên dưới phù hợp với nút trả lời đúng. Khi tập thường, độ lệch giảm theo các nhóm trả lời tốt và tăng lại khi sai nhiều; hình không được mất vì vượt giới hạn pixel. Kiểm tra bài tập cần giữ độ lệch cố định trong 12 câu, phục hồi sau tạm dừng/tải lại và lưu số liệu trong Thống kê. Thử riêng màn hình dọc/ngang và chữ lớn.
+
+## Nhịp độ bài tập
+
+- Chọn Chạm điểm → Mặc định. Không chạm: vòng đếm phải hết rồi mục tiêu tự đổi chỗ sau khoảng 2,5 giây. Tạm dừng hoặc khóa máy rồi quay lại: chỉ tiếp tục sau khi xác nhận, không mất thêm thời gian của mục tiêu trong lúc nghỉ. Chạm trượt không được đặt lại đồng hồ mục tiêu.
+- Trong Tùy chỉnh, tắt Giới hạn thời gian. Tải lại rồi kiểm tra tùy chọn còn tắt; mục tiêu cần ở nguyên đến khi chạm trúng. Bật lại để chỉnh thời gian mỗi mục tiêu. Mặc định cần bật giới hạn.
+- Với Phân biệt, một câu đúng không làm hình nhỏ ngay. Cần nhiều câu đúng, độ chính xác ổn định và nhịp trả lời phù hợp mới giảm kích thước. Trả lời chậm nhưng đúng vẫn có thể tiến tiếp. Hình và vị trí giữ nguyên kiểu hiển thị trước đây.

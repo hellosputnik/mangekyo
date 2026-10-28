@@ -1,6 +1,6 @@
 # Adaptive touch balancing
 
-Implemented October 26, 2026. The objective is a welcoming start, quick calibration, then a challenge that follows the individual. These are product rules for finger-control activities, not a treatment protocol, a measurement of eyesight or a guaranteed learning optimum.
+Implemented October 26, 2026; tap pacing revised October 28, 2026. The objective is a welcoming start, quick calibration, then a challenge that follows the individual. These are product rules for finger-control activities, not a treatment protocol, a measurement of eyesight or a guaranteed learning optimum.
 
 ## Design basis
 
@@ -19,7 +19,7 @@ Implemented October 26, 2026. The objective is a welcoming start, quick calibrat
 | Provide support        | Below 80%, ease after one complete window; below 60%, ease more. Three consecutive failed tap outcomes or five continuous held off-target seconds provide earlier relief. Pause/release is not a failed outcome.                     |
 | Preserve control       | Pause, exit and Custom base conditions remain available. Automatic support retains earned levels and points; its message is neutral. Breaks and further practice require explicit action.                                            |
 
-For taps, a success is a centered hit inside the displayed pace limit. Five outcomes form a window. An expired target supplies exactly one failed outcome; releasing it later does not count the failure twice. A forgiven outer-halo hit earns a point even if it does not qualify for adaptation or a level. One error in five is a valid 80% window; perfection is not required to maintain difficulty.
+For taps, a success is a centered hit before the displayed lifetime expires, or a centered hit without a deadline in untimed Custom practice. Five outcomes form a window. Timed targets move when their lifetime expires. Each expiration supplies one failed outcome and a recorded timeout; releasing the old target cannot hit its replacement. A missed tap does not restart the deadline. One stalled frame produces at most one expiration, rather than a catch-up burst. Target lifetime uses accumulated foreground active time and stays frozen during pause/background/reload recovery. A forgiven outer-halo hit earns a point even if it does not qualify for adaptation or a level. One error in five is a valid 80% window; perfection is not required to maintain difficulty.
 
 For following, success is the fraction of each ten active held seconds spent within the halo. Pointer/frame frequency does not weight the result. Completed windows tune difficulty independently from the ten-on-target-second level goal. The goal retains its five-second encouragement and one-second excursion tolerance. Ready, pause, release and background time earn no training or adaptation credit. An unfinished window restarts on interruption; completed evidence and tuning survive it.
 
@@ -27,9 +27,9 @@ For following, success is the fraction of each ten active held seconds spent wit
 
 Earned levels rise after five consecutive qualified taps or a ten-on-target-second following run. They can pass 30, do not control the task settings and do not decrease when settings ease. Points, best runs and best earned levels remain visible. A new session continues earned levels while starting a fresh session score. The million-level bound is a storage guard, not a displayed gameplay target.
 
-The task load is separately bounded from 0 to 40. Relative to the chosen base, size scales by `0.96^load`, halo diameter and tap pace by `0.97^load`, and following speed by `1.05^load`. A fine quarter-step changes these by roughly 1%, 0.8% and 1.2%, respectively. Larger early steps are temporary probes, not permanent acceleration after every reward. Stable path bounds and integrated motion phase prevent target position jumps when speed changes.
+The task load is separately bounded from 0 to 40. Relative to the chosen base, Tap size scales by `0.92^load`, Follow size by `0.96^load`, halo diameter by `0.97^load`, tap lifetime by `0.985^load`, and following speed by `1.05^load`. Tap size changes are more noticeable while deadline changes are gentler; a quarter-step changes tap size by about 2% and its lifetime by about 0.4%. Larger early steps are temporary probes, not permanent acceleration after every reward. Stable path bounds and integrated motion phase prevent target position jumps when speed changes.
 
-Floors remain 16 CSS px for the dot, or a smaller explicitly chosen base size, and 44px for the touch diameter. Pace is rounded to the displayed tenth of a second with a 0.6s minimum. Following respects the gentler-motion 0.08 cycles/second cap, or 0.22 otherwise, unless a faster base was explicitly chosen. Renderable geometry can impose additional limits. At the adaptive load ceiling the interface says so; the controller holds rather than promising unlimited physical challenge.
+Tap dots have an 8 CSS-pixel floor; Follow dots retain their 16px floor or a smaller explicitly chosen base size. Both touch diameters remain at least 44px. Tap lifetime is rounded to the displayed tenth with a 0.8s minimum; the 2.5s default still gives about 1.4s at maximum load. Untimed targets have no expiration. Following respects the gentler-motion 0.08 cycles/second cap, or 0.22 otherwise, unless a faster base was explicitly chosen. Renderable geometry can impose additional limits. At the adaptive load ceiling the interface says so; the controller holds rather than promising unlimited physical challenge.
 
 ## Continuity and records
 
@@ -42,3 +42,8 @@ Clearing session history retains profiles unless difficulty reset is selected. R
 Automated checks exercise exact ten-second timing, foreground-only integration, short-slip exclusion, calibration limits, small reversal steps, the hold band, hysteresis, easier settings, stored profiles, pause/reload, reset/Undo, malformed imports and continued levels past 30. Deterministic capability curves and seeded noisy five-tap simulations check that difficulty settles rather than escalating forever. They validate controller behavior under the stated simulated observers, not real users or therapeutic benefit.
 
 The first practical evaluation should use comfortable, short sessions and inspect recent success, failure clusters, time to settle and the user's stated comfort. A real person's tracking may not follow a stationary curve; fatigue, finger occlusion, screen geometry, hand choice and Safari input latency can change results. Physical iPhone Safari, audio/haptics and interruption checks remain necessary. No cloud telemetry is added.
+
+
+## Visual discrimination pacing
+
+Visual presentation stays unchanged. Each reduction needs at least five correct answers at that size and 80% recent accuracy. The median of the last five correct response times chooses the evidence requirement: five correct/eight active seconds at up to 1.8s median; eight correct/fourteen seconds at up to 3.5s; ten correct/twenty seconds for slower responses. A correct latest answer is required; time passing alone never advances difficulty. The 6% radius reduction and error support remain. New sessions warm up no harder than level 12; recovered sessions retain their exact size and evidence. Five-minute perfect-fast-answer simulations at DPR 1/2/3 verify that the warm-up does not race to the display floor. These are provisional product pacing rules, not measured clinical thresholds.

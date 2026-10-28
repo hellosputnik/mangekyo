@@ -1,4 +1,4 @@
-import { bounded, type Configuration } from "../engine/model";
+import { bounded, type Configuration, type Trial } from "../engine/model";
 
 export interface StimulusViewport {
   width: number;
@@ -9,6 +9,8 @@ export interface StimulusViewport {
 const shrinkFactor = 0.94;
 // Backup validation guard; the visible pixel floor is reached much sooner.
 export const visualDifficultyLimit = 256;
+// A fresh practice begins comfortably; recovered sessions keep their exact size.
+export const visualStartingDifficultyLimit = 12;
 
 function geometry(configuration: Configuration, viewport: StimulusViewport) {
   const pixelRatio = bounded(viewport.pixelRatio, 1, 3, 1);
@@ -55,12 +57,36 @@ export function visualTargetRadius(
 
 export function nextVisualDifficulty(
   level: number,
-  answers: readonly boolean[],
+  trials: readonly Pick<Trial, "correct" | "responseMilliseconds">[],
   maximum: number,
 ) {
   const current = Math.floor(bounded(level, 0, maximum, 0));
-  if (!answers.length) return current;
-  if (answers.at(-1)) return Math.min(maximum, current + 1);
-  const mistakes = answers.slice(-3).filter((correct) => !correct).length;
-  return Math.max(0, current - (mistakes >= 2 ? 3 : 0));
+  if (!trials.length) return current;
+  if (!trials.at(-1)?.correct) {
+    const mistakes = trials.slice(-3).filter((trial) => !trial.correct).length;
+    return Math.max(0, current - (mistakes >= 2 ? 3 : 0));
+  }
+  const correct = trials.filter((trial) => trial.correct);
+  if (correct.length < 5) return current;
+  const recent = trials.slice(-5);
+  if (recent.filter((trial) => trial.correct).length < 4) return current;
+  const latencies = correct
+    .slice(-5)
+    .map((trial) => trial.responseMilliseconds)
+    .sort((left, right) => left - right);
+  const median = latencies[Math.floor(latencies.length / 2)];
+  // Faster accurate answers need less evidence. Slower answers can still progress.
+  const required =
+    median <= 1800
+      ? { correct: 5, milliseconds: 8000 }
+      : median <= 3500
+        ? { correct: 8, milliseconds: 14000 }
+        : { correct: 10, milliseconds: 20000 };
+  const elapsed = trials.reduce(
+    (total, trial) => total + Math.max(0, trial.responseMilliseconds),
+    0,
+  );
+  return correct.length >= required.correct && elapsed >= required.milliseconds
+    ? Math.min(maximum, current + 1)
+    : current;
 }

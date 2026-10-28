@@ -78,3 +78,15 @@ it("keeps tuning when clearing statistics, resets it with difficulty, and Undo f
   rememberTouchProfile(reset, next);
   expect(undoStatisticsReset(reset).touchProfiles![0].balance.load).toBe(5);
 });
+it("separates timed and untimed pointing profiles while retaining earned levels", () => {
+  const data = initialData();
+  const first = session();
+  first.kind = "tap";
+  ensureTouchChallenge(first).balance!.load = 12;
+  rememberTouchProfile(data, first);
+  const next = { ...session(), kind: "tap" as const };
+  next.configuration.tapTimed = false;
+  restoreTouchProfile(next, data.touchProfiles);
+  expect(next.challenge!.balance!.load).toBe(0);
+  expect(next.difficulty).toBe(3);
+});

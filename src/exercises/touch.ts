@@ -57,8 +57,20 @@ export class TouchExercise implements Exercise {
     if (challenge.version !== 3) challenge.mastered = false;
     challenge.version = 3;
     resetTouchRun(this.session);
-    if (this.session.kind === "tap" && !this.session.tapState)
+    if (
+      this.session.kind === "tap" &&
+      (!this.session.tapState || this.session.tapState.expired)
+    )
       this.placeTarget();
+    if (
+      this.session.kind === "tap" &&
+      this.session.configuration.tapTimed !== false &&
+      this.session.tapState
+    )
+      this.session.tapState.timeLimitMilliseconds ??= tapTimeLimit(
+        this.session.configuration,
+        touchDifficultyLoad(this.session),
+      );
     if (this.session.kind === "follow") {
       this.session.follow ??= emptyFollowMetrics();
       this.session.follow.currentRunMilliseconds = 0;
@@ -69,19 +81,52 @@ export class TouchExercise implements Exercise {
     const target = this.session.tapState;
     if (
       this.session.kind === "tap" &&
+      this.running &&
       this.session.status === "running" &&
+      this.session.configuration.tapTimed !== false &&
       target &&
-      !target.expired &&
       this.session.activeMilliseconds - target.presentedAtMilliseconds >
-        tapTimeLimit(
-          this.session.configuration,
-          touchDifficultyLoad(this.session),
-        )
+        this.targetTimeLimit()
     ) {
-      target.expired = true;
+      this.session.trials.push({
+        correct: false,
+        qualified: false,
+        timedOut: true,
+        responseMilliseconds: this.targetTimeLimit(),
+        difficulty: this.session.difficulty,
+        ...this.tapPresentation(),
+        timeLimitMilliseconds: this.targetTimeLimit(),
+      });
+      this.press = null;
       const cue = failTouchChallenge(this.session);
       if (cue) this.cues.push(cue);
+      this.cues.push({ kind: "expired", level: this.session.difficulty });
+      this.placeTarget();
     }
+  }
+  private targetTimeLimit() {
+    return (
+      this.session.tapState?.timeLimitMilliseconds ??
+      tapTimeLimit(
+        this.session.configuration,
+        touchDifficultyLoad(this.session),
+      )
+    );
+  }
+  private tapPresentation() {
+    const stimulusDiameter = Math.min(
+      touchTargetDiameter(this.session),
+      this.toleranceRadius() * 1.5,
+    );
+    return {
+      stimulusDiameter,
+      touchTolerance: this.toleranceRadius() * 2,
+      precisionRadius: Math.min(
+        this.toleranceRadius(),
+        Math.max(4, stimulusDiameter / 2),
+      ),
+      adaptiveLoad: touchDifficultyLoad(this.session),
+    };
   }
   drainCues(): TouchCue[] {
     return this.cues.splice(0);
@@ -225,6 +270,8 @@ export class TouchExercise implements Exercise {
   }
   pointerUp(point: Point) {
     this.sample();
+    if (this.session.kind === "tap")
+      this.update(this.session.activeMilliseconds / 1000);
     const press = this.press;
     this.release();
     if (
@@ -246,52 +293,32 @@ export class TouchExercise implements Exercise {
       this.session.activeMilliseconds -
         (this.session.tapState?.presentedAtMilliseconds ?? 0),
     );
-    const timeLimitMilliseconds = tapTimeLimit(
-      this.session.configuration,
-      touchDifficultyLoad(this.session),
-    );
-    const stimulusDiameter = Math.min(
-      touchTargetDiameter(this.session),
-      this.toleranceRadius() * 1.5,
-    );
-    const precisionRadius = Math.min(
-      this.toleranceRadius(),
-      Math.max(6, stimulusDiameter / 2),
-    );
+    const timeLimitMilliseconds = this.targetTimeLimit();
+    const presentation = this.tapPresentation();
     const qualified =
       correct &&
-      error <= precisionRadius &&
-      responseMilliseconds <= timeLimitMilliseconds &&
-      !this.session.tapState?.expired;
+      error <= presentation.precisionRadius &&
+      (this.session.configuration.tapTimed === false ||
+        responseMilliseconds <= timeLimitMilliseconds);
     this.session.trials.push({
       correct,
       responseMilliseconds,
       difficulty: this.session.difficulty,
       touchDistance: error,
-      touchTolerance: this.toleranceRadius() * 2,
-      stimulusDiameter,
+      ...presentation,
       qualified,
-      timeLimitMilliseconds,
-      precisionRadius,
-      adaptiveLoad: touchDifficultyLoad(this.session),
+      ...(this.session.configuration.tapTimed !== false
+        ? { timeLimitMilliseconds }
+        : {}),
     });
-    const cue = recordTapChallenge(
-      this.session,
-      qualified,
-      Boolean(this.session.tapState?.expired),
-    );
+    const cue = recordTapChallenge(this.session, qualified);
     if (cue) this.cues.push(cue);
     else if (correct && !qualified)
       this.cues.push({
-        kind: error > precisionRadius ? "closer" : "slower",
+        kind: error > presentation.precisionRadius ? "closer" : "slower",
         level: this.session.difficulty,
       });
     if (correct) this.placeTarget();
-    else if (this.session.tapState) {
-      this.session.tapState.presentedAtMilliseconds =
-        this.session.activeMilliseconds;
-      this.session.tapState.expired = false;
-    }
     return { correct, qualified, ...responseScore(this.session.trials) };
   }
   private placeTarget() {
@@ -324,6 +351,14 @@ export class TouchExercise implements Exercise {
       x,
       y,
       presentedAtMilliseconds: this.session.activeMilliseconds,
+      ...(this.session.configuration.tapTimed !== false
+        ? {
+            timeLimitMilliseconds: tapTimeLimit(
+              this.session.configuration,
+              touchDifficultyLoad(this.session),
+            ),
+          }
+        : {}),
     };
   }
   /** Integrate active milliseconds, not pointer-event counts or animation frames. */
@@ -456,7 +491,30 @@ export class TouchExercise implements Exercise {
     context.lineWidth = this.isOnTarget() || this.press ? 3 : 1.5;
     context.beginPath();
     context.arc(target.x, target.y, radius, 0, Math.PI * 2);
+    if (this.session.kind === "tap")
+      context.globalAlpha = settings.contrast * 0.3;
     context.stroke();
+    if (this.session.kind === "tap" && settings.tapTimed !== false) {
+      const remaining = Math.max(
+        0,
+        1 -
+          (this.session.activeMilliseconds -
+            (this.session.tapState?.presentedAtMilliseconds ?? 0)) /
+            this.targetTimeLimit(),
+      );
+      context.globalAlpha = settings.contrast;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(
+        target.x,
+        target.y,
+        radius,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * remaining,
+      );
+      context.stroke();
+    }
+    context.globalAlpha = settings.contrast;
     context.beginPath();
     context.arc(
       target.x,

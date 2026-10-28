@@ -155,6 +155,8 @@ export function parsePracticePreferences(
       !["Grating", "Shape"].includes(String(settings.contrastStimulus)) ||
       !["Left", "Right"].includes(String(settings.hand)) ||
       typeof settings.tapConfirm !== "boolean" ||
+      (settings.tapTimed !== undefined &&
+        typeof settings.tapTimed !== "boolean") ||
       (settings.gentleMotion !== undefined &&
         typeof settings.gentleMotion !== "boolean") ||
       ![settings.foreground, settings.background].every(

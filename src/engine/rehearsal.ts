@@ -30,6 +30,7 @@ export function createRehearsal(
       ),
       contrast: Math.max(0.7, configuration.contrast),
       touchTolerance: Math.max(100, configuration.touchTolerance),
+      ...(kind === "tap" ? { tapTimed: false } : {}),
       ...(kind === "alignment"
         ? {
             size: Math.max(64, configuration.size),

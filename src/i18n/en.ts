@@ -24,7 +24,7 @@ export const english = {
   "description.follow":
     "Drag the handle to keep your cursor with the moving dot.",
   "touch.tapInstruction":
-    "Tap inside the target’s halo. A hit moves it; a miss lets you try again.",
+    "Tap the center before the ring runs out. A hit or timeout moves the target.",
   "touch.followInstruction":
     "Hold the handle below the ring and drag to follow the dot. Lifting your finger pauses the timer.",
   "touch.holdHandle": "Hold the handle to begin",
@@ -616,5 +616,21 @@ export const english = {
   "alignment.question": "Lower line: left or right?",
   "alignment.recorded":
     "Presented offset: {small}–{large} CSS px. Offsets are bounded by Canvas pixel resolution; this is not a calibrated acuity measurement.",
+  "tap.timed": "Timed targets",
+  "tap.duration": "Target duration (seconds)",
+  "tap.timedNote":
+    "The target moves after a hit or when its time runs out. Pausing freezes the countdown.",
+  "tap.untimedNote":
+    "The target stays until hit. Centered hits still advance your level.",
+  "tap.untimedInstruction":
+    "Tap the center. The target stays until you hit it.",
+  "tap.untimedGoal": "{count} centered hits in a row",
+  "tap.untimedProgress": "{count} of {goal} centered hits",
+  "tap.expired": "Time up · Next target",
+  "tap.targetTiming": "Target timing",
+  "tap.untilHit": "Until hit",
+  "tap.seconds": "seconds",
+  "tap.attempts": "Attempts",
+  "tap.timeouts": "Timed out",
 } as const;
 export type MessageKey = keyof typeof english;

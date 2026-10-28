@@ -66,7 +66,16 @@ export function RecordedConditions({ session }: { session: Session }) {
       optionLabel(settings.contrastStimulus),
     ]);
   if (session.kind === "tap")
-    rows.push([t("challenge.basePace"), number(settings.tapPaceSeconds, 2)]);
+    rows.push([
+      t(
+        session.protocol === "tap-paced-4"
+          ? "tap.targetTiming"
+          : "challenge.basePace",
+      ),
+      settings.tapTimed === false
+        ? t("tap.untilHit")
+        : `${number(settings.tapPaceSeconds, 2)} ${t("tap.seconds")}`,
+    ]);
   rows.push([
     t("filters.screen"),
     session.viewport

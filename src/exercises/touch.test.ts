@@ -26,6 +26,38 @@ function setup(kind: "tap" | "follow" = "tap", width = 390, height = 500) {
   return { record, exercise };
 }
 describe("tap targets", () => {
+  it("freezes the target deadline while paused and backgrounded, retaining it through recovery", () => {
+    const { record, exercise } = setup();
+    let clock = 0;
+    const timer = new ActiveTimer(record, () => clock);
+    timer.resume();
+    clock = 1000;
+    timer.pause(true);
+    exercise.release(true);
+    const recovered = structuredClone(record);
+    const renderer = new TouchExercise(recovered);
+    renderer.initialize();
+    renderer.setViewport(390, 500);
+    renderer.update(10000);
+    expect(recovered.trials).toHaveLength(0);
+    expect(recovered.tapState!.timeLimitMilliseconds).toBe(2500);
+    clock = 1000000;
+    const resumed = new ActiveTimer(recovered, () => clock);
+    resumed.resume();
+    clock += 1500;
+    resumed.checkpoint();
+    renderer.update(10000);
+    expect(recovered.trials).toHaveLength(0);
+    clock += 1;
+    resumed.checkpoint();
+    renderer.update(10000);
+    expect(recovered.trials).toHaveLength(1);
+    expect(recovered.trials[0].timedOut).toBe(true);
+    renderer.terminate();
+    recovered.activeMilliseconds += 10000;
+    renderer.update(20000);
+    expect(recovered.trials).toHaveLength(1);
+  });
   it("records released hits, active response time, distance, tolerance, and a distinct next target", () => {
     const { record, exercise } = setup();
     const target = exercise.targetPoint();

@@ -11,6 +11,7 @@ import { TouchExercise, emptyFollowMetrics } from "../exercises/touch";
 import { ensureTouchChallenge } from "../exercises/touch-challenge";
 import { createBalance, recordBalanceWindow } from "../adaptive/balance";
 import { rememberTouchProfile } from "../engine/touch-profiles";
+import { defaultPracticePreferences } from "../engine/practice";
 it("round trips settings, routines, and professional measurements", () => {
   const data = initialData();
   data.preferences.goal = 20;
@@ -267,9 +268,9 @@ it("round trips visual progression past level 12, presented sizes, feedback pref
     activeMilliseconds: 0,
     slices: [],
     trials: [],
-    difficulty: 0,
+    difficulty: 35,
   };
-  for (let index = 0; index < 35; index++)
+  for (let index = 0; index < 5; index++)
     recordResponse(data.current, true, 1000, {
       width: 358,
       height: 320,
@@ -297,6 +298,42 @@ it("round trips visual progression past level 12, presented sizes, feedback pref
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
   invalid.sessions[0].difficulty = 35;
   invalid.sessions[0].trials[0].stimulusDiameter = NaN;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+});
+it("round trips timed and untimed targets, frozen deadlines and timeout outcomes, and rejects malformed timing", () => {
+  const data = initialData();
+  const session = (data.current = {
+    id: "timed",
+    kind: "tap" as const,
+    eye: "Left" as const,
+    configuration: { ...defaults },
+    startedAt: "2026-10-28T10:00:00Z",
+    status: "running" as const,
+    activeMilliseconds: 2501,
+    slices: [
+      { date: "2026-10-28", timezone: "UTC", offset: 0, milliseconds: 2501 },
+    ],
+    trials: [],
+    difficulty: 0,
+  });
+  const exercise = new TouchExercise(session);
+  exercise.initialize();
+  exercise.setViewport(390, 500);
+  session.activeMilliseconds = 5002;
+  session.slices[0].milliseconds = 5002;
+  exercise.update(5.002);
+  const imported = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(imported.sessions[0].trials[0].timedOut).toBe(true);
+  expect(imported.sessions[0].tapState!.timeLimitMilliseconds).toBe(2500);
+  data.practice = defaultPracticePreferences();
+  data.practice.setups.tap.configuration.tapTimed = false;
+  const untimed = mergeBackup(initialData(), JSON.parse(JSON.stringify(data)));
+  expect(untimed.practice!.setups.tap.configuration.tapTimed).toBe(false);
+  const invalid = JSON.parse(JSON.stringify(data));
+  invalid.current.tapState.timeLimitMilliseconds = -1;
+  expect(() => mergeBackup(initialData(), invalid)).toThrow();
+  invalid.current.tapState.timeLimitMilliseconds = 2500;
+  invalid.current.configuration.tapTimed = "yes";
   expect(() => mergeBackup(initialData(), invalid)).toThrow();
 });
 it("defaults missing feedback on, preserves saved choices, and rejects malformed preferences", () => {

@@ -7,6 +7,7 @@ import {
   type Session,
   type Trial,
 } from "../engine/model";
+import { tapProtocol } from "../exercises/touch-challenge";
 
 export interface StatisticsFilter {
   exercise: ExerciseKind | "All";
@@ -19,14 +20,17 @@ export const emptyStatisticsFilter: StatisticsFilter = {
   conditions: "All",
 };
 
-export function exerciseProtocol(kind: ExerciseKind) {
+export function exerciseProtocol(kind: ExerciseKind, checkIn = false) {
   if (kind === "alignment") return "alignment-offset-1";
-  return kind === "tap" || kind === "follow"
+  if (kind === "tap") return tapProtocol;
+  return kind === "follow"
     ? "touch-balance-3"
     : kind === "crowding"
       ? "crowding-spacing-1"
       : kind === "visual"
-        ? "visual-shrink-1"
+        ? checkIn
+          ? "visual-shrink-1"
+          : "visual-paced-2"
         : "visual-practice-1";
 }
 
@@ -65,7 +69,8 @@ export function conditionSettings(kind: ExerciseKind, settings: Configuration) {
     );
   if (isTouchExercise(kind))
     common.push(settings.hand, settings.touchTolerance);
-  if (kind === "tap") common.push(settings.tapPaceSeconds);
+  if (kind === "tap")
+    common.push(settings.tapPaceSeconds, settings.tapTimed !== false);
   return common;
 }
 export function comparisonKey(session: Session) {

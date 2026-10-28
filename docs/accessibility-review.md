@@ -42,3 +42,11 @@ Fine alignment adds two large Left/Right response controls and a bounded two-lin
 Browser practice verified affirmative feedback for the observed line direction, an explicit pause/reload/Resume path preserving the answer counter, and completed twelve-answer results in Statistics. Automated tests cover both direction mappings, renderer termination, pixel quantization and viewport bounds, visible progression/support, fixed-condition check-ins, backup metadata and migration from seven setups. Physical iPhone and VoiceOver checks remain outstanding.
 
 With the production preview server stopped, the cached application reloaded, completed a twelve-answer alignment check-in and retained its active time and completed recap after another reload. The final production assets were used for this Chromium check; it does not replace iPhone Safari or Home Screen testing.
+
+## Follow-up: response pacing
+
+Visual discrimination keeps its stationary stimulus and answer layout. A single observed correct answer retained the same rendered diameter and produced affirmative feedback. Automated checks require multiple correct answers, recent accuracy and latency-based evidence before shrinking; five-minute perfect-fast-answer runs stay above the display floor at DPR 1/2/3. Pause/reload retains the evidence without crediting time away. Fixed-condition check-ins retain their protocol.
+
+Default Tap targets now shows an active-time countdown ring and moves on timeout. The browser displayed neutral timeout feedback, froze at pause and retained its active time after reload. An untimed Custom choice survived reload; its stage image remained identical over 91 active seconds, then a centered tap earned a point and qualifying progress. Twelve checks covered timed/untimed Custom controls in English and Vietnamese at 320×740, 390×844 and 844×390, without horizontal overflow or clipped labels. Actual iPhone Safari, VoiceOver and intended-user pacing validation remain necessary.
+
+With the final production server stopped, a timed session reloaded at the same twelve active seconds, required explicit Resume, continued moving targets on expiration and saved a 22-second partial recap that survived another offline reload. The production build's cached-file check reported complete before the server was stopped.

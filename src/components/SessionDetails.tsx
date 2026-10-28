@@ -131,8 +131,15 @@ export function SessionDetails({
     );
   if (session.kind === "tap")
     settings.push({
-      label: t("challenge.basePace"),
-      value: number(configuration.tapPaceSeconds, 1),
+      label: t(
+        session.protocol === "tap-paced-4"
+          ? "tap.targetTiming"
+          : "challenge.basePace",
+      ),
+      value:
+        configuration.tapTimed === false
+          ? t("tap.untilHit")
+          : `${number(configuration.tapPaceSeconds, 1)} ${t("tap.seconds")}`,
     });
   if (session.kind !== "contrast")
     settings.push({
@@ -275,9 +282,25 @@ export function SessionDetails({
               </dd>
             </div>
             <div>
-              <dt>{t("statistics.responses")}</dt>
+              <dt>
+                {t(
+                  session.kind === "tap"
+                    ? "tap.attempts"
+                    : "statistics.responses",
+                )}
+              </dt>
               <dd>{number(summary.responseCount)}</dd>
             </div>
+            {session.trials.some((trial) => trial.timedOut) && (
+              <div>
+                <dt>{t("tap.timeouts")}</dt>
+                <dd>
+                  {number(
+                    session.trials.filter((trial) => trial.timedOut).length,
+                  )}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>
                 {t(

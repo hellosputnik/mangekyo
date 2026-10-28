@@ -106,9 +106,15 @@ export function recordResponse(
       session.trials.map((trial) => trial.correct),
     );
   } else if (session.kind === "visual") {
+    let firstAtSize = session.trials.length - 1;
+    while (
+      firstAtSize > 0 &&
+      session.trials[firstAtSize - 1].difficulty === previousDifficulty
+    )
+      firstAtSize--;
     session.difficulty = nextVisualDifficulty(
       previousDifficulty,
-      session.trials.slice(-3).map((trial) => trial.correct),
+      session.trials.slice(firstAtSize),
       maximumVisualDifficulty(session.configuration, viewport),
     );
   } else if (session.kind === "contrast" && session.trials.length % 5 === 0) {

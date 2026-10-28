@@ -242,20 +242,36 @@ function AdvancedFields({
             </div>
           </fieldset>
           {kind === "tap" && (
-            <label>
-              {t("challenge.basePace")} ·{" "}
-              {number(configuration.tapPaceSeconds, 1)}
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="0.5"
-                value={configuration.tapPaceSeconds}
-                onChange={(event) =>
-                  setting("tapPaceSeconds", Number(event.target.value))
-                }
+            <>
+              <ToggleSwitch
+                label={t("tap.timed")}
+                checked={configuration.tapTimed !== false}
+                onChange={(checked) => setting("tapTimed", checked)}
               />
-            </label>
+              <p className="fine">
+                {t(
+                  configuration.tapTimed === false
+                    ? "tap.untimedNote"
+                    : "tap.timedNote",
+                )}
+              </p>
+              {configuration.tapTimed !== false && (
+                <label>
+                  {t("tap.duration")} ·{" "}
+                  {number(configuration.tapPaceSeconds, 1)}
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="0.5"
+                    value={configuration.tapPaceSeconds}
+                    onChange={(event) =>
+                      setting("tapPaceSeconds", Number(event.target.value))
+                    }
+                  />
+                </label>
+              )}
+            </>
           )}
           <p className="fine">{t("touch.performanceNote")}</p>
         </>
@@ -448,7 +464,9 @@ export function Practice({
             <p className="control-caption">
               {t(
                 kind === "tap"
-                  ? "touch.tapInstruction"
+                  ? configuration.tapTimed === false
+                    ? "tap.untimedInstruction"
+                    : "touch.tapInstruction"
                   : "touch.followInstruction",
               )}
             </p>

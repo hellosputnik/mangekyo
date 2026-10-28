@@ -14,6 +14,7 @@ import {
 /** Storage guard; earned levels have no 30-level gameplay ceiling. */
 export const maximumTouchLevel = 1000000;
 export const tapLevelGoal = 5;
+export const tapProtocol = "tap-paced-4";
 export const followLevelGoalMilliseconds = 10000;
 export const followHalfwayMilliseconds = followLevelGoalMilliseconds / 2;
 export const followGraceMilliseconds = 1000;
@@ -23,7 +24,8 @@ export type TouchCueKind =
   | "mastered"
   | "milestone"
   | "closer"
-  | "slower";
+  | "slower"
+  | "expired";
 export interface TouchCue {
   kind: TouchCueKind;
   level: number;
@@ -57,16 +59,18 @@ export function touchDifficultyLoad(session: Session) {
 }
 export function tapTimeLimit(configuration: Configuration, load: number) {
   return Math.max(
-    600,
+    800,
     Math.round(
-      ((configuration.tapPaceSeconds ?? 2.5) * 1000 * 0.97 ** load) / 100,
+      ((configuration.tapPaceSeconds ?? 2.5) * 1000 * 0.985 ** load) / 100,
     ) * 100,
   );
 }
 export function touchTargetDiameter(session: Session) {
+  const tapping = session.kind === "tap";
   return Math.max(
-    Math.min(16, session.configuration.size),
-    session.configuration.size * 0.96 ** touchDifficultyLoad(session),
+    Math.min(tapping ? 8 : 16, session.configuration.size),
+    session.configuration.size *
+      (tapping ? 0.92 : 0.96) ** touchDifficultyLoad(session),
   );
 }
 export function followMotionFactor(configuration: Configuration, load: number) {
@@ -139,10 +143,9 @@ export function failTouchChallenge(session: Session): TouchCue | null {
 export function recordTapChallenge(
   session: Session,
   qualified: boolean,
-  alreadyExpired: boolean,
 ): TouchCue | null {
   const state = ensureTouchChallenge(session);
-  if (!qualified) return alreadyExpired ? null : failTouchChallenge(session);
+  if (!qualified) return failTouchChallenge(session);
   const adjustment = recordBalanceTap(
     state.balance!,
     true,

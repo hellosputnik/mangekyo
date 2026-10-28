@@ -23,66 +23,102 @@ function session(): Session {
     difficulty: 0,
   };
 }
-describe("continuous visual difficulty", () => {
-  it("keeps shrinking after the former 12-step cap and records each presented size", () => {
+const evidence = (answers: boolean[], latency = 1600) =>
+  answers.map((correct) => ({ correct, responseMilliseconds: latency }));
+describe("paced visual difficulty", () => {
+  it("requires multiple correct answers and active practice at each size instead of advancing on a fluke", () => {
     const practice = session();
-    for (let index = 0; index < 30; index++)
-      recordResponse(practice, true, 1000, viewport);
-    expect(practice.difficulty).toBe(30);
-    const sizes = practice.trials.map((trial) => trial.stimulusDiameter!);
-    for (let index = 1; index < sizes.length; index++)
-      expect(sizes[index]).toBeLessThan(sizes[index - 1]);
-    expect(sizes[29]).toBeLessThan(sizes[12] / 2);
-    expect(responseScore(practice.trials)).toEqual({
-      points: 30,
-      currentRun: 30,
-      bestRun: 30,
-    });
-  });
-  it("shrinks oversized custom targets on the very next correct answer, even in landscape", () => {
-    const settings = { ...defaults, size: 120 };
-    const landscape = { width: 540, height: 100, pixelRatio: 2 };
-    expect(visualTargetRadius(settings, 1, landscape)).toBeLessThan(
-      visualTargetRadius(settings, 0, landscape),
-    );
-    expect(visualTargetRadius(settings, 0, landscape)).toBeLessThan(
-      landscape.height / 2,
+    recordResponse(practice, true, 1000, viewport);
+    expect(practice.difficulty).toBe(0);
+    for (let index = 0; index < 3; index++)
+      recordResponse(practice, true, 1600, viewport);
+    expect(practice.difficulty).toBe(0);
+    recordResponse(practice, true, 2200, viewport);
+    expect(practice.difficulty).toBe(1);
+    expect(
+      new Set(practice.trials.map((trial) => trial.stimulusDiameter)).size,
+    ).toBe(1);
+    recordResponse(practice, true, 1600, viewport);
+    expect(practice.difficulty).toBe(1);
+    expect(practice.trials.at(-1)!.stimulusDiameter).toBeLessThan(
+      practice.trials[0].stimulusDiameter!,
     );
   });
-  it("holds after an isolated mistake, enlarges after two of three, and can recover to the starting size", () => {
-    expect(nextVisualDifficulty(20, [true, true, false], 80)).toBe(20);
-    expect(nextVisualDifficulty(20, [false, true, false], 80)).toBe(17);
-    expect(nextVisualDifficulty(20, [true, false, false], 80)).toBe(17);
-    expect(nextVisualDifficulty(1, [false, false], 80)).toBe(0);
-    expect(nextVisualDifficulty(0, [false, false], 80)).toBe(0);
-    expect(nextVisualDifficulty(17, [false, false, true], 80)).toBe(18);
+  it("uses robust answer speed to pace advancement while allowing slower accurate answers to progress", () => {
+    const correct = (count: number, latency: number) =>
+      evidence(Array(count).fill(true), latency);
+    expect(nextVisualDifficulty(12, correct(5, 1600), 80)).toBe(13);
+    expect(nextVisualDifficulty(12, correct(5, 100), 80)).toBe(12);
+    expect(nextVisualDifficulty(12, correct(5, 3000), 80)).toBe(12);
+    expect(nextVisualDifficulty(12, correct(8, 3000), 80)).toBe(13);
+    expect(nextVisualDifficulty(12, correct(8, 5000), 80)).toBe(12);
+    expect(nextVisualDifficulty(12, correct(10, 5000), 80)).toBe(13);
+    expect(
+      nextVisualDifficulty(
+        12,
+        evidence(
+          [true, true, true, true, true, false, true, false, true],
+          1600,
+        ),
+        80,
+      ),
+    ).toBe(12);
+    expect(
+      nextVisualDifficulty(
+        12,
+        evidence(
+          [true, true, true, true, true, false, true, true, true, true],
+          1600,
+        ),
+        80,
+      ),
+    ).toBe(13);
+  });
+  it("keeps the same renderer size curve and gives support after repeated errors", () => {
+    expect(nextVisualDifficulty(20, evidence([true, true, false]), 80)).toBe(
+      20,
+    );
+    expect(nextVisualDifficulty(20, evidence([false, true, false]), 80)).toBe(
+      17,
+    );
+    expect(nextVisualDifficulty(1, evidence([false, false]), 80)).toBe(0);
     expect(visualTargetRadius(defaults, 17, viewport)).toBeGreaterThan(
       visualTargetRadius(defaults, 20, viewport),
     );
+    const landscape = { width: 540, height: 100, pixelRatio: 2 };
+    expect(
+      visualTargetRadius({ ...defaults, size: 120 }, 0, landscape),
+    ).toBeLessThan(landscape.height / 2);
   });
   it.each([1, 2, 3])(
-    "stops only at the renderable pixel floor at DPR %i and enlarges again after errors",
+    "does not race to the display floor during five minutes of perfect fast answers at DPR %i",
     (pixelRatio) => {
+      const practice = session();
+      // Returning practice starts no harder than this comfortable warm-up.
+      practice.difficulty = 12;
       const screen = { ...viewport, pixelRatio };
-      const maximum = maximumVisualDifficulty(defaults, screen);
-      expect(maximum).toBeGreaterThan(12);
-      let level = 0;
-      for (let answer = 0; answer < 500; answer++)
-        level = nextVisualDifficulty(level, [true], maximum);
-      expect(level).toBe(maximum);
+      const initialSize = visualTargetRadius(
+        defaults,
+        practice.difficulty,
+        screen,
+      );
+      for (let active = 500; active <= 300000; active += 500) {
+        practice.activeMilliseconds = active;
+        recordResponse(practice, true, 500, screen);
+      }
+      expect(practice.difficulty).toBeGreaterThan(12);
+      expect(practice.difficulty).toBeLessThan(
+        maximumVisualDifficulty(defaults, screen),
+      );
       expect(
-        visualTargetRadius(defaults, level, screen) * pixelRatio,
-      ).toBeCloseTo(2);
+        visualTargetRadius(defaults, practice.difficulty, screen),
+      ).toBeLessThan(initialSize / 2);
       expect(
-        visualTargetRadius(
-          defaults,
-          nextVisualDifficulty(level, [false, false], maximum),
-          screen,
-        ),
-      ).toBeGreaterThan(visualTargetRadius(defaults, level, screen));
+        visualTargetRadius(defaults, practice.difficulty, screen) * pixelRatio,
+      ).toBeGreaterThan(2);
     },
   );
-  it("bounds malformed levels and geometry without non-finite sizes", () => {
+  it("bounds malformed geometry and levels, and retains the pixel floor during longer practice", () => {
     const invalid = { width: NaN, height: Infinity, pixelRatio: NaN };
     expect(Number.isFinite(visualTargetRadius(defaults, NaN, invalid))).toBe(
       true,
@@ -90,35 +126,44 @@ describe("continuous visual difficulty", () => {
     expect(Number.isFinite(maximumVisualDifficulty(defaults, invalid))).toBe(
       true,
     );
-    expect(nextVisualDifficulty(-4, [false, false], 80)).toBe(0);
-    expect(nextVisualDifficulty(500, [true], 80)).toBe(80);
+    expect(nextVisualDifficulty(-4, evidence([false, false]), 80)).toBe(0);
+    expect(nextVisualDifficulty(500, evidence(Array(5).fill(true)), 80)).toBe(
+      80,
+    );
+    const practice = session();
+    for (let index = 0; index < 1000; index++)
+      recordResponse(practice, true, 1600, viewport);
+    expect(practice.difficulty).toBe(
+      maximumVisualDifficulty(defaults, viewport),
+    );
+    expect(
+      visualTargetRadius(defaults, practice.difficulty, viewport) * 3,
+    ).toBeCloseTo(2);
   });
-  it("keeps scores and size through pause/recovery while time and scheduling never advance difficulty", () => {
+  it("preserves evidence through pause and reload without using time spent away to advance", () => {
     const practice = session();
     let clock = 0;
     const timer = new ActiveTimer(practice, () => clock);
     timer.resume();
-    clock = 1000;
-    timer.checkpoint();
-    recordResponse(practice, true, 1000, viewport);
+    for (let answer = 0; answer < 4; answer++) {
+      clock += 1600;
+      timer.checkpoint();
+      recordResponse(practice, true, 1600, viewport);
+    }
     timer.pause(true);
-    expect(recordResponse(practice, true, 1000, viewport)).toBeNull();
+    expect(recordResponse(practice, true, 1600, viewport)).toBeNull();
     const recovered: Session = structuredClone(practice);
     clock = 600000;
     const resumedTimer = new ActiveTimer(recovered, () => clock);
     resumedTimer.resume();
-    clock += 1000;
+    clock += 1600;
     resumedTimer.checkpoint();
-    expect(recovered.activeMilliseconds).toBe(2000);
+    expect(recovered.activeMilliseconds).toBe(8000);
+    expect(recovered.difficulty).toBe(0);
+    expect(recordResponse(recovered, true, 1600, viewport)!.points).toBe(5);
     expect(recovered.difficulty).toBe(1);
-    expect(responseScore(recovered.trials).points).toBe(1);
-    const result = recordResponse(recovered, true, 1000, viewport)!;
-    expect(result.points).toBe(2);
-    expect(recovered.trials[1].stimulusDiameter).toBeLessThan(
-      recovered.trials[0].stimulusDiameter!,
-    );
     resumedTimer.finish();
-    expect(recordResponse(recovered, true, 1000, viewport)).toBeNull();
+    expect(recordResponse(recovered, true, 1600, viewport)).toBeNull();
   });
   it("preserves contrast's independent five-answer rule and excludes tracking from response scores", () => {
     const practice = session();

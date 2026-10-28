@@ -71,6 +71,24 @@ it("uses seconds for following goals and translates challenge controls into Viet
   expect(html).toContain('aria-pressed="true"');
   expect(html).not.toContain("Dễ hơn");
 });
+it("shows untimed progression without a false speed requirement", () => {
+  const record = session();
+  record.configuration = { ...defaults, tapTimed: false };
+  const html = renderToStaticMarkup(
+    <LocalizationContext.Provider value={createLocalization("en")}>
+      <TouchChallenge
+        session={record}
+        bestLevel={0}
+        points={0}
+        sound
+        onSound={() => {}}
+      />
+    </LocalizationContext.Provider>,
+  );
+  expect(html).toContain("5 centered hits in a row");
+  expect(html).not.toContain("within 2.5s");
+  expect(html).not.toContain("fast, centered");
+});
 it("shows a steady working zone without an easier control", () => {
   const record = session();
   Object.assign(record.challenge!.balance!, {

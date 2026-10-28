@@ -35,14 +35,19 @@ export function TouchChallenge({
   const rule = state?.mastered
     ? t("challenge.masteredRule")
     : session.kind === "tap"
-      ? t("challenge.tapGoal", {
-          count: number(tapLevelGoal),
-          seconds: number(
-            tapTimeLimit(session.configuration, touchDifficultyLoad(session)) /
-              1000,
-            1,
-          ),
-        })
+      ? session.configuration.tapTimed === false
+        ? t("tap.untimedGoal", { count: number(tapLevelGoal) })
+        : t("challenge.tapGoal", {
+            count: number(tapLevelGoal),
+            seconds: number(
+              (session.tapState?.timeLimitMilliseconds ??
+                tapTimeLimit(
+                  session.configuration,
+                  touchDifficultyLoad(session),
+                )) / 1000,
+              1,
+            ),
+          })
       : t("challenge.followGoal", {
           seconds: number(followLevelGoalMilliseconds / 1000),
         });
@@ -111,10 +116,15 @@ export function TouchChallenge({
         aria-describedby="challenge-rule"
         aria-valuetext={
           session.kind === "tap"
-            ? t("challenge.tapProgress", {
-                count: number(progress),
-                goal: number(maximum),
-              })
+            ? t(
+                session.configuration.tapTimed === false
+                  ? "tap.untimedProgress"
+                  : "challenge.tapProgress",
+                {
+                  count: number(progress),
+                  goal: number(maximum),
+                },
+              )
             : t("challenge.followProgress", {
                 seconds: number(progress / 1000, 1),
                 goal: number(maximum / 1000),
@@ -134,7 +144,11 @@ export function TouchChallengeNotice({
   const { t, number } = useI18n();
   return (
     <span
-      className={cue.kind === "level-down" ? undefined : "answer-affirmation"}
+      className={
+        cue.kind === "level-down" || cue.kind === "expired"
+          ? undefined
+          : "answer-affirmation"
+      }
     >
       {["level-up", "mastered", "milestone"].includes(cue.kind) && (
         <span aria-hidden="true">✓</span>
@@ -142,15 +156,17 @@ export function TouchChallengeNotice({
       {t(
         cue.kind === "level-up"
           ? "challenge.unlocked"
-          : cue.kind === "level-down"
-            ? "challenge.eased"
-            : cue.kind === "mastered"
-              ? "challenge.mastered"
-              : cue.kind === "milestone"
-                ? "challenge.keepGoing"
-                : cue.kind === "closer"
-                  ? "challenge.closer"
-                  : "challenge.paceCue",
+          : cue.kind === "expired"
+            ? "tap.expired"
+            : cue.kind === "level-down"
+              ? "challenge.eased"
+              : cue.kind === "mastered"
+                ? "challenge.mastered"
+                : cue.kind === "milestone"
+                  ? "challenge.keepGoing"
+                  : cue.kind === "closer"
+                    ? "challenge.closer"
+                    : "challenge.paceCue",
         {
           level: number(cue.level + 1),
           seconds: number(
