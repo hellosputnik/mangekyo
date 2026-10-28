@@ -410,7 +410,7 @@ export const vietnamese = {
   "settings.storageNote":
     "Dữ liệu được lưu trong trình duyệt này. Chế độ duyệt riêng tư, việc xóa dữ liệu trang web hoặc giải phóng bộ nhớ có thể làm mất dữ liệu. Hãy thường xuyên xuất bản sao lưu.",
   "settings.export": "Xuất dữ liệu",
-  "settings.import": "Nhập bản sao lưu (gộp bản ghi và khôi phục tùy chọn)",
+  "settings.import": "Chọn bản sao",
   "settings.limits": "Ứng dụng có thể cho bạn biết điều gì",
   "settings.limitsPerformance":
     "Ứng dụng ghi lại thời gian tập và câu trả lời. Điểm số tốt hơn không chứng minh nhược thị, thị lực hay sức khỏe mắt đã cải thiện. Màn hình thông thường không được hiệu chuẩn y khoa. Độ sáng, khoảng cách nhìn, ánh sáng xung quanh và kích thước màn hình đều ảnh hưởng đến kết quả.",
@@ -456,4 +456,100 @@ export const vietnamese = {
   "progress.trendEmpty":
     "Các bài trả lời sẽ bổ sung độ chính xác và mức khó tại đây.",
   "progress.savedMeasurement": "Đã lưu kết quả đo.",
+  "practice.reset": "Đặt lại cài đặt",
+  "practice.resetNote":
+    "Khôi phục cài đặt mặc định 5 phút cho bài này. Giữ nguyên mắt đã chọn và kết quả đã ghi.",
+  "practice.resetDone": "Đã khôi phục cài đặt mặc định.",
+  "recap.planned": "Thời lượng đã đặt",
+  "recap.target": "Cài đặt kích thước",
+  "recap.complete": "Hoàn thành buổi tập",
+  "recap.saved": "Đã lưu buổi tập",
+  "recap.points": "Đã lưu {points} câu trả lời đúng.",
+  "recap.trackingNote":
+    "Đã ghi buổi luyện nhìn. Ứng dụng không đo độ chính xác của ánh nhìn.",
+  "recap.repeat": "Tập lại",
+  "filters.title": "Xem kết quả luyện tập",
+  "filters.clear": "Bỏ bộ lọc",
+  "filters.exercise": "Bài tập",
+  "filters.allExercises": "Tất cả bài tập",
+  "filters.allEyes": "Tất cả lựa chọn mắt",
+  "filters.conditions": "Cài đặt đã ghi",
+  "filters.allSettings": "Tất cả cài đặt",
+  "filters.group":
+    "{number}. {exercise} · {eye} · {duration} · cỡ {size} · {count} buổi",
+  "filters.note":
+    "Lọc theo mắt, bài tập và cài đặt ban đầu. Mức khó có thể tự điều chỉnh trong buổi tập.",
+  "filters.inspect": "Xem điều kiện đã ghi",
+  "filters.recordingNote":
+    "Kích thước màn hình tính bằng pixel CSS, không phải kích thước vật lý đã hiệu chuẩn. Bản ghi cũ có thể thiếu thông tin màn hình.",
+  "filters.screen": "Vùng tập đã ghi",
+  "filters.unknownScreen": "Chưa được ghi",
+  "filters.best": "Tốt nhất ở mức khó gần đây",
+  "filters.bestFollowing": "theo sát trong khoảng {count} giây",
+  "filters.bestAnswers": "chính xác qua {count} lượt cùng điều kiện",
+  "filters.bestConditions": "Mức khó đã ghi {level} · {date}",
+  "filters.bestPending":
+    "Để so sánh tốt nhất, cần vùng tập đã ghi và không đổi, cùng ít nhất 5 câu ở cùng điều kiện hiển thị hoặc 10 giây kéo theo. Bản ghi cũ vẫn tính vào tổng kết.",
+  "filters.noGazeBest":
+    "Bài này ghi thời gian tập, không đo độ chính xác của ánh nhìn.",
+  "filters.scope":
+    "Báo cáo hiển thị phần đã chọn. Xuất dữ liệu và Đặt lại vẫn áp dụng cho toàn bộ dữ liệu đã lưu.",
+  "filters.selectedRecords": "Kết quả đã chọn",
+  "filters.byEye": "Phần đã chọn, theo mắt",
+  "rehearsal.open": "Tập thử",
+  "rehearsal.title": "Làm quen bài tập",
+  "rehearsal.stimulus": "Ví dụ tập thử không tính điểm",
+  "rehearsal.pursuit":
+    "Dùng mắt dõi theo chấm. Giữ đầu yên ở tư thế thoải mái.",
+  "rehearsal.saccades": "Chuyển ánh nhìn khi chấm xuất hiện ở vị trí mới.",
+  "rehearsal.visual": "Nhìn ký hiệu và chọn hướng chỉ hoặc hướng khe hở.",
+  "rehearsal.contrast": "Tìm hình hiển thị rồi chọn ô chứa hình đó.",
+  "rehearsal.tap":
+    "Chạm vào giữa chấm. Chạm trúng thì chấm chuyển sang chỗ khác.",
+  "rehearsal.follow":
+    "Giữ nút nhỏ bên dưới con trỏ. Kéo để con trỏ theo sát chấm di chuyển; thả tay để tạm dừng.",
+  "rehearsal.noScore":
+    "Ví dụ dễ để làm quen. Không lưu điểm, phút tập hay thay đổi mức khó.",
+  "rehearsal.correct": "✓ Đúng rồi. Thử tiếp nhé.",
+  "rehearsal.retry": "Thử lại mục tiêu nhé.",
+  "storage.offline": "Nội dung ngoại tuyến",
+  "storage.checking": "Đang kiểm tra nội dung đã lưu…",
+  "storage.ready": "Đã tải đủ · đã kiểm tra lần mở này",
+  "storage.not-ready":
+    "Chưa xác minh. Mở khi có mạng và chờ ứng dụng cập nhật xong.",
+  "storage.unsupported":
+    "Có thể cài ngoại tuyến từ bản ứng dụng đã triển khai, trên trình duyệt hỗ trợ.",
+  "storage.lastExport": "Lần tạo bản sao gần nhất",
+  "storage.neverExported": "Chưa tạo bản sao",
+  "storage.exportNote":
+    "Đây là thời điểm tạo tệp sao lưu. Hãy kiểm tra trình duyệt đã lưu tệp. Nội dung ngoại tuyến có thể bị trình duyệt xóa về sau.",
+  "backup.review": "Xem trước bản nhập",
+  "backup.mergeNote":
+    "Bản ghi mới sẽ được thêm vào. Giữ nguyên bản ghi hiện có nếu trùng mã. Chỉ thay đổi sau khi bạn chọn Nhập.",
+  "backup.restorePreferences": "Khôi phục tùy chọn và cài đặt bài tập",
+  "backup.progressNote":
+    "Kết quả và lộ trình đã lưu luôn được gộp. Khi trùng, ưu tiên bản ghi và cấu hình thích ứng hiện có.",
+  "backup.preferenceChanges": "Thay đổi tùy chọn",
+  "backup.noPreferenceChanges": "Không đổi giá trị tùy chọn.",
+  "backup.practiceChanges":
+    "Cũng khôi phục bài tập gần nhất, mắt và cài đặt riêng từng bài.",
+  "backup.undoNote":
+    "Cũng khôi phục bản Hoàn tác thống kê đã lưu. Bản này tách riêng khỏi tổng hiện tại.",
+  "backup.confirm": "Nhập",
+  "backup.importing": "Đang nhập…",
+  "backup.tooLarge": "Chọn bản sao lưu nhỏ hơn 20 MB.",
+  "accessibility.skip": "Đến nội dung chính",
+  "keyboard.tap":
+    "Bàn phím: dùng phím mũi tên di chuyển con trỏ, Enter để chạm. Escape để tạm dừng.",
+  "keyboard.follow":
+    "Bàn phím: giữ phím cách và dùng mũi tên để kéo theo. Thả phím cách để dừng. Escape để tạm dừng.",
+  "keyboard.method": "Cách thao tác",
+  "keyboard.pointer": "Chạm / con trỏ",
+  "keyboard.keyboard": "Bàn phím",
+  "keyboard.mixed": "Nhiều cách thao tác",
+  "backup.adaptiveProfiles": "Cấu hình thích ứng",
+  "backup.levelChange": "Mức đã ghi {from} → {to}",
+  "filters.changedScreen": "Vùng tập đã thay đổi trong buổi",
+  "backup.reading": "Đang đọc…",
+  "storage.download": "Tải nội dung ngoại tuyến",
 } satisfies Record<MessageKey, string>;

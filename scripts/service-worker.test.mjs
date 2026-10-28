@@ -32,6 +32,7 @@ afterAll(async () => {
 function worker(scope) {
   const listeners = new Map();
   const entries = new Map();
+  const opened = new Set();
   const cache = {
     addAll: vi.fn(async (urls) => {
       for (const url of urls) entries.set(url, new Response(url));
@@ -41,11 +42,15 @@ function worker(scope) {
     ),
   };
   const caches = {
-    open: vi.fn(async () => cache),
+    open: vi.fn(async (name) => {
+      opened.add(name);
+      return cache;
+    }),
     keys: vi.fn(async () => [
       "mangekyo:%2Fmangekyo%2F:old",
       "mangekyo:%2Fother%2F:old",
       "another-app-cache",
+      ...opened,
     ]),
     delete: vi.fn(async () => true),
   };
@@ -60,9 +65,29 @@ function worker(scope) {
   };
   runInNewContext(workerSource, { self, caches, fetch, URL, Response });
   return {
+    entries,
     cache,
     caches,
     fetch,
+    checkFiles: async (type = "CHECK_OFFLINE_FILES") => {
+      let pending;
+      let reply;
+      listeners.get("message")({
+        data: { type },
+        ports: [
+          {
+            postMessage: (value) => {
+              reply = value;
+            },
+          },
+        ],
+        waitUntil: (promise) => {
+          pending = promise;
+        },
+      });
+      await pending;
+      return reply;
+    },
     install: async () => {
       let pending;
       listeners.get("install")({ waitUntil: (promise) => (pending = promise) });
@@ -87,6 +112,19 @@ function worker(scope) {
 }
 
 describe("GitHub Pages offline deployment", () => {
+  it("reports readiness only when every asset for the active scoped version exists", async () => {
+    const scope = "https://example.github.io/mangekyo/";
+    const instance = worker(scope);
+    expect((await instance.checkFiles()).ready).toBe(false);
+    await instance.install();
+    expect((await instance.checkFiles()).ready).toBe(true);
+    instance.entries.delete(scope + "assets/app.js");
+    expect((await instance.checkFiles()).ready).toBe(false);
+    expect((await instance.checkFiles("DOWNLOAD_OFFLINE_FILES")).ready).toBe(
+      true,
+    );
+    expect(instance.entries.has(scope + "assets/app.js")).toBe(true);
+  });
   it.each([
     "https://example.github.io/",
     "https://example.github.io/mangekyo/",

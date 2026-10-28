@@ -130,7 +130,7 @@ export class VisualExercise implements Exercise {
       const panelSize = patternSize + 10;
       positions.forEach(([horizontal, vertical], index) => {
         context.globalAlpha = 1;
-        context.strokeStyle = "#664343";
+        context.strokeStyle = "#9c7376";
         context.lineWidth = 1;
         context.strokeRect(
           width * horizontal - panelSize,

@@ -184,6 +184,16 @@ export interface Session {
   tapState?: TapState;
   awaitingTouch?: boolean;
   challenge?: TouchChallengeState;
+  initialDifficulty?: number;
+  viewport?: {
+    width: number;
+    height: number;
+    pixelRatio: number;
+    changed: boolean;
+  };
+  protocol?: string;
+  inputMethod?: "pointer" | "keyboard" | "mixed";
+  setupMode?: PracticeMode;
 }
 export interface Step {
   kind: ExerciseKind;
@@ -232,6 +242,17 @@ export interface TouchProfile {
   updatedAt: string;
   balance: AdaptiveBalance;
 }
+export type PracticeMode = "Default" | "Custom";
+export interface PracticeSetup {
+  mode: PracticeMode;
+  configuration: Configuration;
+}
+export type PracticeSetups = Record<ExerciseKind, PracticeSetup>;
+export interface PracticePreferences {
+  kind: ExerciseKind;
+  eye: Eye;
+  setups: PracticeSetups;
+}
 export interface Data {
   sessions: Session[];
   current: Session | null;
@@ -243,6 +264,8 @@ export interface Data {
   breakState: { remaining: number; manual: boolean } | null;
   statisticsReset?: StatisticsReset;
   touchProfiles?: TouchProfile[];
+  practice?: PracticePreferences;
+  lastExportedAt?: string;
 }
 export const initialData = (): Data => ({
   sessions: [],

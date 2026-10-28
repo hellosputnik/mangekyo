@@ -31,6 +31,16 @@ self.addEventListener('install', event => {
 });
 self.addEventListener('message', event => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (['CHECK_OFFLINE_FILES', 'DOWNLOAD_OFFLINE_FILES'].includes(event.data?.type) && event.ports?.[0]) {
+    const prepare = event.data.type === 'DOWNLOAD_OFFLINE_FILES'
+      ? caches.open(CACHE).then(cache => cache.addAll(FILES)) : Promise.resolve();
+    event.waitUntil(prepare.then(() => caches.keys()).then(async keys => {
+      if (!keys.includes(CACHE)) return false;
+      const cache = await caches.open(CACHE);
+      const files = await Promise.all(FILES.map(file => cache.match(file, {ignoreVary: true})));
+      return files.every(Boolean);
+    }).catch(() => false).then(ready => event.ports[0].postMessage({type: 'OFFLINE_FILES', ready})));
+  }
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(

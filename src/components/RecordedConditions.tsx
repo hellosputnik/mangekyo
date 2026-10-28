@@ -1,0 +1,67 @@
+import { isTouchExercise, type Session } from "../engine/model";
+import { useI18n } from "../i18n/react";
+
+export function RecordedConditions({ session }: { session: Session }) {
+  const { t, number, duration, percent, optionLabel, eyeLabel } = useI18n();
+  const settings = session.configuration;
+  const rows = [
+    [t("practice.eye"), eyeLabel(session.eye)],
+    [t("practice.duration"), duration(settings.duration)],
+    [t("recap.target"), t("touch.pixels", { value: number(settings.size) })],
+    [t("config.contrast"), percent(settings.contrast)],
+    [t("config.distance"), number(settings.distance)],
+  ];
+  if (session.kind === "pursuit" || session.kind === "follow")
+    rows.push(
+      [t("config.pattern"), optionLabel(settings.pattern)],
+      [t("config.speed"), number(settings.speed, 2)],
+    );
+  if (isTouchExercise(session.kind))
+    rows.push(
+      [
+        t("touch.hand"),
+        t(settings.hand === "Left" ? "touch.leftHand" : "touch.rightHand"),
+      ],
+      [
+        t("touch.haloSize"),
+        t("touch.pixels", { value: number(settings.touchTolerance) }),
+      ],
+      [
+        t("keyboard.method"),
+        session.inputMethod
+          ? t(`keyboard.${session.inputMethod}`)
+          : t("filters.unknownScreen"),
+      ],
+    );
+  if (session.kind === "saccades")
+    rows.push(
+      [t("config.exposure"), number(settings.exposure, 1)],
+      [t("config.jumpPause"), number(settings.jumpPause, 1)],
+      [t("config.jumpDistance"), percent(settings.jumpDistance)],
+    );
+  if (session.kind === "visual")
+    rows.push([t("config.visualTask"), optionLabel(settings.stimulus)]);
+  if (session.kind === "contrast")
+    rows.push([
+      t("config.contrastTask"),
+      optionLabel(settings.contrastStimulus),
+    ]);
+  if (session.kind === "tap")
+    rows.push([t("challenge.basePace"), number(settings.tapPaceSeconds, 2)]);
+  rows.push([
+    t("filters.screen"),
+    session.viewport
+      ? `${number(session.viewport.width, 0)} × ${number(session.viewport.height, 0)} · ${number(session.viewport.pixelRatio, Number.isInteger(session.viewport.pixelRatio) ? 0 : 1)}×`
+      : t("filters.unknownScreen"),
+  ]);
+  return (
+    <dl className="recorded-conditions">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

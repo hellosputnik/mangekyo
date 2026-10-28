@@ -3,6 +3,15 @@ import {
   isTouchExercise,
   type Data,
 } from "../engine/model";
+import { useState } from "react";
+import { allSessions } from "../analytics/totals";
+import {
+  conditionGroups,
+  emptyStatisticsFilter,
+  filterStatistics,
+  type StatisticsFilter,
+} from "../analytics/comparison";
+import { StatisticsFilters } from "./StatisticsFilters";
 import { summarizeTouch } from "../analytics/touch";
 import type { ResetStatisticsOptions } from "../engine/statistics-reset";
 import { buildStatistics } from "../analytics/statistics";
@@ -39,14 +48,37 @@ export function Statistics({
     exerciseName,
     eyeLabel,
   } = useI18n();
-  const report = buildStatistics(data);
+  const [filter, setFilter] = useState<StatisticsFilter>(emptyStatisticsFilter);
+  const sessions = allSessions(data);
+  const groups = conditionGroups(sessions, filter);
+  const effectiveFilter = {
+    ...filter,
+    conditions: groups.some((group) => group.key === filter.conditions)
+      ? filter.conditions
+      : "All",
+  };
+  const filtered = filterStatistics(data, effectiveFilter);
+  const filterActive =
+    effectiveFilter.exercise !== "All" ||
+    effectiveFilter.eye !== "All" ||
+    effectiveFilter.conditions !== "All";
+  const report = buildStatistics(filtered);
   const { summary } = report;
   return (
     <div className="statistics-page">
-      <ActivityBrowser data={data} />
+      <StatisticsFilters
+        sessions={sessions}
+        filter={effectiveFilter}
+        onChange={setFilter}
+      />
+      <ActivityBrowser data={filtered} />
       <section className="lifetime-report" aria-labelledby="lifetime-title">
         <div className="report-heading">
-          <h2 id="lifetime-title">{t("statistics.lifetime")}</h2>
+          <h2 id="lifetime-title">
+            {t(
+              filterActive ? "filters.selectedRecords" : "statistics.lifetime",
+            )}
+          </h2>
           <span>
             {summary.firstDate
               ? t("statistics.since", { date: date(summary.firstDate) })
@@ -101,213 +133,224 @@ export function Statistics({
           <h2 id="exercise-report-title">{t("statistics.exerciseReports")}</h2>
           <p>{t("statistics.performanceNote")}</p>
         </div>
-        <div className="exercise-report-grid">
-          {report.exercises.map((exercise) => {
-            const responseExercise = isResponseExercise(exercise.kind);
-            const touch = summarizeTouch(
-              report.sessions.filter(
-                (session) => session.kind === exercise.kind,
-              ),
-            );
-            return (
-              <article className="exercise-report" key={exercise.kind}>
-                <div className="exercise-report-heading">
-                  <span className="report-art">
-                    <ExerciseArtwork kind={exercise.kind} />
-                  </span>
-                  <h3>{exerciseName(exercise.kind)}</h3>
-                </div>
-                <dl className="exercise-report-metrics">
-                  <div>
-                    <dt>{t("statistics.activeTime")}</dt>
-                    <dd>{time(exercise.activeMilliseconds)}</dd>
+        <div
+          className={`exercise-report-grid${effectiveFilter.exercise !== "All" ? " single-report" : ""}`}
+        >
+          {report.exercises
+            .filter(
+              (exercise) =>
+                effectiveFilter.exercise === "All" ||
+                exercise.kind === effectiveFilter.exercise,
+            )
+            .map((exercise) => {
+              const responseExercise = isResponseExercise(exercise.kind);
+              const touch = summarizeTouch(
+                report.sessions.filter(
+                  (session) => session.kind === exercise.kind,
+                ),
+              );
+              return (
+                <article className="exercise-report" key={exercise.kind}>
+                  <div className="exercise-report-heading">
+                    <span className="report-art">
+                      <ExerciseArtwork kind={exercise.kind} />
+                    </span>
+                    <h3>{exerciseName(exercise.kind)}</h3>
                   </div>
-                  <div>
-                    <dt>{t("statistics.sessions")}</dt>
-                    <dd>{number(exercise.sessionCount)}</dd>
-                  </div>
-                  {responseExercise ? (
-                    <>
-                      <div>
-                        <dt>
-                          {t(
-                            exercise.kind === "tap"
-                              ? "touch.hitRate"
-                              : "statistics.answerAccuracy",
-                          )}
-                        </dt>
-                        <dd>
-                          {exercise.accuracy === null
-                            ? "—"
-                            : percent(exercise.accuracy)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>
-                          {t(
-                            exercise.kind === "tap"
-                              ? "touch.tapResponse"
-                              : "statistics.medianResponse",
-                          )}
-                        </dt>
-                        <dd>
-                          {exercise.medianResponseMilliseconds === null
-                            ? "—"
-                            : t("statistics.seconds", {
-                                seconds: number(
-                                  exercise.medianResponseMilliseconds / 1000,
-                                  1,
-                                ),
-                              })}
-                        </dd>
-                      </div>
-                    </>
-                  ) : exercise.kind === "follow" ? (
-                    <>
-                      <div>
-                        <dt>{t("touch.onTarget")}</dt>
-                        <dd>
-                          {touch.onTargetRatio === null
-                            ? "—"
-                            : percent(touch.onTargetRatio)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>{t("touch.meanDistance")}</dt>
-                        <dd>
-                          {touch.meanDistance === null
-                            ? "—"
-                            : t("touch.pixels", {
-                                value: number(touch.meanDistance, 1),
-                              })}
-                        </dd>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <dt>{t("statistics.practiceDays")}</dt>
-                        <dd>{number(exercise.activeDays)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t("statistics.averageSession")}</dt>
-                        <dd>{time(exercise.averageSessionMilliseconds)}</dd>
-                      </div>
-                    </>
-                  )}
-                </dl>
-                <p className="exercise-report-footer">
-                  {exercise.lastDate
-                    ? t("statistics.lastPractice", {
-                        date: date(exercise.lastDate),
-                      })
-                    : t("statistics.notPracticed")}
-                </p>
-                <details className="exercise-report-details">
-                  <summary>
-                    <span>{t("statistics.details")}</span>
-                    <Icon name="Chevron" />
-                  </summary>
-                  <div className="exercise-report-detail-content">
-                    {isTouchExercise(exercise.kind) && (
-                      <p className="exercise-report-note">
-                        {t("touch.performanceNote")}
-                      </p>
-                    )}
-                    {isTouchExercise(exercise.kind) &&
-                      touch.highestLevel !== null && (
-                        <p className="exercise-report-note">
-                          {t("challenge.highest")}: {number(touch.highestLevel)}{" "}
-                          · {t("challenge.unlockedCount")}:{" "}
-                          {number(touch.levelsUnlocked)}
-                        </p>
-                      )}
-                    <p className="exercise-report-note">
-                      {t("statistics.outcomes", {
-                        completed: number(exercise.completedCount),
-                        stopped: number(exercise.stoppedCount),
-                        interrupted: number(exercise.interruptedCount),
-                      })}
-                    </p>
+                  <dl className="exercise-report-metrics">
+                    <div>
+                      <dt>{t("statistics.activeTime")}</dt>
+                      <dd>{time(exercise.activeMilliseconds)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("statistics.sessions")}</dt>
+                      <dd>{number(exercise.sessionCount)}</dd>
+                    </div>
                     {responseExercise ? (
-                      <p className="exercise-report-note">
-                        {exercise.responseCount
-                          ? t(
+                      <>
+                        <div>
+                          <dt>
+                            {t(
                               exercise.kind === "tap"
-                                ? "touch.hitSummary"
-                                : "statistics.correctAnswers",
-                              {
-                                correct: number(exercise.correctCount),
-                                total: number(exercise.responseCount),
-                              },
-                            )
-                          : t("statistics.noResponses")}
-                      </p>
+                                ? "touch.hitRate"
+                                : "statistics.answerAccuracy",
+                            )}
+                          </dt>
+                          <dd>
+                            {exercise.accuracy === null
+                              ? "—"
+                              : percent(exercise.accuracy)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>
+                            {t(
+                              exercise.kind === "tap"
+                                ? "touch.tapResponse"
+                                : "statistics.medianResponse",
+                            )}
+                          </dt>
+                          <dd>
+                            {exercise.medianResponseMilliseconds === null
+                              ? "—"
+                              : t("statistics.seconds", {
+                                  seconds: number(
+                                    exercise.medianResponseMilliseconds / 1000,
+                                    1,
+                                  ),
+                                })}
+                          </dd>
+                        </div>
+                      </>
                     ) : exercise.kind === "follow" ? (
                       <>
-                        <p className="exercise-report-note">
-                          {t("touch.bestRun")}:{" "}
-                          {time(touch.bestRunMilliseconds)}
-                        </p>
-                        {touch.onTargetRatio === null && (
-                          <p className="exercise-report-note">
-                            {t("touch.noData")}
-                          </p>
-                        )}
+                        <div>
+                          <dt>{t("touch.onTarget")}</dt>
+                          <dd>
+                            {touch.onTargetRatio === null
+                              ? "—"
+                              : percent(touch.onTargetRatio)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>{t("touch.meanDistance")}</dt>
+                          <dd>
+                            {touch.meanDistance === null
+                              ? "—"
+                              : t("touch.pixels", {
+                                  value: number(touch.meanDistance, 1),
+                                })}
+                          </dd>
+                        </div>
                       </>
                     ) : (
-                      <p className="exercise-report-note">
-                        {t("statistics.noGazeScore")}
-                      </p>
+                      <>
+                        <div>
+                          <dt>{t("statistics.practiceDays")}</dt>
+                          <dd>{number(exercise.activeDays)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t("statistics.averageSession")}</dt>
+                          <dd>{time(exercise.averageSessionMilliseconds)}</dd>
+                        </div>
+                      </>
                     )}
-                    {exercise.latestLevel !== null && (
+                  </dl>
+                  <p className="exercise-report-footer">
+                    {exercise.lastDate
+                      ? t("statistics.lastPractice", {
+                          date: date(exercise.lastDate),
+                        })
+                      : t("statistics.notPracticed")}
+                  </p>
+                  <details className="exercise-report-details">
+                    <summary>
+                      <span>{t("statistics.details")}</span>
+                      <Icon name="Chevron" />
+                    </summary>
+                    <div className="exercise-report-detail-content">
+                      {isTouchExercise(exercise.kind) && (
+                        <p className="exercise-report-note">
+                          {t("touch.performanceNote")}
+                        </p>
+                      )}
+                      {isTouchExercise(exercise.kind) &&
+                        touch.highestLevel !== null && (
+                          <p className="exercise-report-note">
+                            {t("challenge.highest")}:{" "}
+                            {number(touch.highestLevel)} ·{" "}
+                            {t("challenge.unlockedCount")}:{" "}
+                            {number(touch.levelsUnlocked)}
+                          </p>
+                        )}
                       <p className="exercise-report-note">
-                        {t("progress.level", {
-                          level: number(exercise.latestLevel),
+                        {t("statistics.outcomes", {
+                          completed: number(exercise.completedCount),
+                          stopped: number(exercise.stoppedCount),
+                          interrupted: number(exercise.interruptedCount),
                         })}
                       </p>
-                    )}
-                    {exercise.recentResults.length > 0 && (
-                      <div className="recent-results">
-                        <h4>{t("statistics.recentAccuracy")}</h4>
-                        <ol>
-                          {exercise.recentResults.map((result) => (
-                            <li
-                              key={result.id}
-                              aria-label={t("statistics.resultDescription", {
-                                date: date(result.date),
-                                eye: eyeLabel(result.eye),
-                                accuracy: percent(result.accuracy),
-                                count: number(result.responseCount),
-                              })}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className="result-column"
+                      {responseExercise ? (
+                        <p className="exercise-report-note">
+                          {exercise.responseCount
+                            ? t(
+                                exercise.kind === "tap"
+                                  ? "touch.hitSummary"
+                                  : "statistics.correctAnswers",
+                                {
+                                  correct: number(exercise.correctCount),
+                                  total: number(exercise.responseCount),
+                                },
+                              )
+                            : t("statistics.noResponses")}
+                        </p>
+                      ) : exercise.kind === "follow" ? (
+                        <>
+                          <p className="exercise-report-note">
+                            {t("touch.bestRun")}:{" "}
+                            {time(touch.bestRunMilliseconds)}
+                          </p>
+                          {touch.onTargetRatio === null && (
+                            <p className="exercise-report-note">
+                              {t("touch.noData")}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="exercise-report-note">
+                          {t("statistics.noGazeScore")}
+                        </p>
+                      )}
+                      {exercise.latestLevel !== null && (
+                        <p className="exercise-report-note">
+                          {t("progress.level", {
+                            level: number(exercise.latestLevel),
+                          })}
+                        </p>
+                      )}
+                      {exercise.recentResults.length > 0 && (
+                        <div className="recent-results">
+                          <h4>{t("statistics.recentAccuracy")}</h4>
+                          <ol>
+                            {exercise.recentResults.map((result) => (
+                              <li
+                                key={result.id}
+                                aria-label={t("statistics.resultDescription", {
+                                  date: date(result.date),
+                                  eye: eyeLabel(result.eye),
+                                  accuracy: percent(result.accuracy),
+                                  count: number(result.responseCount),
+                                })}
                               >
-                                <i
-                                  style={{
-                                    height: `${result.accuracy * 100}%`,
-                                  }}
-                                />
-                              </span>
-                              <span aria-hidden="true">
-                                {percent(result.accuracy)}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              </article>
-            );
-          })}
+                                <span
+                                  aria-hidden="true"
+                                  className="result-column"
+                                >
+                                  <i
+                                    style={{
+                                      height: `${result.accuracy * 100}%`,
+                                    }}
+                                  />
+                                </span>
+                                <span aria-hidden="true">
+                                  {percent(result.accuracy)}
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </article>
+              );
+            })}
         </div>
       </section>
       <section className="statistics-eyes" aria-labelledby="eyes-title">
-        <h2 id="eyes-title">{t("statistics.byEye")}</h2>
+        <h2 id="eyes-title">
+          {t(filterActive ? "filters.byEye" : "statistics.byEye")}
+        </h2>
         <dl>
           {report.eyes.map((eye) => (
             <div key={eye.eye}>

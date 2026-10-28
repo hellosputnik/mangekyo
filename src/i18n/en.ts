@@ -402,7 +402,7 @@ export const english = {
   "settings.storageNote":
     "Data stays in this browser. Private browsing, clearing website data, or storage eviction can remove it. Export regular backups.",
   "settings.export": "Export all data",
-  "settings.import": "Import backup (merges records and restores preferences)",
+  "settings.import": "Review backup",
   "settings.limits": "What this app can tell you",
   "settings.limitsPerformance":
     "It records practice time and task responses. Better scores do not establish improved amblyopia, visual acuity, or eye health. Consumer displays are not medically calibrated. Brightness, distance, ambient light, and screen size affect results.",
@@ -447,5 +447,101 @@ export const english = {
   "progress.trendEmpty":
     "Response exercises will add accuracy and difficulty here.",
   "progress.savedMeasurement": "Measurement saved.",
+  "practice.reset": "Reset setup",
+  "practice.resetNote":
+    "Restore this exercise’s five-minute defaults. Eye selection and recorded progress stay.",
+  "practice.resetDone": "Default setup restored.",
+  "recap.planned": "Planned time",
+  "recap.target": "Size setting",
+  "recap.complete": "Session complete",
+  "recap.saved": "Practice saved",
+  "recap.points": "{points} correct responses saved.",
+  "recap.trackingNote":
+    "Visual practice recorded. Gaze accuracy is not measured.",
+  "recap.repeat": "Repeat settings",
+  "filters.title": "Explore your practice",
+  "filters.clear": "Clear filters",
+  "filters.exercise": "Exercise",
+  "filters.allExercises": "All exercises",
+  "filters.allEyes": "All eye selections",
+  "filters.conditions": "Recorded settings",
+  "filters.allSettings": "All settings",
+  "filters.group":
+    "{number}. {exercise} · {eye} · {duration} · size {size} · {count} sessions",
+  "filters.note":
+    "Filter by eye, exercise and base settings. Adaptive difficulty can change within a session.",
+  "filters.inspect": "View recorded conditions",
+  "filters.recordingNote":
+    "Screen sizes are CSS pixels, not calibrated physical measurements. Older records may lack screen information.",
+  "filters.screen": "Recorded practice area",
+  "filters.unknownScreen": "Not recorded",
+  "filters.best": "Best at your latest recorded difficulty",
+  "filters.bestFollowing": "on target in a {count}-second window",
+  "filters.bestAnswers": "accuracy across {count} matching responses",
+  "filters.bestConditions": "Recorded difficulty {level} · {date}",
+  "filters.bestPending":
+    "A comparable best needs a recorded, unchanged practice area and at least five answers at the same presented conditions, or a full ten-second following window. Older records are still included in your totals.",
+  "filters.noGazeBest":
+    "This exercise records practice time, not gaze accuracy.",
+  "filters.scope":
+    "These reports show the selection. Export and Reset still apply to all saved data.",
+  "filters.selectedRecords": "Selected practice",
+  "filters.byEye": "Selection by eye",
+  "rehearsal.open": "Try it",
+  "rehearsal.title": "Try the exercise",
+  "rehearsal.stimulus": "Unscored practice example",
+  "rehearsal.pursuit":
+    "Follow the dot with your eyes. Keep your head comfortable and still.",
+  "rehearsal.saccades": "Shift your gaze when the dot appears in a new place.",
+  "rehearsal.visual":
+    "Look at the symbol and choose the direction it points or opens.",
+  "rehearsal.contrast": "Find the pattern and choose its panel.",
+  "rehearsal.tap": "Tap the dot’s center. A good tap moves it to another spot.",
+  "rehearsal.follow":
+    "Hold the small handle below the cursor. Drag it to keep the cursor over the moving dot; release to pause.",
+  "rehearsal.noScore":
+    "An easy example. No saved scores, training minutes or difficulty changes.",
+  "rehearsal.correct": "✓ That’s it. Try another.",
+  "rehearsal.retry": "Try the target again.",
+  "storage.offline": "Offline files",
+  "storage.checking": "Checking the app’s saved files…",
+  "storage.ready": "Download complete · checked this visit",
+  "storage.not-ready":
+    "Not verified. Open online and allow the app to finish updating.",
+  "storage.unsupported":
+    "Offline installation is available in the hosted app on supported browsers.",
+  "storage.lastExport": "Last export created",
+  "storage.neverExported": "No export created yet",
+  "storage.exportNote":
+    "This records when the backup file was prepared. Check that your browser saved it. Browsers can later remove offline files.",
+  "backup.review": "Review import",
+  "backup.mergeNote":
+    "New records will be added. Existing records with the same ID are kept. Nothing changes until you import.",
+  "backup.restorePreferences": "Restore preferences and saved setup",
+  "backup.progressNote":
+    "Recorded progress and saved routine presets are merged in either case. Current records and adaptive profiles take precedence on duplicates.",
+  "backup.preferenceChanges": "Preference changes",
+  "backup.noPreferenceChanges": "No preference values change.",
+  "backup.practiceChanges":
+    "The last exercise, eye and per-exercise setups will also be restored.",
+  "backup.undoNote":
+    "An archived statistics Undo copy will also be restored. It is separate from current totals.",
+  "backup.confirm": "Import",
+  "backup.importing": "Importing…",
+  "backup.tooLarge": "Choose a backup smaller than 20 MB.",
+  "accessibility.skip": "Skip to content",
+  "keyboard.tap":
+    "Keyboard: use arrow keys to move the cursor, then press Enter to tap. Escape pauses.",
+  "keyboard.follow":
+    "Keyboard: hold Space and use arrow keys to follow. Release Space to pause. Escape pauses.",
+  "keyboard.method": "Input method",
+  "keyboard.pointer": "Touch / pointer",
+  "keyboard.keyboard": "Keyboard",
+  "keyboard.mixed": "Mixed input",
+  "backup.adaptiveProfiles": "Saved adaptive setups",
+  "backup.levelChange": "Recorded level {from} → {to}",
+  "filters.changedScreen": "Practice area changed during the session",
+  "backup.reading": "Reading…",
+  "storage.download": "Download offline files",
 } as const;
 export type MessageKey = keyof typeof english;

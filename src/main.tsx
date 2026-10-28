@@ -23,7 +23,15 @@ import {
   initialPracticeSetups,
   selectPracticeMode,
   updatePracticeSetting,
+  parsePracticePreferences,
+  practiceDefaults,
+  type PracticeSetups,
+  type PracticeMode,
 } from "./engine/practice";
+import { exerciseProtocol, recordViewport } from "./analytics/comparison";
+import { SessionRecap } from "./components/SessionRecap";
+import { DataSettings } from "./components/DataSettings";
+import { useAppAvailability } from "./pwa/useAppAvailability";
 import { load, save } from "./persistence/store";
 import { totalForDate } from "./analytics/totals";
 import type { Exercise } from "./exercises/exercise";
@@ -101,7 +109,9 @@ function App() {
   const configuration = practiceSetups[kind].configuration;
   const [, refresh] = useState(0);
   const [offline, setOffline] = useState(!navigator.onLine);
-  const [update, setUpdate] = useState<ServiceWorker | null>(null);
+  const { update, offlineAvailability, downloadOffline } = useAppAvailability(
+    import.meta.env.PROD,
+  );
   const [feedback, setFeedback] = useState<MessageKey | "">("");
   const [touchCue, setTouchCue] = useState<{
     value: TouchCue;
@@ -150,6 +160,9 @@ function App() {
   const timer = useRef<ActiveTimer | null>(null);
   const exercise = useRef<Exercise | null>(null);
   const touchPointer = useRef<number | null>(null);
+  const keyboardPress = useRef<"tap" | "follow" | null>(null);
+  const keyboardPosition = useRef<Point | null>(null);
+  const [keyboardCursor, setKeyboardCursor] = useState<Point | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const trialStart = useRef(0);
   const lastSave = useRef(0);
@@ -189,6 +202,12 @@ function App() {
         if (requestedLanguage) value.preferences.language = requestedLanguage;
         setData(value);
         state.current = value;
+        const remembered = parsePracticePreferences(value.practice);
+        if (remembered) {
+          setKind(remembered.kind);
+          setEye(remembered.eye);
+          setPracticeSetups(remembered.setups);
+        }
         if (requestedLanguage)
           void save(value).catch(() => setError("error.save"));
         if (
@@ -206,26 +225,13 @@ function App() {
     const network = () => setOffline(!navigator.onLine);
     window.addEventListener("online", network);
     window.addEventListener("offline", network);
-    if ("serviceWorker" in navigator && import.meta.env.PROD)
-      void navigator.serviceWorker.register("./sw.js").then((registration) => {
-        if (registration.waiting) setUpdate(registration.waiting);
-        registration.addEventListener("updatefound", () => {
-          const worker = registration.installing;
-          worker?.addEventListener("statechange", () => {
-            if (
-              worker.state === "installed" &&
-              navigator.serviceWorker.controller
-            )
-              setUpdate(worker);
-          });
-        });
-      });
     return () => {
       window.removeEventListener("online", network);
       window.removeEventListener("offline", network);
     };
   }, []);
   const releaseTouch = () => {
+    keyboardPress.current = null;
     const pointer = touchPointer.current;
     touchPointer.current = null;
     if (exercise.current instanceof TouchExercise) {
@@ -260,6 +266,17 @@ function App() {
     };
   }, []);
   const current = data.current;
+  useEffect(() => {
+    if (!ready) return;
+    const frame = requestAnimationFrame(() => {
+      const heading =
+        document.querySelector<HTMLElement>("main .session-recap h2") ??
+        document.querySelector<HTMLElement>("main h1") ??
+        document.querySelector<HTMLElement>("main h2");
+      heading?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ready, current?.id, Boolean(data.breakState)]);
   const score = useMemo(
     () => responseScore(current?.trials ?? []),
     [current?.id, current?.trials.length],
@@ -359,6 +376,8 @@ function App() {
         if (element && exercise.current) {
           const bounds = element.getBoundingClientRect();
           const ratio = Math.min(window.devicePixelRatio || 1, 3);
+          const firstPresentation = !session.viewport;
+          recordViewport(session, bounds.width, bounds.height, ratio);
           if (exercise.current instanceof TouchExercise) {
             const resized = exercise.current.setViewport(
               bounds.width,
@@ -391,6 +410,7 @@ function App() {
             element.width = Math.round(bounds.width * ratio);
             element.height = Math.round(bounds.height * ratio);
           }
+          if (firstPresentation) session.initialDifficulty = session.difficulty;
           const context = element.getContext("2d");
           if (context) {
             context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -488,19 +508,26 @@ function App() {
     selected = kind,
     duration = practiceSetups[selected].configuration.duration,
     selectedEye = eye,
+    recordedConfiguration?: Configuration,
+    recordedMode?: PracticeMode,
   ) => {
     if (!ready || document.hidden || state.current.current) return;
-    const selectedConfiguration = practiceSetups[selected].configuration;
-    const settings = validate({
-      ...selectedConfiguration,
-      duration,
-      speed: data.preferences.reducedMotion
-        ? Math.min(selectedConfiguration.speed, 0.08)
-        : selectedConfiguration.speed,
-      ...(selected === "follow"
-        ? { gentleMotion: data.preferences.reducedMotion }
-        : {}),
-    });
+    const selectedConfiguration =
+      recordedConfiguration ?? practiceSetups[selected].configuration;
+    const settings = validate(
+      recordedConfiguration
+        ? { ...recordedConfiguration, duration }
+        : {
+            ...selectedConfiguration,
+            duration,
+            speed: data.preferences.reducedMotion
+              ? Math.min(selectedConfiguration.speed, 0.08)
+              : selectedConfiguration.speed,
+            ...(selected === "follow"
+              ? { gentleMotion: data.preferences.reducedMotion }
+              : {}),
+          },
+    );
     const session: Session = {
       id: crypto.randomUUID(),
       kind: selected,
@@ -512,8 +539,15 @@ function App() {
       slices: [],
       trials: [],
       difficulty: state.current.levels[selected],
+      initialDifficulty: state.current.levels[selected],
+      protocol: exerciseProtocol(selected),
+      setupMode: recordedConfiguration
+        ? (recordedMode ?? "Custom")
+        : practiceSetups[selected].mode,
       ...(selected === "follow" ? { awaitingTouch: true } : {}),
     };
+    keyboardPosition.current = null;
+    setKeyboardCursor(null);
     restoreTouchProfile(session, state.current.touchProfiles);
     timer.current = new ActiveTimer(session);
     if (selected !== "follow") timer.current.resume();
@@ -607,6 +641,11 @@ function App() {
     const bounds = event.currentTarget.getBoundingClientRect();
     renderer.setViewport(bounds.width, bounds.height);
     if (!renderer.pointerDown(touchPoint(event))) return;
+    session.inputMethod =
+      session.inputMethod && session.inputMethod !== "pointer"
+        ? "mixed"
+        : "pointer";
+    setKeyboardCursor(null);
     if (state.current.preferences.answerSound) unlockPracticeAudio();
     event.preventDefault();
     touchPointer.current = event.pointerId;
@@ -684,17 +723,138 @@ function App() {
       persist(state.current);
     }
   };
+  const keyboardDown = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const session = state.current.current;
+    const renderer = exercise.current;
+    if (
+      !session ||
+      !(renderer instanceof TouchExercise) ||
+      document.hidden ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      touchPointer.current !== null
+    )
+      return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      pause();
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    renderer.setViewport(bounds.width, bounds.height);
+    const point =
+      keyboardPosition.current ??
+      (session.kind === "follow"
+        ? renderer.handlePoint()
+        : { x: bounds.width / 2, y: bounds.height / 2 });
+    const moves: Record<string, Point> = {
+      ArrowLeft: { x: -1, y: 0 },
+      ArrowRight: { x: 1, y: 0 },
+      ArrowUp: { x: 0, y: -1 },
+      ArrowDown: { x: 0, y: 1 },
+    };
+    const direction = moves[event.key];
+    if (direction) {
+      event.preventDefault();
+      const step = event.shiftKey ? 24 : 8;
+      const next = {
+        x: Math.max(0, Math.min(bounds.width, point.x + direction.x * step)),
+        y: Math.max(0, Math.min(bounds.height, point.y + direction.y * step)),
+      };
+      timer.current?.checkpoint();
+      if (keyboardPress.current === "follow") renderer.pointerMove(next);
+      keyboardPosition.current = next;
+      if (session.kind === "tap") setKeyboardCursor(next);
+      return;
+    }
+    if (
+      event.repeat ||
+      keyboardPress.current ||
+      !(
+        (session.kind === "tap" && event.key === "Enter") ||
+        (session.kind === "follow" && event.key === " ")
+      )
+    )
+      return;
+    event.preventDefault();
+    if (
+      session.status !== "running" &&
+      !(session.kind === "follow" && session.awaitingTouch)
+    )
+      return;
+    const press = session.kind === "follow" ? renderer.handlePoint() : point;
+    if (!renderer.pointerDown(press)) return;
+    keyboardPosition.current = press;
+    keyboardPress.current = session.kind === "follow" ? "follow" : "tap";
+    session.inputMethod =
+      session.inputMethod && session.inputMethod !== "keyboard"
+        ? "mixed"
+        : "keyboard";
+    if (session.kind === "follow") {
+      session.awaitingTouch = false;
+      timer.current?.resume();
+    } else setKeyboardCursor(press);
+    persist(state.current);
+  };
+  const keyboardUp = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const session = state.current.current;
+    const renderer = exercise.current;
+    if (
+      !session ||
+      !(renderer instanceof TouchExercise) ||
+      document.hidden ||
+      !keyboardPress.current ||
+      !keyboardPosition.current
+    )
+      return;
+    if (
+      (keyboardPress.current === "tap" && event.key !== "Enter") ||
+      (keyboardPress.current === "follow" && event.key !== " ")
+    )
+      return;
+    event.preventDefault();
+    timer.current?.checkpoint();
+    if (session.activeMilliseconds >= session.configuration.duration * 1000) {
+      finish();
+      return;
+    }
+    const result = renderer.pointerUp(keyboardPosition.current);
+    keyboardPress.current = null;
+    const playedCue = consumeTouchCues();
+    if (session.kind === "follow") pause(false, true);
+    else {
+      if (result) {
+        setAnswerResult({
+          choice: -1,
+          correct: result.correct,
+          sequence: session.trials.length,
+          currentRun: result.currentRun,
+          enlarged: false,
+          highlight: true,
+          retry: true,
+        });
+        if (result.correct && !playedCue)
+          playAnswerConfirmation({
+            sound: state.current.preferences.answerSound,
+            haptics: state.current.preferences.haptics,
+          });
+      }
+      persist(state.current);
+    }
+  };
   const navigate = (page: Page) => {
     setTab(page);
     setFeedback("");
     window.scrollTo({ top: 0, behavior: "instant" });
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>("main h1")
+        ?.focus({ preventScroll: true }),
+    );
   };
   const minutes = totalForDate(data) / 60000;
   const lastSession = data.sessions.at(-1);
-  const lastScore =
-    data.breakState && lastSession && isResponseExercise(lastSession.kind)
-      ? responseScore(lastSession.trials)
-      : null;
   const touchSummary =
     current?.kind === "follow" ? summarizeTouch([current]) : null;
   const bestTouchLevel = useMemo(
@@ -717,20 +877,35 @@ function App() {
       current?.difficulty,
     ],
   );
-  const lastTouchSummary =
-    data.breakState && lastSession?.kind === "follow"
-      ? summarizeTouch([lastSession])
-      : null;
   const setting = (
     key: keyof Configuration,
     value: string | number | boolean,
   ) =>
-    setPracticeSetups((previous) =>
-      updatePracticeSetting(previous, kind, key, value),
+    rememberPractice(
+      kind,
+      eye,
+      updatePracticeSetting(practiceSetups, kind, key, value),
     );
+  const rememberPractice = (
+    selected: ExerciseKind,
+    selectedEye: Eye,
+    setups: PracticeSetups,
+  ) => {
+    setKind(selected);
+    setEye(selectedEye);
+    setPracticeSetups(setups);
+    persist({
+      ...state.current,
+      practice: { kind: selected, eye: selectedEye, setups },
+    });
+  };
   const exportData = () => {
+    const exported = {
+      ...state.current,
+      lastExportedAt: new Date().toISOString(),
+    };
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify(state.current, null, 2)], {
+      new Blob([JSON.stringify(exported, null, 2)], {
         type: "application/json",
       }),
     );
@@ -738,6 +913,7 @@ function App() {
     link.href = url;
     link.download = `mangekyo-${localDate(new Date())}.json`;
     link.click();
+    persist(exported);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
@@ -745,10 +921,23 @@ function App() {
       <div
         className={`app ${data.preferences.highContrast ? "high-contrast" : ""} ${current ? "training-app" : ""}`}
       >
+        <a className="skip-link" href="#main-content">
+          {t("accessibility.skip")}
+        </a>
         {!current && (
           <header>
-            <a className="brand" href="#" onClick={() => navigate("Practice")}>
-              <span className="brand-mark">✳</span> mangekyo
+            <a
+              className="brand"
+              href="#"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate("Practice");
+              }}
+            >
+              <span className="brand-mark" aria-hidden="true">
+                ✳
+              </span>{" "}
+              mangekyo
               <span className="brand-caption">{t("brand.caption")}</span>
             </a>
             {ready && !data.breakState && (
@@ -790,7 +979,12 @@ function App() {
           </div>
         )}
         {!ready && !error ? (
-          <main className="loading-state" role="status">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="loading-state"
+            role="status"
+          >
             <span className="brand-mark" aria-hidden="true">
               ✳
             </span>
@@ -798,6 +992,8 @@ function App() {
           </main>
         ) : current ? (
           <main
+            id="main-content"
+            tabIndex={-1}
             className={`training ${current.kind === "visual" || current.kind === "contrast" ? "has-answers" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
           >
             <div className="training-top">
@@ -810,7 +1006,7 @@ function App() {
                     ? t("touch.ready")
                     : statusLabel(current.status)}
                 </span>
-                <h2>{exerciseName(current.kind)}</h2>
+                <h2 tabIndex={-1}>{exerciseName(current.kind)}</h2>
               </div>
               <span className="countdown">
                 {formatTime(
@@ -851,6 +1047,14 @@ function App() {
             <div className="canvas-wrap">
               <canvas
                 ref={canvas}
+                tabIndex={isTouchExercise(current.kind) ? 0 : undefined}
+                role={isTouchExercise(current.kind) ? "group" : "img"}
+                onKeyDown={keyboardDown}
+                onKeyUp={keyboardUp}
+                onBlur={() => {
+                  if (keyboardPress.current)
+                    pause(false, current.kind === "follow");
+                }}
                 onContextMenu={(event) => {
                   if (isTouchExercise(current.kind)) event.preventDefault();
                 }}
@@ -861,13 +1065,20 @@ function App() {
                 onLostPointerCapture={touchCancel}
                 aria-describedby={
                   isTouchExercise(current.kind)
-                    ? "touch-instructions"
+                    ? "touch-instructions keyboard-instructions"
                     : undefined
                 }
                 aria-label={t("session.stimulus", {
                   exercise: exerciseName(current.kind),
                 })}
               />
+              {current.kind === "tap" && keyboardCursor && (
+                <span
+                  className="keyboard-cursor"
+                  aria-hidden="true"
+                  style={{ left: keyboardCursor.x, top: keyboardCursor.y }}
+                />
+              )}
               {current.kind === "follow" &&
                 current.status === "paused" &&
                 current.awaitingTouch && (
@@ -930,6 +1141,11 @@ function App() {
                     ? "touch.tapInstruction"
                     : "touch.followInstruction",
                 )}
+              </p>
+            )}
+            {isTouchExercise(current.kind) && (
+              <p className="keyboard-instructions" id="keyboard-instructions">
+                {t(current.kind === "tap" ? "keyboard.tap" : "keyboard.follow")}
               </p>
             )}
             {(current.kind === "visual" || current.kind === "contrast") && (
@@ -1017,10 +1233,10 @@ function App() {
             <p className="fine">{t("session.safety")}</p>
           </main>
         ) : data.breakState ? (
-          <main className="rest">
+          <main id="main-content" tabIndex={-1} className="rest">
             <span className="eyebrow">{t("rest.eyebrow")}</span>
             <div className="rest-art">◌</div>
-            <h1>{t("rest.title")}</h1>
+            <h1 tabIndex={-1}>{t("rest.title")}</h1>
             <p>{t("rest.description")}</p>
             <div
               className={`rest-clock${data.breakState.manual ? " rest-clock-manual" : ""}`}
@@ -1038,33 +1254,7 @@ function App() {
                   })
                 : t("rest.saved")}
             </p>
-            {lastScore && (
-              <p className="rest-result">
-                {t("session.score", {
-                  points: number(lastScore.points),
-                  best: number(lastScore.bestRun),
-                })}
-              </p>
-            )}
-            {lastTouchSummary && (
-              <p className="rest-result">
-                {t("touch.liveResult", {
-                  accuracy:
-                    lastTouchSummary.onTargetRatio === null
-                      ? "—"
-                      : percent(lastTouchSummary.onTargetRatio),
-                  best: formatTime(lastTouchSummary.bestRunMilliseconds),
-                })}
-              </p>
-            )}
-            {lastSession?.challenge && (
-              <p className="rest-result">
-                {t("challenge.summary", {
-                  start: number(lastSession.challenge.startingLevel + 1),
-                  highest: number(lastSession.challenge.highestLevel + 1),
-                })}
-              </p>
-            )}
+            {lastSession && <SessionRecap session={lastSession} />}
             {data.run &&
               shouldRecommendLandscape(
                 data.run.routine.steps[data.run.index].kind,
@@ -1120,14 +1310,38 @@ function App() {
                 {t("rest.endRoutine")}
               </button>
             )}
+            {!data.run && lastSession && (
+              <button
+                type="button"
+                onClick={() => {
+                  const selected = lastSession.kind;
+                  rememberPractice(selected, lastSession.eye, {
+                    ...practiceSetups,
+                    [selected]: {
+                      mode: lastSession.setupMode ?? "Custom",
+                      configuration: structuredClone(lastSession.configuration),
+                    },
+                  });
+                  start(
+                    selected,
+                    lastSession.configuration.duration,
+                    lastSession.eye,
+                    lastSession.configuration,
+                    lastSession.setupMode,
+                  );
+                }}
+              >
+                {t("recap.repeat")}
+              </button>
+            )}
             <p className="fine">{t("rest.note")}</p>
           </main>
         ) : (
           <>
-            <main className="content">
+            <main id="main-content" tabIndex={-1} className="content">
               <div className="page-heading">
                 <span className="eyebrow">{t("page.eyebrow")}</span>
-                <h1>
+                <h1 tabIndex={-1}>
                   {tab === "Practice"
                     ? t("nav.Practice")
                     : tab === "Statistics"
@@ -1151,16 +1365,38 @@ function App() {
                   minutes={minutes}
                   goal={data.preferences.goal}
                   kind={kind}
-                  setKind={setKind}
+                  setKind={(selected) =>
+                    rememberPractice(selected, eye, practiceSetups)
+                  }
                   eye={eye}
-                  setEye={setEye}
+                  setEye={(selectedEye) =>
+                    rememberPractice(kind, selectedEye, practiceSetups)
+                  }
                   configuration={configuration}
                   setting={setting}
                   mode={practiceSetups[kind].mode}
                   selectMode={(mode) =>
-                    setPracticeSetups((previous) =>
-                      selectPracticeMode(previous, kind, mode),
+                    rememberPractice(
+                      kind,
+                      eye,
+                      selectPracticeMode(practiceSetups, kind, mode),
                     )
+                  }
+                  reducedMotion={data.preferences.reducedMotion}
+                  resetSetup={() =>
+                    rememberPractice(kind, eye, {
+                      ...practiceSetups,
+                      [kind]: {
+                        mode: "Default",
+                        configuration: practiceDefaults(kind),
+                      },
+                    })
+                  }
+                  restoreSetup={(setup) =>
+                    rememberPractice(kind, eye, {
+                      ...practiceSetups,
+                      [kind]: setup,
+                    })
                   }
                   ready={ready}
                   start={() => start()}
@@ -1186,7 +1422,9 @@ function App() {
                 <Routines
                   data={data}
                   eye={eye}
-                  setEye={setEye}
+                  setEye={(selectedEye) =>
+                    rememberPractice(kind, selectedEye, practiceSetups)
+                  }
                   routine={routine}
                   setRoutine={setRoutine}
                   persist={persist}
@@ -1298,37 +1536,37 @@ function App() {
                       <p className="fine">{t("settings.hapticsNote")}</p>
                     </div>
                   </section>
-                  <section className="panel data-settings">
-                    <h2>{t("settings.data")}</h2>
-                    <p>{t("settings.install")}</p>
-                    <p>{t("settings.storageNote")}</p>
-                    <button onClick={exportData}>{t("settings.export")}</button>
-                    <label>
-                      {t("settings.import")}
-                      <input
-                        type="file"
-                        accept="application/json"
-                        onChange={(event) => {
-                          const input = event.currentTarget;
-                          const file = input.files?.[0];
-                          if (!file) return;
-                          void file
-                            .text()
-                            .then((text) => {
-                              persist(
-                                mergeBackup(state.current, JSON.parse(text)),
-                              );
-                              setFeedback("feedback.imported");
-                            })
-                            .catch(() => setError("error.backup"))
-                            .finally(() => {
-                              input.value = "";
-                            });
-                        }}
-                      />
-                    </label>
-                    <p role="status">{feedback ? t(feedback) : ""}</p>
-                  </section>
+                  <DataSettings
+                    data={data}
+                    onExport={exportData}
+                    offlineAvailability={offlineAvailability}
+                    onDownloadOffline={downloadOffline}
+                    onImport={async (input, restorePreferences) => {
+                      const next = mergeBackup(state.current, input, {
+                        restorePreferences,
+                      });
+                      await save(next);
+                      if (
+                        restorePreferences &&
+                        next.preferences.language !==
+                          state.current.preferences.language
+                      ) {
+                        const url = new URL(location.href);
+                        url.searchParams.delete("lang");
+                        history.replaceState(null, "", url);
+                      }
+                      state.current = next;
+                      setData({ ...next });
+                      const remembered = parsePracticePreferences(
+                        next.practice,
+                      );
+                      if (remembered) {
+                        setKind(remembered.kind);
+                        setEye(remembered.eye);
+                        setPracticeSetups(remembered.setups);
+                      }
+                    }}
+                  />
                   <section className="panel limitation-settings">
                     <h2>{t("settings.limits")}</h2>
                     <p>{t("settings.limitsPerformance")}</p>

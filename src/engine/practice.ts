@@ -1,12 +1,16 @@
-import { defaults, type Configuration, type ExerciseKind } from "./model";
+import {
+  defaults,
+  exerciseKinds,
+  pursuitPatterns,
+  validate,
+  type Configuration,
+  type ExerciseKind,
+  type PracticePreferences,
+  type PracticeSetups,
+} from "./model";
 import { applyPursuitPreset } from "../exercises/pursuit";
-
-export type PracticeMode = "Default" | "Custom";
-export interface PracticeSetup {
-  mode: PracticeMode;
-  configuration: Configuration;
-}
-export type PracticeSetups = Record<ExerciseKind, PracticeSetup>;
+import type { PracticeMode } from "./model";
+export type { PracticeMode, PracticeSetup, PracticeSetups } from "./model";
 export function practiceDefaults(kind: ExerciseKind): Configuration {
   return {
     ...defaults,
@@ -61,4 +65,85 @@ export function updatePracticeSetting<Key extends keyof Configuration>(
       configuration: { ...setups[kind].configuration, [key]: value },
     },
   };
+}
+
+/** Saved choices are independent of recorded sessions and adaptive profiles. */
+export function parsePracticePreferences(
+  input: unknown,
+): PracticePreferences | null {
+  if (!input || typeof input !== "object") return null;
+  const value = input as Record<string, unknown>;
+  if (
+    !exerciseKinds.includes(value.kind as ExerciseKind) ||
+    !["Left", "Right", "Both"].includes(String(value.eye)) ||
+    !value.setups ||
+    typeof value.setups !== "object"
+  )
+    return null;
+  const setups = initialPracticeSetups();
+  for (const kind of exerciseKinds) {
+    const setup = (value.setups as Record<string, unknown>)[kind];
+    if (!setup || typeof setup !== "object") return null;
+    const entry = setup as Record<string, unknown>;
+    if (
+      !["Default", "Custom"].includes(String(entry.mode)) ||
+      !entry.configuration ||
+      typeof entry.configuration !== "object"
+    )
+      return null;
+    const settings = entry.configuration as Record<string, unknown>;
+    const numeric = [
+      "duration",
+      "size",
+      "speed",
+      "contrast",
+      "complexity",
+      "exposure",
+      "jumpPause",
+      "jumpDistance",
+      "distance",
+      "touchTolerance",
+      "tapPaceSeconds",
+    ] as const;
+    if (
+      numeric.some(
+        (key) =>
+          typeof settings[key] !== "number" || !Number.isFinite(settings[key]),
+      ) ||
+      !pursuitPatterns.includes(settings.pattern as Configuration["pattern"]) ||
+      (settings.pursuitPreset !== undefined &&
+        settings.pursuitPreset !== "Custom" &&
+        !pursuitPatterns.includes(
+          settings.pursuitPreset as Configuration["pattern"],
+        )) ||
+      !["Opening", "Orientation", "Shape"].includes(
+        String(settings.stimulus),
+      ) ||
+      !["Grating", "Shape"].includes(String(settings.contrastStimulus)) ||
+      !["Left", "Right"].includes(String(settings.hand)) ||
+      typeof settings.tapConfirm !== "boolean" ||
+      (settings.gentleMotion !== undefined &&
+        typeof settings.gentleMotion !== "boolean") ||
+      ![settings.foreground, settings.background].every(
+        (color) => typeof color === "string" && /^#[\da-f]{6}$/i.test(color),
+      )
+    )
+      return null;
+    const configuration = validate({
+      ...defaults,
+      ...settings,
+    } as Configuration);
+    if (numeric.some((key) => configuration[key] !== settings[key]))
+      return null;
+    setups[kind] = { mode: entry.mode as PracticeMode, configuration };
+  }
+  return {
+    kind: value.kind as ExerciseKind,
+    eye: value.eye as PracticePreferences["eye"],
+    setups,
+  };
+}
+
+export function defaultPracticePreferences(): PracticePreferences {
+  return { kind: "pursuit", eye: "Left", setups: initialPracticeSetups() };
 }

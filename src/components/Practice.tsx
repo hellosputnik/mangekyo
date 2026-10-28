@@ -7,7 +7,8 @@ import {
   type ExerciseKind,
   type Eye,
 } from "../engine/model";
-import type { PracticeMode } from "../engine/practice";
+import type { PracticeMode, PracticeSetup } from "../engine/practice";
+import { PracticeRehearsal } from "./PracticeRehearsal";
 import { useI18n } from "../i18n/react";
 import { EyeSelector } from "./controls/EyeSelector";
 import { DurationControl } from "./controls/DurationControl";
@@ -29,6 +30,9 @@ interface Props {
   selectMode: (mode: PracticeMode) => void;
   ready: boolean;
   start: () => void;
+  reducedMotion: boolean;
+  resetSetup: () => void;
+  restoreSetup: (setup: PracticeSetup) => void;
 }
 function AdvancedFields({
   kind,
@@ -225,10 +229,18 @@ export function Practice({
   selectMode,
   ready,
   start,
+  reducedMotion,
+  resetSetup,
+  restoreSetup,
 }: Props) {
   const { t, number, exerciseName, exerciseDescription } = useI18n();
   const [durationValid, setDurationValid] = useState(true);
   const [customOpen, setCustomOpen] = useState(false);
+  const [rehearsalOpen, setRehearsalOpen] = useState(false);
+  const [previousSetup, setPreviousSetup] = useState<PracticeSetup | null>(
+    null,
+  );
+  useEffect(() => setPreviousSetup(null), [kind]);
   const customDialog = useRef<HTMLDialogElement>(null);
   const customDialogId = useId();
   useEffect(() => {
@@ -321,6 +333,43 @@ export function Practice({
               onCustomize={() => setCustomOpen(true)}
               dialogId={customDialogId}
             />
+            <div className="setup-actions">
+              <button
+                type="button"
+                className="quiet"
+                onClick={() => setRehearsalOpen(true)}
+              >
+                {t("rehearsal.open")}
+              </button>
+              <button
+                type="button"
+                className="quiet"
+                title={t("practice.resetNote")}
+                onClick={() => {
+                  setPreviousSetup({
+                    mode,
+                    configuration: structuredClone(configuration),
+                  });
+                  resetSetup();
+                }}
+              >
+                {t("practice.reset")}
+              </button>
+            </div>
+            {previousSetup && (
+              <div className="inline-notice" role="status">
+                <span>{t("practice.resetDone")}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    restoreSetup(previousSetup);
+                    setPreviousSetup(null);
+                  }}
+                >
+                  {t("common.undo")}
+                </button>
+              </div>
+            )}
           </section>
         </div>
         <section className="setup" aria-labelledby="setup-title">
@@ -362,6 +411,13 @@ export function Practice({
           </button>
         </section>
       </div>
+      <PracticeRehearsal
+        open={rehearsalOpen}
+        onClose={() => setRehearsalOpen(false)}
+        kind={kind}
+        configuration={configuration}
+        gentleMotion={reducedMotion}
+      />
       <dialog
         ref={customDialog}
         id={customDialogId}

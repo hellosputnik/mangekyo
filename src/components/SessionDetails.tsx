@@ -161,6 +161,31 @@ export function SessionDetails({
           <dt>{t("sessionDetails.status")}</dt>
           <dd>{statusLabel(session.status)}</dd>
         </div>
+        {session.initialDifficulty !== undefined && (
+          <div>
+            <dt>{t("challenge.startLevel")}</dt>
+            <dd>{number(session.initialDifficulty + 1)}</dd>
+          </div>
+        )}
+        {session.viewport && (
+          <div>
+            <dt>{t("filters.screen")}</dt>
+            <dd>
+              {number(session.viewport.width, 0)} ×{" "}
+              {number(session.viewport.height, 0)} ·{" "}
+              {number(session.viewport.pixelRatio, 1)}×
+              {session.viewport.changed && (
+                <small>{t("filters.changedScreen")}</small>
+              )}
+            </dd>
+          </div>
+        )}
+        {session.inputMethod && (
+          <div>
+            <dt>{t("keyboard.method")}</dt>
+            <dd>{t(`keyboard.${session.inputMethod}`)}</dd>
+          </div>
+        )}
       </dl>
       <p className="session-time-note">
         {start?.recorded

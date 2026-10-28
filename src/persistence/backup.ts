@@ -10,6 +10,7 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { parsePracticePreferences } from "../engine/practice";
 import { balanceRules, type AdaptiveBalance } from "../adaptive/balance";
 import {
   maximumTouchLevel,
@@ -101,6 +102,29 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   const settings = value.configuration;
+  if (
+    value.inputMethod !== undefined &&
+    !["pointer", "keyboard", "mixed"].includes(String(value.inputMethod))
+  )
+    return false;
+  if (
+    value.setupMode !== undefined &&
+    !["Default", "Custom"].includes(String(value.setupMode))
+  )
+    return false;
+  if (
+    (value.initialDifficulty !== undefined &&
+      !finite(value.initialDifficulty, 0, difficultyLimit(value.kind))) ||
+    (value.protocol !== undefined &&
+      (typeof value.protocol !== "string" || value.protocol.length > 100)) ||
+    (value.viewport !== undefined &&
+      (!record(value.viewport) ||
+        !finite(value.viewport.width, 1, 100000) ||
+        !finite(value.viewport.height, 1, 100000) ||
+        !finite(value.viewport.pixelRatio, 1, 3) ||
+        typeof value.viewport.changed !== "boolean"))
+  )
+    return false;
   if (
     (settings.tapPaceSeconds !== undefined &&
       !finite(settings.tapPaceSeconds, 1, 10)) ||
@@ -302,13 +326,29 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
         )))
   );
 }
-export function mergeBackup(current: Data, input: unknown): Data {
+export function mergeBackup(
+  current: Data,
+  input: unknown,
+  options: { restorePreferences?: boolean } = {},
+): Data {
   if (
     !record(input) ||
     !Array.isArray(input.sessions) ||
     !input.sessions.every(validSession)
   )
     throw Error("Invalid sessions");
+  const practice =
+    record(input) && input.practice !== undefined
+      ? parsePracticePreferences(input.practice)
+      : null;
+  if (input.practice !== undefined && !practice)
+    throw Error("Invalid practice settings");
+  if (
+    input.lastExportedAt !== undefined &&
+    (typeof input.lastExportedAt !== "string" ||
+      !Number.isFinite(Date.parse(input.lastExportedAt)))
+  )
+    throw Error("Invalid export date");
   const sessions: Session[] = [...input.sessions];
   const importedTouchLevels = { tap: 0, follow: 0 };
   if (input.levels !== undefined) {
@@ -443,7 +483,14 @@ export function mergeBackup(current: Data, input: unknown): Data {
       ).values(),
     ].slice(-100),
     ...(!current.statisticsReset && statisticsReset ? { statisticsReset } : {}),
-    preferences: input.preferences ? preferences : current.preferences,
+    preferences:
+      options.restorePreferences !== false && input.preferences
+        ? preferences
+        : current.preferences,
+    practice:
+      options.restorePreferences !== false && practice
+        ? practice
+        : current.practice,
     sessions: merge(
       sessions
         .filter((session) => session.id !== current.current?.id)
@@ -456,5 +503,38 @@ export function mergeBackup(current: Data, input: unknown): Data {
     ),
     routines: merge(routines as Routine[], current.routines),
     measurements: merge(measurements as Measurement[], current.measurements),
+  };
+}
+
+export function previewBackup(current: Data, input: unknown) {
+  const merged = mergeBackup(current, input);
+  const added = <Item extends { id: string }>(
+    before: Item[],
+    after: Item[],
+  ) => {
+    const existing = new Set(before.map((item) => item.id));
+    return after.filter((item) => !existing.has(item.id)).length;
+  };
+  const preferenceChanges = (
+    Object.keys(current.preferences) as (keyof Data["preferences"])[]
+  ).filter((key) => current.preferences[key] !== merged.preferences[key]);
+  return {
+    sessions: added(current.sessions, merged.sessions),
+    routines: added(current.routines, merged.routines),
+    measurements: added(current.measurements, merged.measurements),
+    preferenceChanges,
+    practiceChanged:
+      JSON.stringify(current.practice) !== JSON.stringify(merged.practice),
+    hasUndo: Boolean(!current.statisticsReset && merged.statisticsReset),
+    adaptiveProfiles: (merged.touchProfiles ?? []).filter(
+      (profile) =>
+        !(current.touchProfiles ?? []).some(
+          (existing) => existing.key === profile.key,
+        ),
+    ).length,
+    levelChanges: (["tap", "follow"] as const).filter(
+      (kind) => merged.levels[kind] !== current.levels[kind],
+    ),
+    merged,
   };
 }

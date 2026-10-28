@@ -1,6 +1,7 @@
 import { initialData, validate, type Data } from "../engine/model";
 import { normalizeLanguagePreference } from "../i18n/locale";
 import { resetTouchRun } from "../exercises/touch-challenge";
+import { parsePracticePreferences } from "../engine/practice";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("mangekyo", 1);
@@ -21,6 +22,13 @@ export async function load(): Promise<Data> {
         language: normalizeLanguagePreference(data.preferences?.language),
       };
       data.levels = { ...initialData().levels, ...data.levels };
+      data.practice = parsePracticePreferences(data.practice) ?? undefined;
+      if (
+        data.lastExportedAt !== undefined &&
+        (typeof data.lastExportedAt !== "string" ||
+          !Number.isFinite(Date.parse(data.lastExportedAt)))
+      )
+        delete data.lastExportedAt;
       for (const session of [
         ...data.sessions,
         ...(data.current ? [data.current] : []),
@@ -46,8 +54,7 @@ export async function load(): Promise<Data> {
     transaction.oncomplete = () => database.close();
   });
 }
-export async function save(data: Data): Promise<void> {
-  const snapshot = structuredClone(data);
+async function writeSnapshot(snapshot: Data): Promise<void> {
   const database = await open();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction("state", "readwrite");
@@ -61,4 +68,11 @@ export async function save(data: Data): Promise<void> {
       reject(transaction.error);
     };
   });
+}
+let pendingSave: Promise<void> = Promise.resolve();
+export function save(data: Data): Promise<void> {
+  const snapshot = structuredClone(data);
+  // Preserve transition order even when a slider and a timer checkpoint save together.
+  pendingSave = pendingSave.catch(() => {}).then(() => writeSnapshot(snapshot));
+  return pendingSave;
 }

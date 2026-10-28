@@ -37,7 +37,7 @@ For other static hosts, upload all of `dist/`, including `sw.js`, the manifest, 
 
 1. Open the HTTPS URL in Safari while online and allow the first load to finish.
 2. Share → Add to Home Screen → Add.
-3. Open the Home Screen app, then test offline launch before relying on it.
+3. Open the Home Screen app. In Settings, wait for **Offline files → Download complete**, then test offline launch before relying on it. If the cache is incomplete, **Download offline files** retries the download while online.
 4. An available app update appears as a button outside exercise mode. Finish or save the session before updating.
 
 `localhost` is usable on the development computer. A LAN HTTP address is **not** sufficient for iPhone PWA installation/offline functionality; use HTTPS hosting.
@@ -56,7 +56,8 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 
 - Responsive practice dashboard, six Canvas exercises, dark training stage, safe-area padding, visual eye selection, glass-style navigation, touch controls, and portrait/landscape layouts. The glass treatment has opaque and reduced-motion accessibility fallbacks.
 - Phone portrait setup recommends landscape for pursuit and saccadic practice to provide more horizontal room. Portrait remains available; vertical-only pursuit and discrimination tasks do not show the hint. Rotating keeps session state and never starts an exercise automatically.
-- Every exercise has visible **Default / Custom** controls in the same place. Custom opens the shared settings sheet with that exercise's relevant controls. Each exercise keeps its own draft settings and duration while switching within the open app; Default restores stimulus settings while retaining duration and viewing distance. Sessions, including routine steps, record the selected exercise's configuration.
+- Every exercise has visible **Default / Custom** controls in the same place. Custom opens the shared settings sheet with that exercise's relevant controls. The last exercise, eye, duration and all six setups survive reloads. Default restores stimulus settings while retaining duration and viewing distance; **Reset setup** restores that exercise's full defaults, with Undo and no change to history or adaptive progress. Sessions, including routine steps, record the selected exercise's configuration.
+- **Try it** offers an easy, repeatable example of every exercise. Its timer, answers and gestures stay separate from saved training time, scores and difficulty. Closing it does not start a real session.
 - Pursuit: a compact choice between **Default** and **Custom**, matching the other exercises. Default gives horizontal, vertical, circular, figure-eight, and smooth wandering paths an equal share of active time within the five-minute session. Custom opens a modal settings sheet for path selection, size, speed, contrast, complexity, colors, and viewing distance. Duration is always adjustable. Pausing/recovery preserves the mix position.
 - Saccades: reproducible pseudo-random jumps; custom target size, contrast, exposure, pause, jump distance, colors, and optional acknowledgement. No gaze measurement.
 - Tap targets: generous target halos, release-to-confirm touch/mouse input, points and correct runs, hit-rate adaptation, saved target position, and per-trial touch distance/tolerance. Misses retain the target. Hit areas never shrink below 44 CSS pixels; drags and cancelled presses do not count as answers.
@@ -65,11 +66,12 @@ Translation catalogs are in `src/i18n/en.ts` and `src/i18n/vi.ts`; `locale.ts` h
 - Response exercises show a correct-answer checkmark, +1 point, best correct run, and a small milestone every five consecutive correct answers. Incorrect answers retain earned points. Feedback never blocks the next answer. Scores recover with saved trials and appear on the rest screen and in session details. Practice sound and short haptic pulses default on with independent controls; saved choices remain respected. Rest-end notifications have their own preference.
 - 30-minute default personal daily goal, 5-minute default sessions, 1-minute default rests; duration sliders with exact minutes-and-seconds entry. These are scheduling preferences, not treatment doses.
 - Monotonic active timer; neutral Pause and one End session action with automatic saving. Resume is emphasized while paused. Routine sessions offer Skip exercise. Reaching the configured duration marks completion; ending sooner keeps valid time and records Stopped early. Background interruption still requires explicit reload recovery.
+- A consistent recap shows the exercise, eye, active/planned time and relevant results after completed or partial sessions. Standalone practice offers **Repeat**, which explicitly starts a fresh session with the recorded eye and base settings; adaptive progression remains independent.
 - Saved routines with repeated/reordered steps, individual durations, per-routine rests, manual rests, extension, skipping, and early ending.
 - Statistics: day/week/month activity browsing, date selection, interactive chart filtering, timed session lists, and detailed session sheets. Lifetime active time, sessions, practice days, average session duration, exercise report cards, weighted answer accuracy, median response time, recent results, and totals by eye remain available below. Session details retain exercise-specific configurations; professional measurements stay separate.
 - Confirmed statistics reset, optional clearing of professional measurements or exercise difficulty, and a persistent Undo copy that preserves practice added afterward.
-- JSON export and validated merge import. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. Schedule preferences are restored; in-progress routines are recovered locally, not resumed from imports.
-- Offline app-shell caching, update prompt, optional wake lock, optional rest-end sound/vibration, and high-contrast/gentler-motion controls.
+- JSON export and validated merge import with a review before saving: added records, adaptive profiles, Undo archives and preference changes. Users can keep current preferences and setups. Existing record IDs win on conflicts. Imported active sessions become interrupted historical records; they do not start automatically. In-progress routines are recovered locally, not resumed from imports. Imports are limited to 20 MB.
+- Offline app-shell caching with verified file completeness and a repair download, update prompt, optional wake lock, optional rest-end sound/vibration, and high-contrast/gentler-motion controls. Settings records when the last export was created, with an explicit reminder to check the file actually saved.
 
 ## Timing and persistence contract
 
@@ -85,6 +87,7 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 
 - `src/engine/model.ts`: typed configuration, records, validation, defaults.
 - `src/engine/practice.ts`: independent exercise drafts and Default/Custom selection, separate from scheduling and adaptive levels.
+- `src/engine/rehearsal.ts`: isolated, unscored examples using the real exercise engine.
 - `src/engine/timer.ts`: React-independent active timing and bounded adaptive progression.
 - `src/engine/routines.ts`: routine and break transitions.
 - `src/engine/statistics-reset.ts`: scoped report reset and recovery without interrupting an active session.
@@ -94,6 +97,8 @@ Rest countdowns also pause when hidden and are persisted; they never auto-start 
 - `src/exercises/touch.ts` and `factory.ts`: shared lifecycle, touch geometry, pointer interaction and active-time sampling, independent of React and browser APIs. `src/analytics/touch.ts` weights following results by actual tracked time.
 - `src/persistence/`: IndexedDB snapshots and validated backup merging.
 - `src/analytics/`: deduplicated active-time aggregation, calendar periods, recorded time-zone formatting, lifetime reports, and response metrics.
+- `src/analytics/comparison.ts`: filters and comparable results under recorded exercise, eye, input, viewport, protocol and task settings. `recap.ts` supplies shared end-of-session summaries.
+- `src/pwa/`: service-worker update registration and message-based offline-file verification/repair.
 - `src/components/`: focused practice, statistics, record, navigation, and routine views; shared eye, duration, stepper, and switch controls in `controls/`.
 - `src/main.tsx`: application coordination, session lifecycle, and settings.
 
@@ -107,7 +112,9 @@ Open a session row for start/end date, recorded time zone and UTC offset, active
 
 The chart uses positive-time local calendar slices; duplicate session IDs count once and a current session takes precedence. Partial sessions retain valid time. Day view groups each day's credited time by the session's **start hour**, not exact minute-by-minute activity: saved slices do not contain individual interval timestamps. Time continuing from an earlier day's session is reported separately. Start/end clocks use the recorded IANA time zone (or saved UTC offset), while legacy records without either explicitly use the device time zone. Travel does not move saved daily credit to a different date. Charts scale to their data, independently of the daily goal.
 
-The lifetime report and balanced exercise cards remain below calendar activity.
+The lifetime report and balanced exercise cards remain below calendar activity. Filters above the calendar apply to activity, totals, eye summaries, cards and history. Select an exercise, eye and recorded-settings group to inspect matching practice. Export, Reset and professionally recorded measurements retain their global scope, stated beside the filters.
+
+Comparable bests require recorded, unchanged viewport geometry and the same base conditions, eye, exercise protocol and input method. Response bests compare at least five answers within a session at the latest actual presented difficulty/size; following compares complete ten-second windows at the latest adaptive load. Easier presentations are not pooled into the result. Legacy records remain in totals without inventing missing geometry. CSS pixels, self-reported distance and matching viewport metadata do not establish calibrated physical display conditions or clinical comparability.
 
 Exercise report cards aggregate their recorded eyes and settings. Response accuracy is correct answers divided by all answers for that exercise, rather than an average of session percentages. Median response time includes correct and incorrect answers. The six latest response sessions show their individual accuracy; their conditions can differ. Pursuit and saccades report time and sessions without assigning a gaze score. Exercise scores are training performance, separate from eyesight or clinical outcomes.
 
@@ -153,7 +160,7 @@ Further mode ideas and primary research, including **crowded symbols**, **fine a
 
 ## Validation and physical-device checklist
 
-Automated tests cover monotonic timing, pause/resume/background exclusion, duration caps, partial and abandoned sessions, recovery, local midnight boundaries, duplicate accounting, routine advancement, break transitions, invalid configuration, adaptive boundaries, exercise termination, IndexedDB round trips, snapshot isolation, and backup validation.
+Automated tests cover monotonic timing, pause/resume/background exclusion, duration caps, partial and abandoned sessions, recovery, local midnight boundaries, duplicate accounting, routine advancement, break transitions, invalid configuration, adaptive boundaries, exercise termination, IndexedDB round trips, ordered snapshot writes, remembered setups, isolated rehearsals, common recaps, matched presentation comparisons, backup previews, contrast ratios and offline-file verification/repair.
 
 Desktop browser checks cover start, pause, reload recovery, completion-to-rest transitions, update activation, and an offline reload plus response exercise with the production server stopped. The offline test caught and fixed static-asset cache misses caused by `Vary: Origin`; cached same-origin assets now ignore Vary during lookup. A physical iPhone is still required to verify:
 
@@ -162,6 +169,7 @@ Desktop browser checks cover start, pause, reload recovery, completion-to-rest t
 - Lock/unlock, incoming calls, app switching, low-power mode, force quit, storage eviction, and quota failure.
 - Wake lock, optional audio and vibration, and performance at 60/120Hz.
 - Daylight saving changes, travel across timezones, and manual clock changes on a device.
+- VoiceOver reading/focus order, native text resizing and software-keyboard behavior. See the [accessibility review](docs/accessibility-review.md) and [Vietnamese iPhone walkthrough](docs/iphone-walkthrough.vi.md). These are verification guides, not a claim of WCAG conformance or observed intended-user results.
 
 ## Limitations and safety
 
@@ -169,7 +177,7 @@ Not clinically validated. No claim of curing amblyopia, improving acuity, or mea
 
 Browser storage can be cleared or evicted. Export backups regularly. Do not train simultaneously in multiple tabs: the initial version uses a single local state snapshot and does not arbitrate concurrent writers. No native apps, accounts, cloud synchronization, gaze tracking, or clinical testing have been implemented.
 
-Unstarted exercise settings are drafts in memory and reset on reload. A started session stores its complete configuration in IndexedDB for recovery and history; changing a draft never rewrites recorded sessions.
+Setup choices are saved locally and included in exports; changing them never rewrites recorded sessions. A started session stores its own complete configuration for recovery and history. Rehearsals are deliberately unsaved. Export timestamps record creation, not a verified file-system write. Offline readiness is checked against the current worker's complete asset list; it cannot prevent future browser storage eviction.
 
 ## Design skill
 

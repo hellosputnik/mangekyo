@@ -221,3 +221,27 @@ it("recovers earned levels and motion phase without carrying an unfinished level
     },
   });
 });
+it("preserves the last exercise, eye, custom setups and export time through reload", async () => {
+  const { defaultPracticePreferences } = await import("../engine/practice");
+  const data = initialData();
+  data.practice = defaultPracticePreferences();
+  data.practice.kind = "contrast";
+  data.practice.eye = "Both";
+  data.practice.setups.contrast.mode = "Custom";
+  data.practice.setups.contrast.configuration.contrast = 0.42;
+  data.lastExportedAt = "2026-10-27T10:00:00Z";
+  await save(data);
+  const restored = await load();
+  expect(restored.practice).toEqual(data.practice);
+  expect(restored.lastExportedAt).toBe(data.lastExportedAt);
+});
+it("serializes rapid preference saves so older writes cannot replace the newest choices", async () => {
+  const first = initialData();
+  const second = initialData();
+  const third = initialData();
+  first.preferences.goal = 10;
+  second.preferences.goal = 20;
+  third.preferences.goal = 45;
+  await Promise.all([save(first), save(second), save(third)]);
+  expect((await load()).preferences.goal).toBe(45);
+});
