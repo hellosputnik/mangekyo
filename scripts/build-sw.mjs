@@ -8,6 +8,10 @@ const files = [
   "./manifest.vi.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
+  "./brand-mark.svg",
+  "./icon.svg",
+  "./favicon-32.png",
+  "./apple-touch-icon.png",
   ...(await readdir("dist/assets")).sort().map((file) => "./assets/" + file),
 ];
 const hash = createHash("sha256").update(

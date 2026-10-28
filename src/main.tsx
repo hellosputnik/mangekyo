@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { BrandMark } from "./components/BrandMark";
 import {
   initialData,
   validate,
@@ -1020,9 +1021,7 @@ function App() {
                 navigate("Practice");
               }}
             >
-              <span className="brand-mark" aria-hidden="true">
-                ✳
-              </span>{" "}
+              <BrandMark />
               mangekyo
               <span className="brand-caption">{t("brand.caption")}</span>
             </a>
@@ -1071,9 +1070,7 @@ function App() {
             className="loading-state"
             role="status"
           >
-            <span className="brand-mark" aria-hidden="true">
-              ✳
-            </span>
+            <BrandMark />
             <p>{t("app.loading")}</p>
           </main>
         ) : current ? (

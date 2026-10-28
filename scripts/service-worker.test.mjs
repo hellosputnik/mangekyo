@@ -16,6 +16,10 @@ beforeAll(async () => {
     "manifest.vi.webmanifest",
     "icon-192.png",
     "icon-512.png",
+    "brand-mark.svg",
+    "icon.svg",
+    "favicon-32.png",
+    "apple-touch-icon.png",
     "assets/app.js",
   ]) {
     await writeFile(join(temporaryDirectory, "dist", file), file);
@@ -133,6 +137,12 @@ describe("GitHub Pages offline deployment", () => {
     await instance.install();
     expect(instance.cache.addAll.mock.calls[0][0]).toContain(
       scope + "assets/app.js",
+    );
+    expect(instance.cache.addAll.mock.calls[0][0]).toContain(
+      scope + "brand-mark.svg",
+    );
+    expect(instance.cache.addAll.mock.calls[0][0]).toContain(
+      scope + "apple-touch-icon.png",
     );
     const response = await instance.request(scope + "assets/app.js");
     expect(await response.text()).toBe(scope + "assets/app.js");

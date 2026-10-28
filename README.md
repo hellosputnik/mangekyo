@@ -14,7 +14,9 @@ npm run build
 npm run preview
 ```
 
-The production output is `dist/`. `npm run build` type-checks the application, builds fingerprinted assets, and generates an offline service worker from those exact assets. Development mode intentionally does not register the service worker. Icons are original procedural artwork; regenerate with `node scripts/icons.mjs`.
+The production output is `dist/`. `npm run build` regenerates icons, type-checks the application, builds fingerprinted assets, and generates an offline service worker from those exact assets. Development mode intentionally does not register the service worker.
+
+Branding uses an original coral eye with a practice ring and focus point. The header and loading mark are SVG images, avoiding platform-specific emoji rendering. `npm run icons` regenerates the drawing as SVG and opaque 32/180/192/512px PNGs. The 180px file supplies the Apple touch icon, and every branding asset is included in offline caching. The manifest identity and saved practice data are unchanged.
 
 ## GitHub Pages deployment
 

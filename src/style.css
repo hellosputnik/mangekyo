@@ -223,9 +223,10 @@ header {
   letter-spacing: -0.055em;
 }
 .brand-mark {
-  font-size: 2.4rem;
-  line-height: 1;
-  color: var(--accent);
+  display: block;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
 }
 .brand-caption {
   font-size: 0.6rem;
@@ -285,7 +286,8 @@ header {
   gap: 1rem;
 }
 .loading-state .brand-mark {
-  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
 }
 .loading-state p {
   font-size: 0.9rem;

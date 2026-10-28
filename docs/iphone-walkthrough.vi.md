@@ -65,3 +65,7 @@ Chọn Căn chỉnh trong tám bài tập. Tập thử cần có hai nút Trái/
 ## Tốc độ dõi mục tiêu
 
 Trong Dõi mục tiêu → Tùy chỉnh, bật Thay đổi tốc độ và thử Mức thay đổi tốc độ. Mục tiêu cần tăng/giảm tốc từ từ, không nhảy vị trí khi đổi tốc độ. Tạm dừng, tải lại rồi xác nhận Tiếp tục: vị trí và nhịp tập phải được giữ lại; thời gian rời ứng dụng không tính. Buổi tập mới dùng nhịp ngẫu nhiên mới. Chọn Mặc định để trở lại nhịp đều. Thử cả tùy chọn chuyển động nhẹ hơn trong Cài đặt; nhịp thay đổi vẫn phải tôn trọng giới hạn đó. Kiểm tra bản ghi có lưu nhịp và mức thay đổi. Thử riêng chữ lớn, xoay ngang và VoiceOver trên iPhone thật.
+
+## Biểu tượng ứng dụng
+
+Sau Cập nhật ứng dụng, kiểm tra đầu trang và màn hình tải dùng biểu tượng mắt màu đỏ san hô, không còn hình dấu sao xanh. Kiểm tra riêng biểu tượng trên Màn hình chính và khả năng hiển thị ngoại tuyến. Không cần xóa ứng dụng hay đặt lại dữ liệu để kiểm tra biểu tượng đầu trang.
