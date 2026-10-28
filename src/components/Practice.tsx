@@ -3,6 +3,7 @@ import {
   names,
   supportsCheckIn,
   isTouchExercise,
+  isAttentionExercise,
   pursuitPatterns,
   type Configuration,
   type ExerciseKind,
@@ -20,6 +21,7 @@ import { PracticePresets } from "./PracticePresets";
 import { ExerciseArtwork } from "./ExerciseArtwork";
 import { StimulusPreview } from "./StimulusPreview";
 import { SavedSetups } from "./SavedSetups";
+import { AttentionSettings } from "./AttentionSettings";
 import { LandscapeHint, shouldRecommendLandscape } from "./LandscapeHint";
 interface Props {
   minutes: number;
@@ -50,6 +52,13 @@ function AdvancedFields({
   return (
     <>
       <div className="settings-grid">
+        {isAttentionExercise(kind) && (
+          <AttentionSettings
+            kind={kind}
+            configuration={configuration}
+            setting={setting}
+          />
+        )}
         {kind === "alignment" && (
           <>
             {(
@@ -186,7 +195,11 @@ function AdvancedFields({
         )
           .filter(([key]) => {
             if (key === "speed" || key === "complexity")
-              return kind === "pursuit" || kind === "follow";
+              return (
+                kind === "pursuit" ||
+                kind === "follow" ||
+                (key === "speed" && (kind === "tracking" || kind === "search"))
+              );
             if (
               key === "exposure" ||
               key === "jumpPause" ||
@@ -402,6 +415,7 @@ export function Practice({
                   className={`exercise-card ${kind === item ? "selected" : ""}`}
                   key={item}
                   title={exerciseName(item)}
+                  aria-label={exerciseName(item)}
                   aria-pressed={kind === item}
                   onClick={() => setKind(item)}
                 >
@@ -485,6 +499,9 @@ export function Practice({
             onChange={(value) => setting("duration", value)}
             onValidationChange={setDurationValid}
           />
+          {(kind === "search" || kind === "memory") && mode === "Default" && (
+            <p className="control-caption">{t("attention.defaultNote")}</p>
+          )}
           {shouldRecommendLandscape(kind, configuration.pattern) && (
             <LandscapeHint />
           )}

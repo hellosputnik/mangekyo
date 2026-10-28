@@ -51,6 +51,10 @@ const exerciseKeys: Record<ExerciseKind, MessageKey> = {
   follow: "exercise.follow",
   crowding: "exercise.crowding",
   alignment: "exercise.alignment",
+  tracking: "exercise.tracking",
+  search: "exercise.search",
+  memory: "exercise.memory",
+  sequence: "exercise.sequence",
 };
 const descriptionKeys: Record<ExerciseKind, MessageKey> = {
   pursuit: "description.pursuit",
@@ -61,6 +65,10 @@ const descriptionKeys: Record<ExerciseKind, MessageKey> = {
   follow: "description.follow",
   crowding: "description.crowding",
   alignment: "description.alignment",
+  tracking: "description.tracking",
+  search: "description.search",
+  memory: "description.memory",
+  sequence: "description.sequence",
 };
 const eyeKeys: Record<Eye, MessageKey> = {
   Left: "eye.Left",

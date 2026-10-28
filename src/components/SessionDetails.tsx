@@ -2,6 +2,7 @@ import { useEffect, useId, useRef } from "react";
 import {
   isResponseExercise,
   isTouchExercise,
+  isAttentionExercise,
   type Session,
 } from "../engine/model";
 import { summarizeTouch } from "../analytics/touch";
@@ -14,6 +15,8 @@ import {
 import { summarizePractice } from "../analytics/statistics";
 import { responseScore } from "../exercises/responses";
 import { useI18n } from "../i18n/react";
+import { AttentionReport } from "./AttentionReport";
+import { attentionConditionRows } from "./attention-conditions";
 
 export function SessionDetails({
   session,
@@ -61,6 +64,13 @@ export function SessionDetails({
     { label: t("config.contrast"), value: number(configuration.contrast) },
     { label: t("config.distance"), value: number(configuration.distance) },
   ];
+  if (isAttentionExercise(session.kind))
+    settings.push(
+      ...attentionConditionRows(session, t, number).map(([label, value]) => ({
+        label,
+        value,
+      })),
+    );
   if (session.kind === "pursuit" || session.kind === "follow")
     settings.push(
       {
@@ -491,6 +501,9 @@ export function SessionDetails({
               ))}
           </dl>
         </section>
+      )}
+      {isAttentionExercise(session.kind) && (
+        <AttentionReport session={session} />
       )}
       <section className="session-configuration">
         {session.kind === "alignment" &&

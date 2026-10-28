@@ -2,6 +2,42 @@ import type { ReactNode } from "react";
 import type { ExerciseKind } from "../engine/model";
 
 const artwork: Record<ExerciseKind, ReactNode> = {
+  tracking: (
+    <>
+      <circle cx="7" cy="9" r="4" />
+      <circle cx="25" cy="11" r="4" />
+      <circle cx="17" cy="25" r="4" />
+      <circle cx="7" cy="9" r="1" fill="currentColor" />
+      <path d="M14 7c4-1 7 0 10 1M25 18c-1 3-3 5-5 6" opacity="0.55" />
+    </>
+  ),
+  search: (
+    <>
+      <path
+        d="M10 5a4 4 0 1 0 0 7M23 4a4 4 0 1 0 0 7M10 19a4 4 0 1 0 0 7"
+        opacity="0.65"
+      />
+      <circle cx="22" cy="22" r="6" />
+      <path d="m26 26 4 4" />
+    </>
+  ),
+  memory: (
+    <>
+      <rect x="5" y="5" width="8" height="8" rx="2" />
+      <rect x="19" y="5" width="8" height="8" rx="2" opacity="0.45" />
+      <rect x="5" y="19" width="8" height="8" rx="2" opacity="0.45" />
+      <rect x="19" y="19" width="8" height="8" rx="2" />
+      <path d="m21 23 2 2 3-4" />
+    </>
+  ),
+  sequence: (
+    <>
+      <circle cx="7" cy="8" r="4" />
+      <circle cx="24" cy="8" r="4" />
+      <circle cx="24" cy="25" r="4" />
+      <path d="M14 8h3m7 7v3M7 7v2m16-2h2m-2 2h2m-2 15h2m-2 2h2" />
+    </>
+  ),
   alignment: (
     <>
       <path d="M13 3v11m6 4v11" />

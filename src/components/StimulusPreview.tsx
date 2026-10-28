@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import type { Configuration, ExerciseKind, Session } from "../engine/model";
+import {
+  isAttentionExercise,
+  type Configuration,
+  type ExerciseKind,
+  type Session,
+} from "../engine/model";
 import { createExercise } from "../exercises/factory";
 import { TouchExercise } from "../exercises/touch";
 import { useI18n } from "../i18n/react";
@@ -29,6 +34,8 @@ export function StimulusPreview({
     };
     const exercise = createExercise(session, () => 0.5);
     exercise.initialize();
+    if (isAttentionExercise(kind) && kind !== "tracking")
+      session.activeMilliseconds = 1600;
     const draw = () => {
       const { width, height } = element.getBoundingClientRect();
       const ratio = Math.min(devicePixelRatio || 1, 3);

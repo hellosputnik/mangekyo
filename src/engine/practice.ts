@@ -1,6 +1,7 @@
 import {
   defaults,
   exerciseKinds,
+  isAttentionExercise,
   pursuitPatterns,
   validate,
   type Configuration,
@@ -9,6 +10,7 @@ import {
   type PracticeSetups,
 } from "./model";
 import { applyPursuitPreset } from "../exercises/pursuit";
+import { validAttentionConfiguration } from "../exercises/attention-validation";
 import type { PracticeMode } from "./model";
 export type { PracticeMode, PracticeSetup, PracticeSetups } from "./model";
 export function practiceDefaults(kind: ExerciseKind): Configuration {
@@ -20,6 +22,7 @@ export function practiceDefaults(kind: ExerciseKind): Configuration {
     ...(kind === "follow" ? { speed: 0.04 } : {}),
     ...(kind === "crowding" ? { size: 44 } : {}),
     ...(kind === "alignment" ? { size: 64 } : {}),
+    ...(isAttentionExercise(kind) ? { size: 44 } : {}),
   };
 }
 
@@ -36,6 +39,10 @@ export function initialPracticeSetups(): PracticeSetups {
       mode: "Default",
       configuration: practiceDefaults("alignment"),
     },
+    tracking: { mode: "Default", configuration: practiceDefaults("tracking") },
+    search: { mode: "Default", configuration: practiceDefaults("search") },
+    memory: { mode: "Default", configuration: practiceDefaults("memory") },
+    sequence: { mode: "Default", configuration: practiceDefaults("sequence") },
   };
 }
 
@@ -91,7 +98,12 @@ export function parsePracticePreferences(
   for (const kind of exerciseKinds) {
     const setup = (value.setups as Record<string, unknown>)[kind];
     // Add newer exercises without discarding earlier saved choices.
-    if ((kind === "crowding" || kind === "alignment") && setup === undefined)
+    if (
+      (kind === "crowding" ||
+        kind === "alignment" ||
+        isAttentionExercise(kind)) &&
+      setup === undefined
+    )
       continue;
     if (!setup || typeof setup !== "object") return null;
     const entry = setup as Record<string, unknown>;
@@ -102,6 +114,7 @@ export function parsePracticePreferences(
     )
       return null;
     const settings = entry.configuration as Record<string, unknown>;
+    if (!validAttentionConfiguration(settings)) return null;
     for (const [key, minimum, maximum] of [
       ["alignmentOffset", 1, 64],
       ["alignmentGap", 0, 80],

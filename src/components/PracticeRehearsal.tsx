@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   isTouchExercise,
+  isAttentionExercise,
   supportsCheckIn,
   type Configuration,
   type ExerciseKind,
@@ -18,6 +19,12 @@ import type { Exercise } from "../exercises/exercise";
 import { TouchExercise, type Point } from "../exercises/touch";
 import { useI18n } from "../i18n/react";
 import { Modal } from "./Modal";
+import { AttentionExercise } from "../exercises/attention";
+import {
+  AttentionStatus,
+  AttentionTargets,
+  AttentionAnswers,
+} from "./AttentionActivity";
 
 function RehearsalStage({
   kind,
@@ -41,6 +48,7 @@ function RehearsalStage({
   const [keyboardCursor, setKeyboardCursor] = useState<Point | null>(null);
   const [paused, setPaused] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [, refresh] = useState(0);
   const drawOnce = useRef(() => {});
   const release = () => {
     keyboardHeld.current = false;
@@ -67,6 +75,7 @@ function RehearsalStage({
     if (kind !== "follow") clock.resume();
     let frame = 0;
     let disposed = false;
+    let lastInterfaceUpdate = 0;
     const draw = () => {
       frame = 0;
       const element = canvas.current;
@@ -101,6 +110,13 @@ function RehearsalStage({
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
         exercise.update(session.activeMilliseconds / 1000, 0);
         exercise.render(context, bounds.width, bounds.height);
+      }
+      if (
+        isAttentionExercise(kind) &&
+        performance.now() - lastInterfaceUpdate >= 100
+      ) {
+        lastInterfaceUpdate = performance.now();
+        refresh((value) => value + 1);
       }
       if (session.status === "running") frame = requestAnimationFrame(draw);
     };
@@ -218,9 +234,18 @@ function RehearsalStage({
             "answer.left",
             "answer.up",
           ] as const);
+  const chooseAttention = (choice: number) => {
+    timer.current?.checkpoint();
+    if (!(renderer.current instanceof AttentionExercise)) return;
+    const result = renderer.current.choose(choice);
+    if (result)
+      setFeedback(t(result.correct ? "rehearsal.correct" : "rehearsal.retry"));
+    drawOnce.current();
+  };
   return (
     <>
       <p className="rehearsal-instruction">{t(`rehearsal.${kind}`)}</p>
+      {isAttentionExercise(kind) && <AttentionStatus session={session} />}
       <div className="rehearsal-canvas">
         <canvas
           ref={canvas}
@@ -299,6 +324,9 @@ function RehearsalStage({
             }
           }}
         />
+        {isAttentionExercise(kind) && (
+          <AttentionTargets session={session} onChoose={chooseAttention} />
+        )}
         {kind === "tap" && keyboardCursor && (
           <span
             className="keyboard-cursor"
@@ -331,6 +359,19 @@ function RehearsalStage({
             </button>
           ))}
         </div>
+      )}
+      {isAttentionExercise(kind) && (
+        <AttentionAnswers
+          session={session}
+          onChoose={chooseAttention}
+          onReplay={() => {
+            timer.current?.checkpoint();
+            if (renderer.current instanceof AttentionExercise)
+              renderer.current.replay();
+            setFeedback("");
+            drawOnce.current();
+          }}
+        />
       )}
       <p className="rehearsal-feedback" role="status" aria-atomic="true">
         {feedback || t("rehearsal.noScore")}

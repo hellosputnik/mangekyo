@@ -1,5 +1,6 @@
 import { isTouchExercise, type Session } from "../engine/model";
 import { useI18n } from "../i18n/react";
+import { attentionConditionRows } from "./attention-conditions";
 
 export function RecordedConditions({ session }: { session: Session }) {
   const { t, number, duration, percent, optionLabel, eyeLabel } = useI18n();
@@ -17,6 +18,7 @@ export function RecordedConditions({ session }: { session: Session }) {
     [t("config.contrast"), percent(settings.contrast)],
     [t("config.distance"), number(settings.distance)],
   ];
+  rows.push(...attentionConditionRows(session, t, number));
   if (session.kind === "pursuit" || session.kind === "follow")
     rows.push(
       [t("config.pattern"), optionLabel(settings.pattern)],

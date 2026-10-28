@@ -76,7 +76,8 @@ it.each(exerciseKinds)(
       kind === "contrast" ||
       kind === "tap" ||
       kind === "crowding" ||
-      kind === "alignment"
+      kind === "alignment" ||
+      ["tracking", "search", "memory", "sequence"].includes(kind)
     )
       expect(result.accuracy).toBe(1);
     else expect(result.accuracy).toBeNull();

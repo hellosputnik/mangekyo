@@ -1,5 +1,6 @@
 import {
   isTouchExercise,
+  isAttentionExercise,
   type Configuration,
   type Data,
   type ExerciseKind,
@@ -25,6 +26,7 @@ export function exerciseProtocol(
   checkIn = false,
   configuration?: Configuration,
 ) {
+  if (isAttentionExercise(kind)) return `attention-${kind}-1`;
   if (kind === "pursuit" && configuration?.pursuitVariableSpeed)
     return "pursuit-variable-1";
   if (kind === "alignment") return "alignment-offset-1";
@@ -78,6 +80,28 @@ export function conditionSettings(kind: ExerciseKind, settings: Configuration) {
       settings.alignmentGap ?? 16,
       settings.alignmentWidth ?? 4,
     );
+  if (kind === "tracking")
+    common.push(
+      settings.trackingObjects ?? 3,
+      settings.trackingSeconds ?? 4,
+      settings.speed,
+      settings.gentleMotion ?? false,
+    );
+  if (kind === "search")
+    common.push(
+      settings.searchTask ?? "Mixed",
+      settings.searchItems ?? 6,
+      settings.speed,
+      settings.gentleMotion ?? false,
+    );
+  if (kind === "memory")
+    common.push(
+      settings.recallTask ?? "Mixed",
+      settings.recallItems ?? 1,
+      settings.recallExposure ?? 1.8,
+      settings.recallDelay ?? 0.6,
+    );
+  if (kind === "sequence") common.push(settings.sequenceItems ?? 6);
   if (isTouchExercise(kind))
     common.push(settings.hand, settings.touchTolerance);
   if (kind === "tap")
@@ -175,8 +199,12 @@ export function personalBest(sessions: Session[]): PersonalBest | null {
       trial.alignmentLength,
       trial.alignmentWidth,
       trial.alignmentGap,
+      trial.attention,
     ]);
   const validPresentation = (session: Session, trial: Trial) =>
+    (isAttentionExercise(session.kind) &&
+      trial.attention !== undefined &&
+      trial.attention.replays === 0) ||
     (session.kind === "alignment" &&
       trial.alignmentOffset !== undefined &&
       trial.alignmentWidth !== undefined &&

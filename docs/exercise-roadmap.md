@@ -2,6 +2,8 @@
 
 Reviewed October 28, 2026. This is a product research note, not a treatment plan. Study protocols, displays, participants and supervision differ from Mangekyo. A related laboratory task does not validate this app or establish a benefit for a particular person. No training dose or patching schedule is recommended here.
 
+Four additional experimental modes now cover object tracking, search/counting, brief recall and number sequencing. See [attention activities](attention-exercises.md) for their variants and implementation limits, and [Flash Focus research](flash-focus-research.md) for the comparison that informed them. The visual-search proposal below is now represented by Find & count; Gabor extensions and the other research directions remain proposals.
+
 ## Now available: touch coordination
 
 **Tap targets** practices visually guided pointing. It records hits, attempt latency, distance from the target center, target size and hit tolerance. A miss retains the target and earned points. The hit area never falls below 44 CSS pixels. Five consecutive centered hits within the displayed deadline earn a level. A separate controller tunes target size, tolerance, pace and jump distance toward a provisional success band, independently from scheduling and earned levels. Optional confirmation/level sounds and a goal meter make accomplishments explicit.

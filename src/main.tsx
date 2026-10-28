@@ -7,6 +7,7 @@ import {
   localDate,
   isTouchExercise,
   isResponseExercise,
+  isAttentionExercise,
   supportsCheckIn,
   type Configuration,
   type Data,
@@ -45,6 +46,12 @@ import { Modal } from "./components/Modal";
 import { totalForDate } from "./analytics/totals";
 import type { Exercise } from "./exercises/exercise";
 import { createExercise } from "./exercises/factory";
+import { AttentionExercise } from "./exercises/attention";
+import {
+  AttentionStatus,
+  AttentionTargets,
+  AttentionAnswers,
+} from "./components/AttentionActivity";
 import { TouchExercise, type Point } from "./exercises/touch";
 import { highestTouchLevel, type TouchCue } from "./exercises/touch-challenge";
 import {
@@ -584,7 +591,9 @@ function App() {
             speed: data.preferences.reducedMotion
               ? Math.min(selectedConfiguration.speed, 0.08)
               : selectedConfiguration.speed,
-            ...(selected === "follow" || selected === "pursuit"
+            ...(selected === "follow" ||
+            selected === "pursuit" ||
+            isAttentionExercise(selected)
               ? { gentleMotion: data.preferences.reducedMotion }
               : {}),
           },
@@ -654,7 +663,7 @@ function App() {
       persist(state.current);
     }
   };
-  const answer = (choice: number) => {
+  const answer = (choice: number, inputMethod?: "pointer" | "keyboard") => {
     if (
       !current ||
       current.status !== "running" ||
@@ -665,6 +674,39 @@ function App() {
     timer.current?.checkpoint();
     if (current.activeMilliseconds >= current.configuration.duration * 1000) {
       finish();
+      return;
+    }
+    if (exercise.current instanceof AttentionExercise) {
+      const result = exercise.current.choose(choice);
+      if (!result) return;
+      if (inputMethod)
+        current.inputMethod =
+          current.inputMethod && current.inputMethod !== inputMethod
+            ? "mixed"
+            : inputMethod;
+      setAnswerResult({
+        choice,
+        correct: result.correct,
+        sequence: current.activeMilliseconds,
+        currentRun: result.complete ? result.currentRun : 0,
+        enlarged: false,
+        highlight: true,
+        partial: !result.complete,
+        level: result.levelUp ? current.difficulty + 1 : undefined,
+      });
+      if (result.correct)
+        playPracticeFeedback(result.levelUp ? "level" : "correct", {
+          sound: state.current.preferences.answerSound,
+          haptics: state.current.preferences.haptics,
+        });
+      setFeedback("");
+      persist(state.current);
+      if (result.complete)
+        requestAnimationFrame(() =>
+          document
+            .getElementById("attention-question")
+            ?.focus({ preventScroll: true }),
+        );
       return;
     }
     const bounds = canvas.current?.getBoundingClientRect();
@@ -1077,7 +1119,7 @@ function App() {
           <main
             id="main-content"
             tabIndex={-1}
-            className={`training ${supportsCheckIn(current.kind) ? "has-answers" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
+            className={`training ${supportsCheckIn(current.kind) || isAttentionExercise(current.kind) ? "has-answers" : ""} ${isAttentionExercise(current.kind) ? "attention-training" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
           >
             <div className="training-top">
               <div>
@@ -1131,6 +1173,23 @@ function App() {
                 }}
               />
             )}
+            {isAttentionExercise(current.kind) && (
+              <AttentionStatus
+                session={current}
+                sound={data.preferences.answerSound}
+                onSound={() => {
+                  const enabled = !state.current.preferences.answerSound;
+                  if (enabled) unlockPracticeAudio();
+                  persist({
+                    ...state.current,
+                    preferences: {
+                      ...state.current.preferences,
+                      answerSound: enabled,
+                    },
+                  });
+                }}
+              />
+            )}
             <div className="canvas-wrap">
               <canvas
                 ref={canvas}
@@ -1159,6 +1218,9 @@ function App() {
                   exercise: exerciseName(current.kind),
                 })}
               />
+              {isAttentionExercise(current.kind) && (
+                <AttentionTargets session={current} onChoose={answer} />
+              )}
               {current.kind === "tap" && keyboardCursor && (
                 <span
                   className="keyboard-cursor"
@@ -1284,6 +1346,22 @@ function App() {
                   ))}
                 </div>
               </section>
+            )}
+            {isAttentionExercise(current.kind) && (
+              <AttentionAnswers
+                session={current}
+                onChoose={answer}
+                onReplay={() => {
+                  timer.current?.checkpoint();
+                  if (
+                    exercise.current instanceof AttentionExercise &&
+                    exercise.current.replay()
+                  ) {
+                    setAnswerResult(null);
+                    persist(state.current);
+                  }
+                }}
+              />
             )}
             {current.kind === "saccades" &&
               current.configuration.tapConfirm && (

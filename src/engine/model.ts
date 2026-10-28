@@ -10,9 +10,24 @@ export const exerciseKinds = [
   "follow",
   "crowding",
   "alignment",
+  "tracking",
+  "search",
+  "memory",
+  "sequence",
 ] as const;
 export type ExerciseKind = (typeof exerciseKinds)[number];
+export const attentionKinds = [
+  "tracking",
+  "search",
+  "memory",
+  "sequence",
+] as const;
+export type AttentionKind = (typeof attentionKinds)[number];
+export const isAttentionExercise = (
+  kind: ExerciseKind,
+): kind is AttentionKind => attentionKinds.includes(kind as AttentionKind);
 export const isResponseExercise = (kind: ExerciseKind) =>
+  isAttentionExercise(kind) ||
   kind === "visual" ||
   kind === "contrast" ||
   kind === "tap" ||
@@ -65,6 +80,15 @@ export interface Configuration {
   alignmentOffset?: number;
   alignmentGap?: number;
   alignmentWidth?: number;
+  trackingObjects?: number;
+  trackingSeconds?: number;
+  searchTask?: "Mixed" | "Count" | "Match" | "Moving";
+  searchItems?: number;
+  recallTask?: "Mixed" | "Locations" | "Digits" | "Directions" | "Compare";
+  recallItems?: number;
+  recallExposure?: number;
+  recallDelay?: number;
+  sequenceItems?: number;
 }
 export const defaults: Configuration = {
   duration: 300,
@@ -93,6 +117,15 @@ export const defaults: Configuration = {
   alignmentOffset: 12,
   alignmentGap: 16,
   alignmentWidth: 4,
+  trackingObjects: 3,
+  trackingSeconds: 4,
+  searchTask: "Mixed",
+  searchItems: 6,
+  recallTask: "Mixed",
+  recallItems: 1,
+  recallExposure: 1.8,
+  recallDelay: 0.6,
+  sequenceItems: 6,
 };
 export const names: Record<ExerciseKind, string> = {
   pursuit: "Smooth pursuit",
@@ -103,6 +136,10 @@ export const names: Record<ExerciseKind, string> = {
   follow: "Follow the target",
   crowding: "Crowded symbols",
   alignment: "Fine alignment",
+  tracking: "Track & find",
+  search: "Find & count",
+  memory: "Brief recall",
+  sequence: "Number sequence",
 };
 export function bounded(
   value: number,
@@ -150,6 +187,31 @@ export function validate(configuration: Configuration): Configuration {
     alignmentOffset: bounded(configuration.alignmentOffset ?? 12, 1, 64, 12),
     alignmentGap: bounded(configuration.alignmentGap ?? 16, 0, 80, 16),
     alignmentWidth: bounded(configuration.alignmentWidth ?? 4, 1, 12, 4),
+    trackingObjects: Math.round(
+      bounded(configuration.trackingObjects ?? 3, 3, 6, 3),
+    ),
+    trackingSeconds: bounded(configuration.trackingSeconds ?? 4, 2, 12, 4),
+    searchTask: ["Mixed", "Count", "Match", "Moving"].includes(
+      configuration.searchTask ?? "",
+    )
+      ? configuration.searchTask
+      : "Mixed",
+    searchItems: Math.round(bounded(configuration.searchItems ?? 6, 4, 12, 6)),
+    recallTask: [
+      "Mixed",
+      "Locations",
+      "Digits",
+      "Directions",
+      "Compare",
+    ].includes(configuration.recallTask ?? "")
+      ? configuration.recallTask
+      : "Mixed",
+    recallItems: Math.round(bounded(configuration.recallItems ?? 1, 1, 4, 1)),
+    recallExposure: bounded(configuration.recallExposure ?? 1.8, 0.8, 5, 1.8),
+    recallDelay: bounded(configuration.recallDelay ?? 0.6, 0, 3, 0.6),
+    sequenceItems: Math.round(
+      bounded(configuration.sequenceItems ?? 6, 4, 12, 6),
+    ),
   };
 }
 export interface Slice {
@@ -176,6 +238,42 @@ export interface Trial {
   alignmentGap?: number;
   alignmentWidth?: number;
   alignmentLength?: number;
+  attention?: AttentionPresentation;
+}
+export const attentionTasks = [
+  "Track",
+  "Count",
+  "Match",
+  "Moving",
+  "Locations",
+  "Digits",
+  "Directions",
+  "Compare",
+  "Numbers",
+] as const;
+export type AttentionTask = (typeof attentionTasks)[number];
+export interface AttentionPresentation {
+  task: AttentionTask;
+  itemCount: number;
+  load: number;
+  exposureMilliseconds: number;
+  delayMilliseconds: number;
+  trackingMilliseconds: number;
+  speed: number;
+  replays: number;
+}
+export interface AttentionRound {
+  version: 1;
+  index: number;
+  seed: number;
+  startedAtMilliseconds: number;
+  difficulty: number;
+  cue: number;
+  items: number[];
+  choices: number[];
+  answers: number[];
+  selected: number[];
+  presentation: AttentionPresentation;
 }
 export interface FollowMetrics {
   trackedMilliseconds: number;
@@ -230,6 +328,7 @@ export interface Session {
   tapState?: TapState;
   awaitingTouch?: boolean;
   challenge?: TouchChallengeState;
+  attentionRound?: AttentionRound;
   initialDifficulty?: number;
   viewport?: {
     width: number;
@@ -354,6 +453,10 @@ export const initialData = (): Data => ({
     follow: 0,
     crowding: 0,
     alignment: 0,
+    tracking: 0,
+    search: 0,
+    memory: 0,
+    sequence: 0,
   },
   breakState: null,
 });

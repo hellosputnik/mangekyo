@@ -8,6 +8,8 @@ export interface AnswerResult {
   enlarged: boolean;
   highlight: boolean;
   retry?: boolean;
+  partial?: boolean;
+  level?: number;
 }
 
 export function AnswerFeedback({ result }: { result: AnswerResult }) {
@@ -23,9 +25,13 @@ export function AnswerFeedback({ result }: { result: AnswerResult }) {
         </span>
       )}
       {result.correct
-        ? result.currentRun > 0 && result.currentRun % 5 === 0
-          ? t("feedback.run", { count: number(result.currentRun) })
-          : t("feedback.point")
+        ? result.level !== undefined
+          ? t("attention.levelUp", { level: number(result.level) })
+          : result.partial
+            ? t("feedback.correct")
+            : result.currentRun > 0 && result.currentRun % 5 === 0
+              ? t("feedback.run", { count: number(result.currentRun) })
+              : t("feedback.point")
         : t(
             result.enlarged
               ? "feedback.larger"

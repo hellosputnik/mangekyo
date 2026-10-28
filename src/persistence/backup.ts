@@ -3,6 +3,9 @@ import {
   names,
   validate,
   pursuitPatterns,
+  attentionKinds,
+  isAttentionExercise,
+  type ExerciseKind,
   type Data,
   type Session,
   type Routine,
@@ -13,6 +16,12 @@ import { visualDifficultyLimit } from "../exercises/visual";
 import { alignmentDifficultyLimit } from "../exercises/alignment";
 import { parsePracticePreferences } from "../engine/practice";
 import { parseSavedSetups } from "../engine/saved-setups";
+import {
+  validAttentionConfiguration,
+  validAttentionPresentation,
+  validAttentionPresentationForKind,
+  validAttentionRound,
+} from "../exercises/attention-validation";
 import { balanceRules, type AdaptiveBalance } from "../adaptive/balance";
 import {
   maximumTouchLevel,
@@ -20,15 +29,17 @@ import {
   highestTouchLevel,
 } from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
-  kind === "alignment"
-    ? alignmentDifficultyLimit
-    : kind === "crowding"
-      ? 24
-      : kind === "visual"
-        ? visualDifficultyLimit
-        : kind === "tap" || kind === "follow"
-          ? maximumTouchLevel
-          : 12;
+  isAttentionExercise(kind as ExerciseKind)
+    ? 24
+    : kind === "alignment"
+      ? alignmentDifficultyLimit
+      : kind === "crowding"
+        ? 24
+        : kind === "visual"
+          ? visualDifficultyLimit
+          : kind === "tap" || kind === "follow"
+            ? maximumTouchLevel
+            : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -108,6 +119,18 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   const settings = value.configuration;
+  if (
+    !validAttentionConfiguration(settings) ||
+    (isAttentionExercise(value.kind as ExerciseKind) &&
+      !Number.isInteger(value.difficulty)) ||
+    (value.attentionRound !== undefined &&
+      !validAttentionRound(
+        value.attentionRound,
+        value.kind as ExerciseKind,
+        value.activeMilliseconds,
+      ))
+  )
+    return false;
   for (const [key, min, max] of [
     ["alignmentOffset", 1, 64],
     ["alignmentGap", 0, 80],
@@ -318,6 +341,13 @@ function validSession(value: unknown): value is Session {
   return value.trials.every(
     (trial) =>
       record(trial) &&
+      (trial.attention === undefined ||
+        validAttentionPresentation(trial.attention)) &&
+      (!isAttentionExercise(value.kind as ExerciseKind) ||
+        validAttentionPresentationForKind(
+          trial.attention,
+          value.kind as ExerciseKind,
+        )) &&
       typeof trial.correct === "boolean" &&
       finite(trial.responseMilliseconds, 0, 3600000) &&
       finite(trial.difficulty, 0, difficultyLimit(value.kind)) &&
@@ -386,7 +416,13 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
       (record(value.levels) &&
         Object.keys(names).every(
           (kind) =>
-            (["tap", "follow", "crowding", "alignment"].includes(kind) &&
+            ([
+              "tap",
+              "follow",
+              "crowding",
+              "alignment",
+              ...attentionKinds,
+            ].includes(kind) &&
               (value.levels as Record<string, unknown>)[kind] === undefined) ||
             finite(
               (value.levels as Record<string, unknown>)[kind],
@@ -424,10 +460,22 @@ export function mergeBackup(
     throw Error("Invalid export date");
   const sessions: Session[] = [...input.sessions];
   const importedTouchLevels = { tap: 0, follow: 0 };
+  const importedAttentionLevels = {
+    tracking: 0,
+    search: 0,
+    memory: 0,
+    sequence: 0,
+  };
   let importedCrowdingLevel = 0;
   let importedAlignmentLevel = 0;
   if (input.levels !== undefined) {
     if (!record(input.levels)) throw Error("Invalid levels");
+    for (const kind of attentionKinds) {
+      const level = input.levels[kind] ?? 0;
+      if (!finite(level, 0, 24) || !Number.isInteger(level))
+        throw Error("Invalid attention level");
+      importedAttentionLevels[kind] = level;
+    }
     importedAlignmentLevel = Number(input.levels.alignment ?? 0);
     if (
       !finite(input.levels.alignment ?? 0, 0, alignmentDifficultyLimit) ||
@@ -561,6 +609,15 @@ export function mergeBackup(
     savedSetups: merge(savedSetups, current.savedSetups ?? []).slice(-30),
     levels: {
       ...current.levels,
+      ...Object.fromEntries(
+        attentionKinds.map((kind) => [
+          kind,
+          !current.levels[kind] &&
+          !current.sessions.some((session) => session.kind === kind)
+            ? importedAttentionLevels[kind]
+            : current.levels[kind],
+        ]),
+      ),
       alignment:
         !current.levels.alignment &&
         !current.sessions.some(
@@ -644,9 +701,9 @@ export function previewBackup(current: Data, input: unknown) {
           (existing) => existing.key === profile.key,
         ),
     ).length,
-    levelChanges: (["tap", "follow", "crowding", "alignment"] as const).filter(
-      (kind) => merged.levels[kind] !== current.levels[kind],
-    ),
+    levelChanges: (
+      ["tap", "follow", "crowding", "alignment", ...attentionKinds] as const
+    ).filter((kind) => merged.levels[kind] !== current.levels[kind]),
     merged,
   };
 }

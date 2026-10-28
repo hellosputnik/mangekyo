@@ -2,6 +2,7 @@ import { initialData, validate, type Data } from "../engine/model";
 import { normalizeLanguagePreference } from "../i18n/locale";
 import { resetTouchRun } from "../exercises/touch-challenge";
 import { parsePracticePreferences } from "../engine/practice";
+import { validAttentionRound } from "../exercises/attention-validation";
 import { parseSavedSetups } from "../engine/saved-setups";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
@@ -54,6 +55,15 @@ async function readData(): Promise<{ data: Data; revision: number }> {
       }
       if (data.current) {
         data.current.status = "interrupted";
+        if (
+          data.current.attentionRound &&
+          !validAttentionRound(
+            data.current.attentionRound,
+            data.current.kind,
+            data.current.activeMilliseconds,
+          )
+        )
+          delete data.current.attentionRound;
         resetTouchRun(data.current);
       }
       resolve({ data, revision });
