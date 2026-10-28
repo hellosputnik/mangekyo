@@ -543,5 +543,65 @@ export const english = {
   "filters.changedScreen": "Practice area changed during the session",
   "backup.reading": "Reading…",
   "storage.download": "Download offline files",
+  "exercise.crowding": "Crowded symbols",
+  "exercise.short.crowding": "Crowding",
+  "description.crowding":
+    "Identify the opening in the middle symbol, surrounded by nearby symbols.",
+  "crowding.spacing": "Gap between symbols (× diameter)",
+  "crowding.question": "Which way does the middle opening face?",
+  "crowding.recordedGap": "Presented gap: {small}–{large} CSS px",
+  "rehearsal.crowding":
+    "Look at the middle symbol. Choose the direction of its opening.",
+  "preview.title": "Static stimulus preview",
+  "preview.note":
+    "Static preview at starting difficulty. Available space can limit symbol size; CSS pixels are not calibrated physical measurements.",
+  "setups.title": "Saved setups · {count}",
+  "setups.label": "Saved setups",
+  "setups.name": "Setup name",
+  "setups.save": "Save setup",
+  "setups.note":
+    "Save these settings and duration. Saving an existing name replaces that setup. Up to 30 setups across exercises.",
+  "setups.saved": "Setup saved.",
+  "setups.loaded": "Loaded {name}.",
+  "setups.remove": "Remove {name}",
+  "setups.removed": "Setup removed.",
+  "checkIn.title": "Practice check-in",
+  "checkIn.intro":
+    "12 answers at fixed starting settings, with no difficulty changes. Pause or stop anytime. Complete the same setup, eye and screen layout to compare practice performance.",
+  "checkIn.start": "Start check-in",
+  "checkIn.answers": "Answers",
+  "checkIn.record":
+    "Practice check-in · {count}/{total} answers. Saved difficulty is unchanged.",
+  "checkIn.trends": "Check-in trends",
+  "checkIn.trendNote":
+    "Compare completed check-ins with matching recorded conditions. Results describe practice performance.",
+  "checkIn.empty":
+    "Complete a check-in from Visual discrimination, Contrast discrimination or Crowded symbols to begin. Changed screen layouts and partial check-ins stay in history but do not enter this chart.",
+  "checkIn.conditions": "Check-in conditions",
+  "checkIn.records": "{count} check-ins",
+  "checkIn.chartNote":
+    "Accuracy across the latest eight matching check-ins; each has {count} answers. The list also shows median response time, including incorrect answers.",
+  "overview.week": "Last 7 days",
+  "overview.latest": "Last practice: {exercise} · {eye} · {time}",
+  "overview.filters": "Filter results",
+  "overview.filtered": "Filtered",
+  "rest.options": "Break options",
+  "durability.checking": "Checking storage protection…",
+  "durability.persistent": "Persistent storage granted by this browser.",
+  "durability.best-effort": "Browser storage is best effort.",
+  "durability.unsupported": "Storage protection status is unavailable.",
+  "durability.request": "Request storage protection",
+  "durability.reminder": "Backup reminders",
+  "durability.note":
+    "Optional reminders appear after new practice when no export has been created for seven days. Persistent storage cannot prevent manual deletion; keep exported backups.",
+  "durability.reminderNote":
+    "You have new practice since your last backup. Create an export when convenient.",
+  "durability.later": "Remind in a week",
+  "durability.conflictTitle": "Newer data in another tab",
+  "durability.conflictNote":
+    "This tab is paused to protect newer saved data. Export this tab’s copy to keep any unsaved practice, then reload. You can review and merge that copy later in Settings.",
+  "durability.exportCopy": "Export this tab’s copy",
+  "durability.reload": "Reload latest data",
+  "checkIn.timeLimit": "Maximum active time",
 } as const;
 export type MessageKey = keyof typeof english;

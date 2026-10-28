@@ -11,6 +11,7 @@ import {
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
 import { parsePracticePreferences } from "../engine/practice";
+import { parseSavedSetups } from "../engine/saved-setups";
 import { balanceRules, type AdaptiveBalance } from "../adaptive/balance";
 import {
   maximumTouchLevel,
@@ -18,11 +19,13 @@ import {
   highestTouchLevel,
 } from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
-  kind === "visual"
-    ? visualDifficultyLimit
-    : kind === "tap" || kind === "follow"
-      ? maximumTouchLevel
-      : 12;
+  kind === "crowding"
+    ? 24
+    : kind === "visual"
+      ? visualDifficultyLimit
+      : kind === "tap" || kind === "follow"
+        ? maximumTouchLevel
+        : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -102,6 +105,22 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   const settings = value.configuration;
+  if (
+    value.checkIn !== undefined &&
+    (!record(value.checkIn) ||
+      value.checkIn.version !== 1 ||
+      value.checkIn.targetTrials !== 12 ||
+      !["visual", "contrast", "crowding"].includes(String(value.kind)) ||
+      value.trials.length > 12 ||
+      value.difficulty !== 0 ||
+      (value.status === "completed" && value.trials.length !== 12))
+  )
+    return false;
+  if (
+    settings.crowdingSpacing !== undefined &&
+    !finite(settings.crowdingSpacing, 0.15, 3)
+  )
+    return false;
   if (
     value.inputMethod !== undefined &&
     !["pointer", "keyboard", "mixed"].includes(String(value.inputMethod))
@@ -287,7 +306,13 @@ function validSession(value: unknown): value is Session {
       (trial.precisionRadius === undefined ||
         finite(trial.precisionRadius, 1, 80)) &&
       (trial.adaptiveLoad === undefined ||
-        finite(trial.adaptiveLoad, 0, balanceRules.maximumLoad)),
+        finite(trial.adaptiveLoad, 0, balanceRules.maximumLoad)) &&
+      (trial.crowdingSpacing === undefined ||
+        finite(trial.crowdingSpacing, 0, 1000)) &&
+      (value.kind !== "crowding" ||
+        (finite(trial.crowdingSpacing, 0, 1000) &&
+          finite(trial.stimulusDiameter, 1, 120))) &&
+      (value.checkIn === undefined || trial.difficulty === 0),
   );
 }
 function validMeasurement(value: unknown): value is Measurement {
@@ -316,7 +341,7 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
       (record(value.levels) &&
         Object.keys(names).every(
           (kind) =>
-            (["tap", "follow"].includes(kind) &&
+            (["tap", "follow", "crowding"].includes(kind) &&
               (value.levels as Record<string, unknown>)[kind] === undefined) ||
             finite(
               (value.levels as Record<string, unknown>)[kind],
@@ -343,6 +368,9 @@ export function mergeBackup(
       : null;
   if (input.practice !== undefined && !practice)
     throw Error("Invalid practice settings");
+  const savedSetups =
+    input.savedSetups === undefined ? [] : parseSavedSetups(input.savedSetups);
+  if (!savedSetups) throw Error("Invalid saved setups");
   if (
     input.lastExportedAt !== undefined &&
     (typeof input.lastExportedAt !== "string" ||
@@ -351,8 +379,15 @@ export function mergeBackup(
     throw Error("Invalid export date");
   const sessions: Session[] = [...input.sessions];
   const importedTouchLevels = { tap: 0, follow: 0 };
+  let importedCrowdingLevel = 0;
   if (input.levels !== undefined) {
     if (!record(input.levels)) throw Error("Invalid levels");
+    importedCrowdingLevel = Number(input.levels.crowding ?? 0);
+    if (
+      !finite(input.levels.crowding ?? 0, 0, 24) ||
+      !Number.isInteger(importedCrowdingLevel)
+    )
+      throw Error("Invalid crowding level");
     for (const kind of ["tap", "follow"] as const) {
       const level = input.levels[kind] ?? 0;
       if (!finite(level, 0, maximumTouchLevel) || !Number.isInteger(level))
@@ -438,6 +473,15 @@ export function mergeBackup(
         throw Error("Invalid practice feedback preference");
       preferences[key] = value ?? current.preferences[key] ?? true;
     }
+    if (
+      input.preferences.backupReminder !== undefined &&
+      typeof input.preferences.backupReminder !== "boolean"
+    )
+      throw Error("Invalid backup reminder");
+    preferences.backupReminder =
+      (input.preferences.backupReminder as boolean | undefined) ??
+      current.preferences.backupReminder ??
+      false;
     for (const key of ["goal", "rest", "reminder"] as const) {
       const maximum = { goal: 240, rest: 3600, reminder: 60 }[key];
       if (!finite(input.preferences[key], key === "goal" ? 1 : 0, maximum))
@@ -462,8 +506,16 @@ export function mergeBackup(
   ];
   return {
     ...current,
+    savedSetups: merge(savedSetups, current.savedSetups ?? []).slice(-30),
     levels: {
       ...current.levels,
+      crowding:
+        !current.levels.crowding &&
+        !current.sessions.some(
+          (session) => session.kind === "crowding" && !session.checkIn,
+        )
+          ? importedCrowdingLevel
+          : current.levels.crowding,
       tap: highestTouchLevel(
         sessions.filter((session) => session.kind === "tap"),
         Math.max(current.levels.tap, importedTouchLevels.tap),
@@ -520,6 +572,7 @@ export function previewBackup(current: Data, input: unknown) {
   ).filter((key) => current.preferences[key] !== merged.preferences[key]);
   return {
     sessions: added(current.sessions, merged.sessions),
+    savedSetups: added(current.savedSetups ?? [], merged.savedSetups ?? []),
     routines: added(current.routines, merged.routines),
     measurements: added(current.measurements, merged.measurements),
     preferenceChanges,
@@ -532,7 +585,7 @@ export function previewBackup(current: Data, input: unknown) {
           (existing) => existing.key === profile.key,
         ),
     ).length,
-    levelChanges: (["tap", "follow"] as const).filter(
+    levelChanges: (["tap", "follow", "crowding"] as const).filter(
       (kind) => merged.levels[kind] !== current.levels[kind],
     ),
     merged,

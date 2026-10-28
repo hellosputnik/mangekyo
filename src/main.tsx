@@ -6,6 +6,7 @@ import {
   localDate,
   isTouchExercise,
   isResponseExercise,
+  supportsCheckIn,
   type Configuration,
   type Data,
   type ExerciseKind,
@@ -29,10 +30,17 @@ import {
   type PracticeMode,
 } from "./engine/practice";
 import { exerciseProtocol, recordViewport } from "./analytics/comparison";
-import { SessionRecap } from "./components/SessionRecap";
+import { RestScreen } from "./components/RestScreen";
 import { DataSettings } from "./components/DataSettings";
 import { useAppAvailability } from "./pwa/useAppAvailability";
-import { load, save } from "./persistence/store";
+import {
+  load,
+  save,
+  SnapshotConflict,
+  subscribeToWrites,
+} from "./persistence/store";
+import { configureCheckIn, checkInComplete } from "./engine/check-in";
+import { Modal } from "./components/Modal";
 import { totalForDate } from "./analytics/totals";
 import type { Exercise } from "./exercises/exercise";
 import { createExercise } from "./exercises/factory";
@@ -102,6 +110,7 @@ function App() {
   state.current = data;
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<MessageKey | "">("");
+  const [storageConflict, setStorageConflict] = useState(false);
   const [tab, setTab] = useState<Page>("Practice");
   const [kind, setKind] = useState<ExerciseKind>("pursuit");
   const [eye, setEye] = useState<Eye>("Left");
@@ -168,10 +177,28 @@ function App() {
   const lastSave = useRef(0);
   const lastReminder = useRef(0);
   const persist = (next: Data) => {
+    if (storageConflict) return;
     state.current = next;
     setData({ ...next });
-    void save(next).catch(() => setError("error.save"));
+    void save(next).catch((error) => storageFailure(error, "error.save"));
   };
+  const storageFailure = (failure: unknown, message: MessageKey) => {
+    if (failure instanceof SnapshotConflict) {
+      timer.current?.pause(true);
+      releaseTouch();
+      setStorageConflict(true);
+      setData({ ...state.current });
+    } else setError(message);
+  };
+  useEffect(
+    () =>
+      ready
+        ? subscribeToWrites(() =>
+            storageFailure(new SnapshotConflict(), "error.save"),
+          )
+        : undefined,
+    [ready],
+  );
   const consumeTouchCues = () => {
     if (!(exercise.current instanceof TouchExercise)) return false;
     const cues = exercise.current.drainCues();
@@ -199,6 +226,8 @@ function App() {
   useEffect(() => {
     void load()
       .then((value) => {
+        const languageChanged =
+          requestedLanguage && value.preferences.language !== requestedLanguage;
         if (requestedLanguage) value.preferences.language = requestedLanguage;
         setData(value);
         state.current = value;
@@ -208,8 +237,10 @@ function App() {
           setEye(remembered.eye);
           setPracticeSetups(remembered.setups);
         }
-        if (requestedLanguage)
-          void save(value).catch(() => setError("error.save"));
+        if (languageChanged)
+          void save(value).catch((error) =>
+            storageFailure(error, "error.save"),
+          );
         if (
           !value.sessions.length &&
           !value.current &&
@@ -320,7 +351,7 @@ function App() {
       ...latest.sessions.filter((item) => item.id !== session.id),
       structuredClone(session),
     ];
-    latest.levels[session.kind] = session.difficulty;
+    if (!session.checkIn) latest.levels[session.kind] = session.difficulty;
     rememberTouchProfile(latest, session);
     latest.current = null;
     setAnswerResult(null);
@@ -360,7 +391,9 @@ function App() {
           }
           if (now - lastSave.current > 1000) {
             lastSave.current = now;
-            void save(state.current).catch(() => setError("error.checkpoint"));
+            void save(state.current).catch((error) =>
+              storageFailure(error, "error.checkpoint"),
+            );
           }
           const reminder = state.current.preferences.reminder * 60000;
           if (
@@ -443,6 +476,7 @@ function App() {
   }, [current?.id, current?.status, current?.difficulty]);
   useEffect(() => {
     if (
+      storageConflict ||
       !data.breakState ||
       data.breakState.manual ||
       data.breakState.remaining <= 0
@@ -465,7 +499,9 @@ function App() {
         }
         if (now - saved > 1000) {
           saved = now;
-          void save(state.current).catch(() => setError("error.checkpoint"));
+          void save(state.current).catch((error) =>
+            storageFailure(error, "error.checkpoint"),
+          );
         }
         if (rest.remaining === 0) {
           if (state.current.preferences.sound) {
@@ -500,6 +536,7 @@ function App() {
       document.removeEventListener("visibilitychange", visibility);
     };
   }, [
+    storageConflict,
     Boolean(data.breakState),
     data.breakState?.manual,
     Boolean(data.breakState && data.breakState.remaining > 0),
@@ -510,6 +547,7 @@ function App() {
     selectedEye = eye,
     recordedConfiguration?: Configuration,
     recordedMode?: PracticeMode,
+    checkIn = false,
   ) => {
     if (!ready || document.hidden || state.current.current) return;
     const selectedConfiguration =
@@ -546,6 +584,10 @@ function App() {
         : practiceSetups[selected].mode,
       ...(selected === "follow" ? { awaitingTouch: true } : {}),
     };
+    if (checkIn) {
+      session.configuration.duration = 600;
+      configureCheckIn(session);
+    }
     keyboardPosition.current = null;
     setKeyboardCursor(null);
     restoreTouchProfile(session, state.current.touchProfiles);
@@ -612,6 +654,7 @@ function App() {
         haptics: state.current.preferences.haptics,
       });
     persist(state.current);
+    if (checkInComplete(current)) finish();
   };
   const touchPoint = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -899,7 +942,7 @@ function App() {
       practice: { kind: selected, eye: selectedEye, setups },
     });
   };
-  const exportData = () => {
+  const exportData = (recordExport = true) => {
     const exported = {
       ...state.current,
       lastExportedAt: new Date().toISOString(),
@@ -913,7 +956,7 @@ function App() {
     link.href = url;
     link.download = `mangekyo-${localDate(new Date())}.json`;
     link.click();
-    persist(exported);
+    if (recordExport && !storageConflict) persist(exported);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
@@ -955,7 +998,7 @@ function App() {
             <span>{t(error)}</span>
             <button
               type="button"
-              onClick={ready ? exportData : () => location.reload()}
+              onClick={ready ? () => exportData() : () => location.reload()}
             >
               {t(ready ? "settings.export" : "common.retry")}
             </button>
@@ -994,7 +1037,7 @@ function App() {
           <main
             id="main-content"
             tabIndex={-1}
-            className={`training ${current.kind === "visual" || current.kind === "contrast" ? "has-answers" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
+            className={`training ${supportsCheckIn(current.kind) ? "has-answers" : ""} ${isTouchExercise(current.kind) ? "has-touch-challenge" : ""}`}
           >
             <div className="training-top">
               <div>
@@ -1009,14 +1052,18 @@ function App() {
                 <h2 tabIndex={-1}>{exerciseName(current.kind)}</h2>
               </div>
               <span className="countdown">
-                {formatTime(
-                  Math.max(
-                    0,
-                    current.configuration.duration * 1000 -
-                      current.activeMilliseconds,
-                  ),
-                )}
-                <small>{t("session.remaining")}</small>
+                {current.checkIn
+                  ? `${number(current.trials.length)} / ${number(current.checkIn.targetTrials)}`
+                  : formatTime(
+                      Math.max(
+                        0,
+                        current.configuration.duration * 1000 -
+                          current.activeMilliseconds,
+                      ),
+                    )}
+                <small>
+                  {t(current.checkIn ? "checkIn.answers" : "session.remaining")}
+                </small>
               </span>
             </div>
             {isTouchExercise(current.kind) && (
@@ -1148,7 +1195,7 @@ function App() {
                 {t(current.kind === "tap" ? "keyboard.tap" : "keyboard.follow")}
               </p>
             )}
-            {(current.kind === "visual" || current.kind === "contrast") && (
+            {supportsCheckIn(current.kind) && (
               <section
                 className="answer-section"
                 aria-labelledby="response-question"
@@ -1156,14 +1203,16 @@ function App() {
                 <h3 id="response-question">
                   {current.kind === "contrast"
                     ? t("session.contrastQuestion")
-                    : current.configuration.stimulus === "Opening"
-                      ? t("session.openingQuestion")
-                      : t("session.directionQuestion")}
+                    : current.kind === "crowding"
+                      ? t("crowding.question")
+                      : current.configuration.stimulus === "Opening"
+                        ? t("session.openingQuestion")
+                        : t("session.directionQuestion")}
                 </h3>
                 <div
-                  className={`answers ${current.kind === "visual" ? "direction-pad" : "quadrant-pad"}`}
+                  className={`answers ${current.kind !== "contrast" ? "direction-pad" : "quadrant-pad"}`}
                 >
-                  {(current.kind === "visual"
+                  {(current.kind !== "contrast"
                     ? [
                         t("answer.right"),
                         t("answer.down"),
@@ -1233,109 +1282,69 @@ function App() {
             <p className="fine">{t("session.safety")}</p>
           </main>
         ) : data.breakState ? (
-          <main id="main-content" tabIndex={-1} className="rest">
-            <span className="eyebrow">{t("rest.eyebrow")}</span>
-            <div className="rest-art">◌</div>
-            <h1 tabIndex={-1}>{t("rest.title")}</h1>
-            <p>{t("rest.description")}</p>
-            <div
-              className={`rest-clock${data.breakState.manual ? " rest-clock-manual" : ""}`}
-            >
-              {data.breakState.manual
-                ? t("rest.manualTime")
-                : formatTime(data.breakState.remaining * 1000)}
-            </div>
-            <p>
-              {data.run
-                ? t("rest.next", {
-                    exercise: exerciseName(
-                      data.run.routine.steps[data.run.index].kind,
-                    ),
-                  })
-                : t("rest.saved")}
-            </p>
-            {lastSession && <SessionRecap session={lastSession} />}
-            {data.run &&
-              shouldRecommendLandscape(
-                data.run.routine.steps[data.run.index].kind,
-                practiceSetups.pursuit.configuration.pattern,
-              ) && <LandscapeHint />}
-            <div className="actions">
-              <button
-                onClick={() =>
-                  persist({
-                    ...data,
-                    breakState: {
-                      ...data.breakState!,
-                      remaining: data.breakState!.remaining + 60,
-                    },
-                  })
-                }
-              >
-                {t("rest.extend")}
-              </button>
-              <button
-                onClick={() =>
-                  persist({
-                    ...data,
-                    breakState: {
-                      ...data.breakState!,
-                      manual: !data.breakState!.manual,
-                    },
-                  })
-                }
-              >
-                {data.breakState.manual
-                  ? t("rest.countdown")
-                  : t("rest.manual")}
-              </button>
-            </div>
-            <button
-              className="primary"
-              onClick={() => {
-                if (data.run) {
-                  const next = data.run.routine.steps[data.run.index];
-                  start(next.kind, next.duration, data.run.eye);
-                } else persist({ ...data, breakState: null });
-              }}
-            >
-              {data.run ? t("rest.startNext") : t("rest.back")}
-            </button>
-            {data.run && (
-              <button
-                onClick={() =>
-                  persist({ ...data, run: null, breakState: null })
-                }
-              >
-                {t("rest.endRoutine")}
-              </button>
-            )}
-            {!data.run && lastSession && (
-              <button
-                type="button"
-                onClick={() => {
-                  const selected = lastSession.kind;
-                  rememberPractice(selected, lastSession.eye, {
-                    ...practiceSetups,
-                    [selected]: {
-                      mode: lastSession.setupMode ?? "Custom",
-                      configuration: structuredClone(lastSession.configuration),
-                    },
-                  });
-                  start(
-                    selected,
-                    lastSession.configuration.duration,
-                    lastSession.eye,
-                    lastSession.configuration,
-                    lastSession.setupMode,
-                  );
-                }}
-              >
-                {t("recap.repeat")}
-              </button>
-            )}
-            <p className="fine">{t("rest.note")}</p>
-          </main>
+          <RestScreen
+            data={data}
+            session={lastSession}
+            onExtend={() =>
+              persist({
+                ...data,
+                breakState: {
+                  ...data.breakState!,
+                  remaining: data.breakState!.remaining + 60,
+                },
+              })
+            }
+            onManual={() =>
+              persist({
+                ...data,
+                breakState: {
+                  ...data.breakState!,
+                  manual: !data.breakState!.manual,
+                },
+              })
+            }
+            onContinue={() => {
+              if (data.run) {
+                const next = data.run.routine.steps[data.run.index];
+                start(next.kind, next.duration, data.run.eye);
+              } else persist({ ...data, breakState: null });
+            }}
+            onRepeat={() => {
+              if (!lastSession) return;
+              const selected = lastSession.kind;
+              const repeatConfiguration = {
+                ...structuredClone(lastSession.configuration),
+                duration: lastSession.checkIn
+                  ? practiceSetups[selected].configuration.duration
+                  : lastSession.configuration.duration,
+              };
+              rememberPractice(selected, lastSession.eye, {
+                ...practiceSetups,
+                [selected]: {
+                  mode: lastSession.setupMode ?? "Custom",
+                  configuration: repeatConfiguration,
+                },
+              });
+              start(
+                selected,
+                repeatConfiguration.duration,
+                lastSession.eye,
+                repeatConfiguration,
+                lastSession.setupMode,
+                Boolean(lastSession.checkIn),
+              );
+            }}
+            onEndRoutine={() =>
+              persist({ ...data, run: null, breakState: null })
+            }
+            onExport={() => exportData()}
+            onSnooze={() =>
+              persist({
+                ...data,
+                backupReminderDismissedAt: new Date().toISOString(),
+              })
+            }
+          />
         ) : (
           <>
             <main id="main-content" tabIndex={-1} className="content">
@@ -1399,6 +1408,20 @@ function App() {
                     })
                   }
                   ready={ready}
+                  savedSetups={data.savedSetups ?? []}
+                  saveSetups={(savedSetups) =>
+                    persist({ ...state.current, savedSetups })
+                  }
+                  startCheckIn={() =>
+                    start(
+                      kind,
+                      configuration.duration,
+                      eye,
+                      undefined,
+                      undefined,
+                      true,
+                    )
+                  }
                   start={() => start()}
                 />
               )}
@@ -1538,14 +1561,28 @@ function App() {
                   </section>
                   <DataSettings
                     data={data}
-                    onExport={exportData}
+                    onExport={() => exportData()}
                     offlineAvailability={offlineAvailability}
                     onDownloadOffline={downloadOffline}
+                    onReminderChange={(backupReminder) =>
+                      persist({
+                        ...state.current,
+                        preferences: {
+                          ...state.current.preferences,
+                          backupReminder,
+                        },
+                      })
+                    }
                     onImport={async (input, restorePreferences) => {
                       const next = mergeBackup(state.current, input, {
                         restorePreferences,
                       });
-                      await save(next);
+                      try {
+                        await save(next);
+                      } catch (error) {
+                        storageFailure(error, "error.save");
+                        throw error;
+                      }
                       if (
                         restorePreferences &&
                         next.preferences.language !==
@@ -1583,6 +1620,26 @@ function App() {
           </>
         )}
       </div>
+      <Modal
+        open={storageConflict}
+        dismissible={false}
+        title={t("durability.conflictTitle")}
+        onClose={() => {}}
+      >
+        <p>{t("durability.conflictNote")}</p>
+        <div className="actions">
+          <button type="button" onClick={() => exportData(false)}>
+            {t("durability.exportCopy")}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => location.reload()}
+          >
+            {t("durability.reload")}
+          </button>
+        </div>
+      </Modal>
     </LocalizationContext.Provider>
   );
 }

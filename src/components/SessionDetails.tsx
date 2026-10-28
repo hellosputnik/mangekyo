@@ -89,6 +89,11 @@ export function SessionDetails({
       label: t("config.visualTask"),
       value: optionLabel(configuration.stimulus),
     });
+  if (session.kind === "crowding")
+    settings.push({
+      label: t("crowding.spacing"),
+      value: number(configuration.crowdingSpacing ?? 1, 2),
+    });
   if (session.kind === "contrast")
     settings.push({
       label: t("config.contrastTask"),
@@ -136,6 +141,14 @@ export function SessionDetails({
   const dayEntries = activityEntries({ sessions: [session], current: null });
   return (
     <div className="session-details">
+      {session.checkIn && (
+        <p className="inline-notice">
+          {t("checkIn.record", {
+            count: number(session.trials.length),
+            total: number(session.checkIn.targetTrials),
+          })}
+        </p>
+      )}
       <dl className="session-facts">
         <div>
           <dt>{t("sessionDetails.started")}</dt>
@@ -150,8 +163,14 @@ export function SessionDetails({
           <dd>{time(session.activeMilliseconds)}</dd>
         </div>
         <div>
-          <dt>{t("sessionDetails.planned")}</dt>
-          <dd>{duration(configuration.duration)}</dd>
+          <dt>
+            {t(session.checkIn ? "checkIn.answers" : "sessionDetails.planned")}
+          </dt>
+          <dd>
+            {session.checkIn
+              ? `${number(session.trials.length)} / ${number(session.checkIn.targetTrials)}`
+              : duration(configuration.duration)}
+          </dd>
         </div>
         <div>
           <dt>{t("practice.eye")}</dt>
@@ -256,7 +275,9 @@ export function SessionDetails({
               <dt>{t("sessionDetails.bestRun")}</dt>
               <dd>{number(score.bestRun)}</dd>
             </div>
-            {(session.kind === "visual" || session.kind === "tap") &&
+            {(session.kind === "visual" ||
+              session.kind === "tap" ||
+              session.kind === "crowding") &&
               sizes.length > 0 && (
                 <div>
                   <dt>{t("sessionDetails.targetRange")}</dt>
@@ -418,6 +439,24 @@ export function SessionDetails({
         </section>
       )}
       <section className="session-configuration">
+        {session.kind === "crowding" && session.trials.length > 0 && (
+          <p className="fine">
+            {t("crowding.recordedGap", {
+              small: number(
+                Math.min(
+                  ...session.trials.map((trial) => trial.crowdingSpacing ?? 0),
+                ),
+                1,
+              ),
+              large: number(
+                Math.max(
+                  ...session.trials.map((trial) => trial.crowdingSpacing ?? 0),
+                ),
+                1,
+              ),
+            })}
+          </p>
+        )}
         <h3>{t("sessionDetails.configuration")}</h3>
         <dl>
           {settings.map((setting) => (

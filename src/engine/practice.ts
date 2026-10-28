@@ -18,6 +18,7 @@ export function practiceDefaults(kind: ExerciseKind): Configuration {
       ? { size: 44, touchTolerance: 100 }
       : {}),
     ...(kind === "follow" ? { speed: 0.04 } : {}),
+    ...(kind === "crowding" ? { size: 44 } : {}),
   };
 }
 
@@ -29,6 +30,7 @@ export function initialPracticeSetups(): PracticeSetups {
     contrast: { mode: "Default", configuration: { ...defaults } },
     tap: { mode: "Default", configuration: practiceDefaults("tap") },
     follow: { mode: "Default", configuration: practiceDefaults("follow") },
+    crowding: { mode: "Default", configuration: practiceDefaults("crowding") },
   };
 }
 
@@ -83,6 +85,8 @@ export function parsePracticePreferences(
   const setups = initialPracticeSetups();
   for (const kind of exerciseKinds) {
     const setup = (value.setups as Record<string, unknown>)[kind];
+    // Backups made before this exercise existed retain their six setups.
+    if (kind === "crowding" && setup === undefined) continue;
     if (!setup || typeof setup !== "object") return null;
     const entry = setup as Record<string, unknown>;
     if (
@@ -92,6 +96,14 @@ export function parsePracticePreferences(
     )
       return null;
     const settings = entry.configuration as Record<string, unknown>;
+    if (
+      settings.crowdingSpacing !== undefined &&
+      (typeof settings.crowdingSpacing !== "number" ||
+        !Number.isFinite(settings.crowdingSpacing) ||
+        settings.crowdingSpacing < 0.15 ||
+        settings.crowdingSpacing > 3)
+    )
+      return null;
     const numeric = [
       "duration",
       "size",

@@ -26,3 +26,11 @@ Rehearsal retained its close control at 320×740, 390×844 and 844×390; closing
 - A complete criterion-by-criterion WCAG 2.2 A/AA evaluation across all states, plus intended-user usability validation. Automated tests and Chromium viewport checks do not establish these results.
 
 The [Vietnamese iPhone walkthrough](iphone-walkthrough.vi.md) prepares the usability session. No physical-device or representative-user pass is claimed here.
+
+## Follow-up: summaries, check-ins and crowded symbols
+
+The current revision passes 265 automated tests and the strict production build. An 88-state Chromium matrix covered all four pages in English and Vietnamese at phone, landscape and desktop widths, plus 200% text and expanded text spacing. Two existing narrow-screen English disclosure labels were repaired and rechecked. Custom settings retained readable controls at 320×740, 390×844 and 844×390; an enlarged-text Done-button finding was repaired by reflowing the dialog header. The weekly mini chart uses a focusable native horizontal scroller when enlarged labels need more room, with full dated list labels for assistive technology.
+
+The new crowded-symbol task keeps answer controls large and reports actual presented spacing and diameter. A twelve-answer check-in preserved its answers and active time across pause/reload, required explicit Resume, and completed into the shared recap. Repeat retained a fresh answer counter and the ordinary practice duration. Two matching completed check-ins appeared together in the dated accuracy/response-time chart; a partial repetition stayed in history. Saved setup loading restored the exact spacing value. A two-tab browser check paused the stale tab, exposed an export-copy action and loaded the winning eye selection after explicit reload.
+
+With the production server stopped, a saved setup survived reload, the new exercise completed twelve answers, and its result, chart and reminder dismissal survived another offline reload. These remain Chromium and mocked-API checks. Direct iPhone Safari, Home Screen interruptions, VoiceOver and representative-user observation are still outstanding.

@@ -113,7 +113,8 @@ export function buildStatistics(data: Data, today = new Date()) {
           records.some(
             (session) => (session.follow?.trackedMilliseconds ?? 0) > 0,
           ))
-          ? records.at(-1)!.difficulty + 1
+          ? (records.filter((record) => !record.checkIn).at(-1)?.difficulty ??
+              0) + 1
           : null,
       recentResults: responseRecords.slice(-6).map((session) => ({
         id: session.id,

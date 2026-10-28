@@ -22,6 +22,8 @@ import { ProfessionalMeasurements } from "./ProfessionalMeasurements";
 import { StatisticsResetControls } from "./StatisticsResetControls";
 import { Icon } from "./Icon";
 import { ActivityBrowser } from "./ActivityBrowser";
+import { StatisticsOverview } from "./StatisticsOverview";
+import { CheckInTrends } from "./CheckInTrends";
 
 export function Statistics({
   data,
@@ -66,12 +68,20 @@ export function Statistics({
   const { summary } = report;
   return (
     <div className="statistics-page">
-      <StatisticsFilters
-        sessions={sessions}
-        filter={effectiveFilter}
-        onChange={setFilter}
-      />
+      <StatisticsOverview data={filtered} />
+      <details className="statistics-filter-disclosure">
+        <summary>
+          {t("overview.filters")}
+          {filterActive && <span>{t("overview.filtered")}</span>}
+        </summary>
+        <StatisticsFilters
+          sessions={sessions}
+          filter={effectiveFilter}
+          onChange={setFilter}
+        />
+      </details>
       <ActivityBrowser data={filtered} />
+      <CheckInTrends sessions={report.sessions} />
       <section className="lifetime-report" aria-labelledby="lifetime-title">
         <div className="report-heading">
           <h2 id="lifetime-title">

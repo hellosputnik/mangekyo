@@ -12,7 +12,12 @@ export function SessionRecap({ session }: { session: Session }) {
       label: t("statistics.activeTime"),
       value: time(summary.activeMilliseconds),
     },
-    { label: t("recap.planned"), value: time(summary.plannedMilliseconds) },
+    {
+      label: t(session.checkIn ? "checkIn.answers" : "recap.planned"),
+      value: session.checkIn
+        ? `${number(session.trials.length)} / ${number(session.checkIn.targetTrials)}`
+        : time(summary.plannedMilliseconds),
+    },
   ];
   if (session.kind === "follow")
     metrics.push(
@@ -28,7 +33,7 @@ export function SessionRecap({ session }: { session: Session }) {
         value: time(summary.touch.bestRunMilliseconds),
       },
     );
-  else if (["visual", "contrast", "tap"].includes(session.kind))
+  else if (["visual", "contrast", "tap", "crowding"].includes(session.kind))
     metrics.push(
       {
         label: t(
@@ -82,14 +87,19 @@ export function SessionRecap({ session }: { session: Session }) {
         ))}
       </dl>
       <p className="recap-achievement">
-        {session.challenge
-          ? t("challenge.summary", {
-              start: number(session.challenge.startingLevel + 1),
-              highest: number(session.challenge.highestLevel + 1),
+        {session.checkIn
+          ? t("checkIn.record", {
+              count: number(session.trials.length),
+              total: number(session.checkIn.targetTrials),
             })
-          : ["visual", "contrast", "tap"].includes(session.kind)
-            ? t("recap.points", { points: number(summary.points) })
-            : t("recap.trackingNote")}
+          : session.challenge
+            ? t("challenge.summary", {
+                start: number(session.challenge.startingLevel + 1),
+                highest: number(session.challenge.highestLevel + 1),
+              })
+            : ["visual", "contrast", "tap", "crowding"].includes(session.kind)
+              ? t("recap.points", { points: number(summary.points) })
+              : t("recap.trackingNote")}
       </p>
     </section>
   );

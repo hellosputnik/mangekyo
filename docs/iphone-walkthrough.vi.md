@@ -42,3 +42,12 @@ Không tiếp tục nếu thấy khó chịu. Việc che mắt và lịch luyệ
 ## Quan sát không hướng dẫn
 
 Sau khi làm quen, nhờ người dùng tự thực hiện bốn việc: bắt đầu một bài; dừng khi muốn nghỉ; tìm một buổi tập trước; và nhận biết cài đặt nào sẽ được dùng khi tập lại. Người quan sát ghi lại chỗ bị nhầm, thao tác thừa, chữ khó đọc và nút khó tìm. Không xem việc hoàn thành các bước này là bằng chứng cải thiện thị lực.
+
+## Cài đặt đã lưu và bài mới
+
+- Trong Tùy chỉnh, xem hình trước rồi đổi kích thước, màu và độ tương phản. Hình xem trước phải cập nhật, không tự chạy một buổi tập.
+- Mở Cài đặt đã lưu, đặt tên, lưu rồi đổi thông số và chọn lại tên vừa lưu. Kiểm tra thông số và thời lượng trở lại chính xác sau tải lại. Thử xóa rồi Hoàn tác.
+- Chọn Nhìn giữa. Trả lời hướng khe hở của hình ở giữa hai hình lân cận. Kích thước hình cần giữ nguyên khi khoảng cách thay đổi theo kết quả.
+- Mở Kiểm tra bài tập: 12 câu với thông số cố định. Tạm dừng, tải lại, xác nhận Tiếp tục rồi hoàn thành. Kiểm tra lịch sử và biểu đồ riêng; mức khó của bài tập thường không đổi.
+- Mở cùng ứng dụng trong hai thẻ thử. Thay đổi lựa chọn mắt ở một thẻ: thẻ cũ cần tạm dừng, cho xuất bản sao rồi tải dữ liệu mới. Không dùng dữ liệu thật cho thử nghiệm này.
+- Trong Cài đặt, thử yêu cầu bảo vệ dữ liệu. Ứng dụng cần nói rõ trình duyệt đã cấp hay vẫn lưu theo chế độ có thể bị giải phóng. Bật Nhắc sao lưu nếu muốn; không cần thông báo hệ thống.

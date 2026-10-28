@@ -26,7 +26,9 @@ export function SessionHistory({ sessions }: { sessions: Session[] }) {
           <summary>
             {exerciseName(session.kind)} · {time(session.activeMilliseconds)}
             <small>
-              {eyeLabel(session.eye)} · {statusLabel(session.status)}
+              {eyeLabel(session.eye)} ·{" "}
+              {session.checkIn && `${t("checkIn.title")} · `}
+              {statusLabel(session.status)}
             </small>
           </summary>
           <SessionDetails session={session} />

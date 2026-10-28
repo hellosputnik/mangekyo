@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Data } from "../engine/model";
 import type { MessageKey } from "../i18n/locale";
 import { useI18n } from "../i18n/react";
@@ -6,6 +6,11 @@ import { previewBackup } from "../persistence/backup";
 import type { OfflineAvailability } from "../pwa/availability";
 import { Modal } from "./Modal";
 import { ToggleSwitch } from "./controls/ToggleSwitch";
+import {
+  checkDurability,
+  requestDurability,
+  type Durability,
+} from "../persistence/durability";
 
 const preferenceLabels: Record<keyof Data["preferences"], MessageKey> = {
   language: "language.title",
@@ -18,6 +23,7 @@ const preferenceLabels: Record<keyof Data["preferences"], MessageKey> = {
   reducedMotion: "settings.reducedMotion",
   highContrast: "settings.highContrast",
   reminder: "settings.reminder",
+  backupReminder: "durability.reminder",
 };
 export function DataSettings({
   data,
@@ -25,12 +31,14 @@ export function DataSettings({
   onImport,
   offlineAvailability,
   onDownloadOffline,
+  onReminderChange,
 }: {
   data: Data;
   onExport: () => void;
   onImport: (input: unknown, restorePreferences: boolean) => Promise<void>;
   offlineAvailability: OfflineAvailability;
   onDownloadOffline: () => Promise<void>;
+  onReminderChange?: (enabled: boolean) => void;
 }) {
   const { t, number, date, duration, exerciseName } = useI18n();
   const [pending, setPending] = useState<{
@@ -41,6 +49,10 @@ export function DataSettings({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false);
+  const [durability, setDurability] = useState<Durability>("checking");
+  useEffect(() => {
+    void checkDurability(navigator.storage).then(setDurability);
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = pending ? previewBackup(data, pending.input) : null;
   const preferenceValue = (
@@ -86,6 +98,28 @@ export function DataSettings({
       )}
       <p>{t("settings.storageNote")}</p>
       <p className="fine">{t("storage.exportNote")}</p>
+      <div className="durability-settings">
+        <p role="status">{t(`durability.${durability}`)}</p>
+        {durability === "best-effort" && (
+          <button
+            type="button"
+            onClick={() => {
+              setDurability("checking");
+              void requestDurability(navigator.storage).then(setDurability);
+            }}
+          >
+            {t("durability.request")}
+          </button>
+        )}
+        {onReminderChange && (
+          <ToggleSwitch
+            label={t("durability.reminder")}
+            checked={data.preferences.backupReminder ?? false}
+            onChange={onReminderChange}
+          />
+        )}
+        <p className="fine">{t("durability.note")}</p>
+      </div>
       <div className="backup-actions">
         <button type="button" onClick={onExport}>
           {t("settings.export")}
@@ -163,6 +197,10 @@ export function DataSettings({
               <div>
                 <dt>{t("backup.adaptiveProfiles")}</dt>
                 <dd>+{number(preview.adaptiveProfiles)}</dd>
+              </div>
+              <div>
+                <dt>{t("setups.label")}</dt>
+                <dd>+{number(preview.savedSetups)}</dd>
               </div>
             </dl>
             <ToggleSwitch

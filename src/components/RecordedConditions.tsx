@@ -6,7 +6,10 @@ export function RecordedConditions({ session }: { session: Session }) {
   const settings = session.configuration;
   const rows = [
     [t("practice.eye"), eyeLabel(session.eye)],
-    [t("practice.duration"), duration(settings.duration)],
+    [
+      t(session.checkIn ? "checkIn.timeLimit" : "practice.duration"),
+      duration(settings.duration),
+    ],
     [t("recap.target"), t("touch.pixels", { value: number(settings.size) })],
     [t("config.contrast"), percent(settings.contrast)],
     [t("config.distance"), number(settings.distance)],
@@ -39,6 +42,13 @@ export function RecordedConditions({ session }: { session: Session }) {
       [t("config.jumpPause"), number(settings.jumpPause, 1)],
       [t("config.jumpDistance"), percent(settings.jumpDistance)],
     );
+  if (session.checkIn)
+    rows.push([t("checkIn.title"), number(session.checkIn.targetTrials)]);
+  if (session.kind === "crowding")
+    rows.push([
+      t("crowding.spacing"),
+      number(settings.crowdingSpacing ?? 1, 2),
+    ]);
   if (session.kind === "visual")
     rows.push([t("config.visualTask"), optionLabel(settings.stimulus)]);
   if (session.kind === "contrast")

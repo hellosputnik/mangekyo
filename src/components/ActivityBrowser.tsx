@@ -181,7 +181,11 @@ export function ActivityBrowser({ data }: { data: Data }) {
             </button>
           </div>
           <div className="activity-period-summary">
-            <div className="activity-readout" aria-live="polite" aria-atomic="true">
+            <div
+              className="activity-readout"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               <span>{selectedLabel}</span>
               <strong>
                 {trainingTime(
@@ -217,7 +221,9 @@ export function ActivityBrowser({ data }: { data: Data }) {
           />
           <p className="activity-chart-hint">
             {t(
-              range === "Day" ? "activity.chartHintDay" : "activity.chartHintDates",
+              range === "Day"
+                ? "activity.chartHintDay"
+                : "activity.chartHintDates",
             )}
           </p>
           {view.continuedMilliseconds > 0 && (
@@ -278,7 +284,11 @@ export function ActivityBrowser({ data }: { data: Data }) {
                                 : started}{" "}
                               · {eyeLabel(entry.session.eye)}
                             </span>
-                            <small>{statusLabel(entry.session.status)}</small>
+                            <small>
+                              {entry.session.checkIn &&
+                                `${t("checkIn.title")} · `}
+                              {statusLabel(entry.session.status)}
+                            </small>
                           </span>
                           <span className="activity-session-time">
                             <strong>{time(entry.activeMilliseconds)}</strong>

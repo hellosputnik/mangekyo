@@ -72,11 +72,14 @@ export class ActiveTimer {
     if (["completed", "abandoned"].includes(this.session.status)) return;
     this.checkpoint();
     this.anchor = null;
-    this.session.status =
-      this.session.activeMilliseconds >=
-      this.session.configuration.duration * 1000
-        ? "completed"
-        : "abandoned";
+    this.session.status = (
+      this.session.checkIn
+        ? this.session.trials.length >= this.session.checkIn.targetTrials
+        : this.session.activeMilliseconds >=
+          this.session.configuration.duration * 1000
+    )
+      ? "completed"
+      : "abandoned";
     this.session.endedAt = this.wall().toISOString();
   }
 }

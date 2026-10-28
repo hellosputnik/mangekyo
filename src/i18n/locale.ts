@@ -49,6 +49,7 @@ const exerciseKeys: Record<ExerciseKind, MessageKey> = {
   contrast: "exercise.contrast",
   tap: "exercise.tap",
   follow: "exercise.follow",
+  crowding: "exercise.crowding",
 };
 const descriptionKeys: Record<ExerciseKind, MessageKey> = {
   pursuit: "description.pursuit",
@@ -57,6 +58,7 @@ const descriptionKeys: Record<ExerciseKind, MessageKey> = {
   contrast: "description.contrast",
   tap: "description.tap",
   follow: "description.follow",
+  crowding: "description.crowding",
 };
 const eyeKeys: Record<Eye, MessageKey> = {
   Left: "eye.Left",

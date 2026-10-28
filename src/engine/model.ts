@@ -8,10 +8,16 @@ export const exerciseKinds = [
   "contrast",
   "tap",
   "follow",
+  "crowding",
 ] as const;
 export type ExerciseKind = (typeof exerciseKinds)[number];
 export const isResponseExercise = (kind: ExerciseKind) =>
-  kind === "visual" || kind === "contrast" || kind === "tap";
+  kind === "visual" ||
+  kind === "contrast" ||
+  kind === "tap" ||
+  kind === "crowding";
+export const supportsCheckIn = (kind: ExerciseKind) =>
+  kind === "visual" || kind === "contrast" || kind === "crowding";
 export const isTouchExercise = (kind: ExerciseKind) =>
   kind === "tap" || kind === "follow";
 export type Eye = "Left" | "Right" | "Both";
@@ -47,6 +53,7 @@ export interface Configuration {
   hand: "Left" | "Right";
   tapPaceSeconds: number;
   gentleMotion?: boolean;
+  crowdingSpacing?: number;
 }
 export const defaults: Configuration = {
   duration: 300,
@@ -68,6 +75,7 @@ export const defaults: Configuration = {
   touchTolerance: 72,
   hand: "Right",
   tapPaceSeconds: 2.5,
+  crowdingSpacing: 1,
 };
 export const names: Record<ExerciseKind, string> = {
   pursuit: "Smooth pursuit",
@@ -76,6 +84,7 @@ export const names: Record<ExerciseKind, string> = {
   contrast: "Contrast discrimination",
   tap: "Tap targets",
   follow: "Follow the target",
+  crowding: "Crowded symbols",
 };
 export function bounded(
   value: number,
@@ -111,6 +120,7 @@ export function validate(configuration: Configuration): Configuration {
     touchTolerance: bounded(configuration.touchTolerance, 44, 160, 72),
     hand: configuration.hand === "Left" ? "Left" : "Right",
     tapPaceSeconds: bounded(configuration.tapPaceSeconds, 1, 10, 2.5),
+    crowdingSpacing: bounded(configuration.crowdingSpacing ?? 1, 0.15, 3, 1),
   };
 }
 export interface Slice {
@@ -131,6 +141,7 @@ export interface Trial {
   timeLimitMilliseconds?: number;
   precisionRadius?: number;
   adaptiveLoad?: number;
+  crowdingSpacing?: number;
 }
 export interface FollowMetrics {
   trackedMilliseconds: number;
@@ -194,6 +205,7 @@ export interface Session {
   protocol?: string;
   inputMethod?: "pointer" | "keyboard" | "mixed";
   setupMode?: PracticeMode;
+  checkIn?: { version: 1; targetTrials: 12 };
 }
 export interface Step {
   kind: ExerciseKind;
@@ -222,6 +234,7 @@ export interface Preferences {
   reducedMotion: boolean;
   highContrast: boolean;
   reminder: number;
+  backupReminder?: boolean;
 }
 export interface Measurement {
   id: string;
@@ -266,6 +279,14 @@ export interface Data {
   touchProfiles?: TouchProfile[];
   practice?: PracticePreferences;
   lastExportedAt?: string;
+  backupReminderDismissedAt?: string;
+  savedSetups?: SavedSetup[];
+}
+export interface SavedSetup {
+  id: string;
+  name: string;
+  kind: ExerciseKind;
+  configuration: Configuration;
 }
 export const initialData = (): Data => ({
   sessions: [],
@@ -283,9 +304,11 @@ export const initialData = (): Data => ({
     reducedMotion: false,
     highContrast: false,
     reminder: 5,
+    backupReminder: false,
   },
   measurements: [],
   touchProfiles: [],
+  savedSetups: [],
   levels: {
     pursuit: 0,
     saccades: 0,
@@ -293,6 +316,7 @@ export const initialData = (): Data => ({
     contrast: 0,
     tap: 0,
     follow: 0,
+    crowding: 0,
   },
   breakState: null,
 });

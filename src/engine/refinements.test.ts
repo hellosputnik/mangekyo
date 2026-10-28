@@ -71,7 +71,12 @@ it.each(exerciseKinds)(
     expect(result.activeMilliseconds).toBe(23456);
     expect(result.plannedMilliseconds).toBe(300000);
     expect(result.completed).toBe(false);
-    if (kind === "visual" || kind === "contrast" || kind === "tap")
+    if (
+      kind === "visual" ||
+      kind === "contrast" ||
+      kind === "tap" ||
+      kind === "crowding"
+    )
       expect(result.accuracy).toBe(1);
     else expect(result.accuracy).toBeNull();
   },

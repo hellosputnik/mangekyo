@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import type { ExerciseKind } from "../engine/model";
 
 const artwork: Record<ExerciseKind, ReactNode> = {
+  crowding: (
+    <>
+      <path d="M7 13a5 5 0 1 0 0 6M21 11a7 7 0 1 0 0 10M30 13a5 5 0 1 0 0 6" />
+    </>
+  ),
   pursuit: (
     <path d="M16 16C10 4 2 6 2 16s8 12 14 0C22 4 30 6 30 16s-8 12-14 0Z" />
   ),

@@ -10,6 +10,7 @@ export function Modal({
   className = "",
   closeDisabled = false,
   closeLabel,
+  dismissible = true,
 }: {
   open: boolean;
   title: string;
@@ -19,6 +20,7 @@ export function Modal({
   className?: string;
   closeDisabled?: boolean;
   closeLabel?: string;
+  dismissible?: boolean;
 }) {
   const { t } = useI18n();
   const identifier = useId();
@@ -47,7 +49,7 @@ export function Modal({
       aria-describedby={description ? `${identifier}-description` : undefined}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        if (dismissible) onClose();
       }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -58,7 +60,7 @@ export function Modal({
           event.clientY < bounds.top ||
           event.clientY > bounds.bottom
         )
-          onClose();
+          if (dismissible) onClose();
       }}
     >
       <div className="custom-dialog-header">
@@ -66,9 +68,11 @@ export function Modal({
           <h2 id={`${identifier}-title`}>{title}</h2>
           {description && <p id={`${identifier}-description`}>{description}</p>}
         </div>
-        <button type="button" disabled={closeDisabled} onClick={onClose}>
-          {closeLabel ?? t("common.done")}
-        </button>
+        {dismissible && (
+          <button type="button" disabled={closeDisabled} onClick={onClose}>
+            {closeLabel ?? t("common.done")}
+          </button>
+        )}
       </div>
       <div className="custom-dialog-body">{open && children}</div>
     </dialog>

@@ -22,9 +22,11 @@ export const emptyStatisticsFilter: StatisticsFilter = {
 export function exerciseProtocol(kind: ExerciseKind) {
   return kind === "tap" || kind === "follow"
     ? "touch-balance-3"
-    : kind === "visual"
-      ? "visual-shrink-1"
-      : "visual-practice-1";
+    : kind === "crowding"
+      ? "crowding-spacing-1"
+      : kind === "visual"
+        ? "visual-shrink-1"
+        : "visual-practice-1";
 }
 
 /** Only task-relevant base settings enter a group; labels and unused controls do not. */
@@ -53,6 +55,7 @@ export function conditionSettings(kind: ExerciseKind, settings: Configuration) {
     );
   if (kind === "visual") common.push(settings.stimulus);
   if (kind === "contrast") common.push(settings.contrastStimulus);
+  if (kind === "crowding") common.push(settings.crowdingSpacing ?? 1);
   if (isTouchExercise(kind))
     common.push(settings.hand, settings.touchTolerance);
   if (kind === "tap") common.push(settings.tapPaceSeconds);
@@ -64,6 +67,9 @@ export function comparisonKey(session: Session) {
     session.kind,
     session.eye,
     session.protocol ?? "legacy",
+    session.checkIn
+      ? `check-in-${session.checkIn.version}-${session.checkIn.targetTrials}`
+      : "adaptive",
     session.inputMethod ?? "unrecorded",
     conditionSettings(session.kind, session.configuration),
     viewport
@@ -141,10 +147,12 @@ export function personalBest(sessions: Session[]): PersonalBest | null {
       trial.timeLimitMilliseconds,
       trial.precisionRadius,
       trial.adaptiveLoad,
+      trial.crowdingSpacing,
     ]);
   const validPresentation = (session: Session, trial: Trial) =>
     session.kind === "contrast" ||
-    (session.kind === "visual" && trial.stimulusDiameter !== undefined) ||
+    ((session.kind === "visual" || session.kind === "crowding") &&
+      trial.stimulusDiameter !== undefined) ||
     (session.kind === "tap" &&
       trial.adaptiveLoad !== undefined &&
       trial.touchTolerance !== undefined &&

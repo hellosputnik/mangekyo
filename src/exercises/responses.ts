@@ -1,5 +1,7 @@
 import type { Session, Trial } from "../engine/model";
 import { adapt } from "../engine/timer";
+import { crowdingGeometry, nextCrowdingDifficulty } from "./crowding";
+import { checkInComplete } from "../engine/check-in";
 import {
   maximumVisualDifficulty,
   nextVisualDifficulty,
@@ -30,7 +32,8 @@ export function recordResponse(
 ) {
   if (
     session.status !== "running" ||
-    !["visual", "contrast"].includes(session.kind)
+    !["visual", "contrast", "crowding"].includes(session.kind) ||
+    checkInComplete(session)
   )
     return null;
   const previousDifficulty = session.difficulty;
@@ -38,6 +41,20 @@ export function recordResponse(
     correct,
     responseMilliseconds: Math.max(0, responseMilliseconds),
     difficulty: previousDifficulty,
+    ...(session.kind === "crowding"
+      ? {
+          stimulusDiameter: crowdingGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).diameter,
+          crowdingSpacing: crowdingGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).gap,
+        }
+      : {}),
     ...(session.kind === "visual"
       ? {
           stimulusDiameter:
@@ -49,7 +66,14 @@ export function recordResponse(
         }
       : {}),
   });
-  if (session.kind === "visual") {
+  if (session.checkIn)
+    return { ...responseScore(session.trials), enlarged: false };
+  if (session.kind === "crowding") {
+    session.difficulty = nextCrowdingDifficulty(
+      previousDifficulty,
+      session.trials.map((trial) => trial.correct),
+    );
+  } else if (session.kind === "visual") {
     session.difficulty = nextVisualDifficulty(
       previousDifficulty,
       session.trials.slice(-3).map((trial) => trial.correct),

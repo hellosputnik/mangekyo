@@ -2,6 +2,7 @@ import { initialData, validate, type Data } from "../engine/model";
 import { normalizeLanguagePreference } from "../i18n/locale";
 import { resetTouchRun } from "../exercises/touch-challenge";
 import { parsePracticePreferences } from "../engine/practice";
+import { parseSavedSetups } from "../engine/saved-setups";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("mangekyo", 1);
@@ -9,11 +10,17 @@ const open = (): Promise<IDBDatabase> =>
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-export async function load(): Promise<Data> {
+async function readData(): Promise<{ data: Data; revision: number }> {
   const database = await open();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction("state");
-    const request = transaction.objectStore("state").get("main");
+    const store = transaction.objectStore("state");
+    const versionRequest = store.get("revision");
+    let revision = 0;
+    versionRequest.onsuccess = () => {
+      revision = versionRequest.result ?? 0;
+    };
+    const request = store.get("main");
     request.onsuccess = () => {
       const data = (request.result as Data | undefined) ?? initialData();
       data.preferences = {
@@ -23,6 +30,7 @@ export async function load(): Promise<Data> {
       };
       data.levels = { ...initialData().levels, ...data.levels };
       data.practice = parsePracticePreferences(data.practice) ?? undefined;
+      data.savedSetups = parseSavedSetups(data.savedSetups ?? []) ?? [];
       if (
         data.lastExportedAt !== undefined &&
         (typeof data.lastExportedAt !== "string" ||
@@ -48,31 +56,98 @@ export async function load(): Promise<Data> {
         data.current.status = "interrupted";
         resetTouchRun(data.current);
       }
-      resolve(data);
+      resolve({ data, revision });
     };
     request.onerror = () => reject(request.error);
     transaction.oncomplete = () => database.close();
   });
 }
-async function writeSnapshot(snapshot: Data): Promise<void> {
-  const database = await open();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction("state", "readwrite");
-    transaction.objectStore("state").put(snapshot, "main");
-    transaction.oncomplete = () => {
-      database.close();
-      resolve();
-    };
-    transaction.onerror = () => {
-      database.close();
-      reject(transaction.error);
-    };
-  });
+export class SnapshotConflict extends Error {
+  constructor() {
+    super("A newer snapshot exists in another tab");
+    this.name = "SnapshotConflict";
+  }
 }
-let pendingSave: Promise<void> = Promise.resolve();
-export function save(data: Data): Promise<void> {
-  const snapshot = structuredClone(data);
-  // Preserve transition order even when a slider and a timer checkpoint save together.
-  pendingSave = pendingSave.catch(() => {}).then(() => writeSnapshot(snapshot));
-  return pendingSave;
+
+/** Compare and replace inside one IndexedDB transaction, across all tabs. */
+export function createSnapshotStore() {
+  let revision: number | null = null;
+  let pending: Promise<void> = Promise.resolve();
+  const writer = crypto.randomUUID();
+  return {
+    async load() {
+      await pending.catch(() => {});
+      const result = await readData();
+      revision = result.revision;
+      return result.data;
+    },
+    save(data: Data) {
+      const snapshot = structuredClone(data);
+      pending = pending
+        .catch(() => {})
+        .then(async () => {
+          const database = await open();
+          return new Promise<void>((resolve, reject) => {
+            const transaction = database.transaction("state", "readwrite");
+            const store = transaction.objectStore("state");
+            const request = store.get("revision");
+            let nextRevision = 0;
+            let conflict = false;
+            request.onsuccess = () => {
+              const current = request.result ?? 0;
+              if ((revision ?? 0) !== current) {
+                conflict = true;
+                transaction.abort();
+                return;
+              }
+              nextRevision = current + 1;
+              store.put(snapshot, "main");
+              store.put(nextRevision, "revision");
+            };
+            transaction.oncomplete = () => {
+              revision = nextRevision;
+              database.close();
+              try {
+                const channel = new BroadcastChannel("mangekyo-snapshots");
+                channel.postMessage({ writer, revision });
+                channel.close();
+              } catch {
+                /* Atomic revision checks work without BroadcastChannel. */
+              }
+              resolve();
+            };
+            transaction.onabort = () => {
+              database.close();
+              reject(conflict ? new SnapshotConflict() : transaction.error);
+            };
+            transaction.onerror = () => {
+              /* onabort reports the transaction failure. */
+            };
+          });
+        });
+      return pending;
+    },
+    subscribe(onConflict: () => void) {
+      let channel: BroadcastChannel;
+      try {
+        channel = new BroadcastChannel("mangekyo-snapshots");
+      } catch {
+        return () => {};
+      }
+      channel.onmessage = (event) => {
+        if (
+          revision !== null &&
+          event.data?.writer !== writer &&
+          typeof event.data?.revision === "number" &&
+          event.data.revision > revision
+        )
+          onConflict();
+      };
+      return () => channel.close();
+    },
+  };
 }
+const store = createSnapshotStore();
+export const load = store.load;
+export const save = store.save;
+export const subscribeToWrites = store.subscribe;

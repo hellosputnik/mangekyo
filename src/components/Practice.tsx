@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   names,
+  supportsCheckIn,
   isTouchExercise,
   pursuitPatterns,
   type Configuration,
   type ExerciseKind,
   type Eye,
+  type SavedSetup,
 } from "../engine/model";
 import type { PracticeMode, PracticeSetup } from "../engine/practice";
 import { PracticeRehearsal } from "./PracticeRehearsal";
@@ -16,6 +18,8 @@ import { ToggleSwitch } from "./controls/ToggleSwitch";
 import { Icon } from "./Icon";
 import { PracticePresets } from "./PracticePresets";
 import { ExerciseArtwork } from "./ExerciseArtwork";
+import { StimulusPreview } from "./StimulusPreview";
+import { SavedSetups } from "./SavedSetups";
 import { LandscapeHint, shouldRecommendLandscape } from "./LandscapeHint";
 interface Props {
   minutes: number;
@@ -33,6 +37,9 @@ interface Props {
   reducedMotion: boolean;
   resetSetup: () => void;
   restoreSetup: (setup: PracticeSetup) => void;
+  savedSetups?: SavedSetup[];
+  saveSetups?: (setups: SavedSetup[]) => void;
+  startCheckIn?: () => void;
 }
 function AdvancedFields({
   kind,
@@ -85,6 +92,22 @@ function AdvancedFields({
               <option value="Grating">{t("stimulus.Grating")}</option>
               <option value="Shape">{t("stimulus.Shape")}</option>
             </select>
+          </label>
+        )}
+        {kind === "crowding" && (
+          <label>
+            {t("crowding.spacing")} ·{" "}
+            {number(configuration.crowdingSpacing ?? 1, 2)}
+            <input
+              type="range"
+              min="0.15"
+              max="3"
+              step="0.05"
+              value={configuration.crowdingSpacing ?? 1}
+              onChange={(event) =>
+                setting("crowdingSpacing", Number(event.target.value))
+              }
+            />
           </label>
         )}
         {(
@@ -232,6 +255,9 @@ export function Practice({
   reducedMotion,
   resetSetup,
   restoreSetup,
+  savedSetups = [],
+  saveSetups,
+  startCheckIn,
 }: Props) {
   const { t, number, exerciseName, exerciseDescription } = useI18n();
   const [durationValid, setDurationValid] = useState(true);
@@ -409,6 +435,19 @@ export function Practice({
           >
             <span className="button-label">{t("practice.begin")}</span>
           </button>
+          {supportsCheckIn(kind) && startCheckIn && (
+            <details className="check-in-start">
+              <summary>{t("checkIn.title")}</summary>
+              <p className="fine">{t("checkIn.intro")}</p>
+              <button
+                type="button"
+                disabled={!ready || !durationValid}
+                onClick={startCheckIn}
+              >
+                {t("checkIn.start")}
+              </button>
+            </details>
+          )}
         </section>
       </div>
       <PracticeRehearsal
@@ -454,6 +493,21 @@ export function Practice({
           </button>
         </div>
         <div className="custom-dialog-body">
+          {customOpen && (
+            <StimulusPreview kind={kind} configuration={configuration} />
+          )}
+          {saveSetups && (
+            <SavedSetups
+              key={kind}
+              kind={kind}
+              configuration={configuration}
+              setups={savedSetups}
+              onChange={saveSetups}
+              onApply={(configuration) =>
+                restoreSetup({ mode: "Custom", configuration })
+              }
+            />
+          )}
           <AdvancedFields
             kind={kind}
             configuration={configuration}

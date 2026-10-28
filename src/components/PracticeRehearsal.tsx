@@ -304,7 +304,7 @@ function RehearsalStage({
           {t(kind === "tap" ? "keyboard.tap" : "keyboard.follow")}
         </p>
       )}
-      {(kind === "visual" || kind === "contrast") && (
+      {(kind === "visual" || kind === "contrast" || kind === "crowding") && (
         <div className="rehearsal-answers">
           {choices.map((key, index) => (
             <button

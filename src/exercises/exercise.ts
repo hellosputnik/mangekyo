@@ -1,6 +1,7 @@
 import { type Configuration, type ExerciseKind } from "../engine/model";
 import { pursuitPoint } from "./pursuit";
 import { visualTargetRadius } from "./visual";
+import { crowdingGeometry } from "./crowding";
 export interface Exercise {
   initialize(): void;
   update(seconds: number, level: number): void;
@@ -16,6 +17,7 @@ export class VisualExercise implements Exercise {
   private seconds = 0;
   private level = 0;
   private target = 0;
+  private flankers = [0, 0];
   private running = false;
   constructor(
     private kind: ExerciseKind,
@@ -25,6 +27,10 @@ export class VisualExercise implements Exercise {
   initialize() {
     this.running = true;
     this.target = Math.floor(this.random() * 4);
+    this.flankers = [
+      Math.floor(this.random() * 4),
+      Math.floor(this.random() * 4),
+    ];
   }
   update(seconds: number, level: number) {
     if (this.running) {
@@ -35,6 +41,10 @@ export class VisualExercise implements Exercise {
   answer(choice: number) {
     const correct = choice === this.target;
     this.target = Math.floor(this.random() * 4);
+    this.flankers = [
+      Math.floor(this.random() * 4),
+      Math.floor(this.random() * 4),
+    ];
     return correct;
   }
   terminate() {
@@ -111,6 +121,37 @@ export class VisualExercise implements Exercise {
         context.fill();
       }
       context.restore();
+    }
+    if (this.kind === "crowding") {
+      const pixelRatio = Math.max(
+        1,
+        Math.min(3, context.getTransform?.().a ?? 1),
+      );
+      const geometry = crowdingGeometry(settings, this.level, {
+        width,
+        height,
+        pixelRatio,
+      });
+      [-1, 0, 1].forEach((position, index) => {
+        context.save();
+        context.translate(x + position * geometry.centerDistance, y);
+        context.rotate(
+          ((position === 0 ? this.target : this.flankers[index === 0 ? 0 : 1]) *
+            Math.PI) /
+            2,
+        );
+        context.lineWidth = Math.max(1 / pixelRatio, geometry.diameter / 8);
+        context.beginPath();
+        context.arc(0, 0, geometry.diameter / 2, 0.4, Math.PI * 2 - 0.4);
+        context.stroke();
+        context.restore();
+      });
+      context.globalAlpha = 1;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(x - 5, y + geometry.diameter / 2 + 12);
+      context.lineTo(x + 5, y + geometry.diameter / 2 + 12);
+      context.stroke();
     }
     if (this.kind === "contrast") {
       const contrast = Math.max(

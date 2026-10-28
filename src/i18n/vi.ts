@@ -552,4 +552,63 @@ export const vietnamese = {
   "filters.changedScreen": "Vùng tập đã thay đổi trong buổi",
   "backup.reading": "Đang đọc…",
   "storage.download": "Tải nội dung ngoại tuyến",
+  "exercise.crowding": "Nhận biết hình giữa",
+  "exercise.short.crowding": "Nhìn giữa",
+  "description.crowding":
+    "Xác định hướng khe hở của hình giữa các hình lân cận.",
+  "crowding.spacing": "Khoảng hở giữa hình (× đường kính)",
+  "crowding.question": "Khe hở của hình ở giữa hướng nào?",
+  "crowding.recordedGap": "Khoảng hở đã hiển thị: {small}–{large} px CSS",
+  "rehearsal.crowding": "Nhìn hình ở giữa. Chọn hướng khe hở của hình đó.",
+  "preview.title": "Xem trước hình tập",
+  "preview.note":
+    "Hình tĩnh ở mức khó ban đầu. Kích thước có thể bị giới hạn bởi vùng hiển thị; pixel CSS không phải số đo vật lý đã hiệu chuẩn.",
+  "setups.title": "Cài đặt đã lưu · {count}",
+  "setups.label": "Cài đặt đã lưu",
+  "setups.name": "Tên cài đặt",
+  "setups.save": "Lưu cài đặt",
+  "setups.note":
+    "Lưu thông số và thời lượng. Dùng tên đã có để thay thế cài đặt đó. Tối đa 30 cài đặt cho tất cả bài tập.",
+  "setups.saved": "Đã lưu cài đặt.",
+  "setups.loaded": "Đã dùng {name}.",
+  "setups.remove": "Xóa {name}",
+  "setups.removed": "Đã xóa cài đặt.",
+  "checkIn.title": "Kiểm tra bài tập",
+  "checkIn.intro":
+    "12 câu trả lời với thông số ban đầu cố định, không đổi mức khó. Có thể tạm dừng hoặc kết thúc bất cứ lúc nào. Dùng cùng cài đặt, mắt và vùng màn hình để so sánh kết quả luyện tập.",
+  "checkIn.start": "Bắt đầu kiểm tra",
+  "checkIn.answers": "Câu trả lời",
+  "checkIn.record":
+    "Kiểm tra bài tập · {count}/{total} câu. Mức khó đã lưu không đổi.",
+  "checkIn.trends": "Kết quả các lần kiểm tra",
+  "checkIn.trendNote":
+    "So sánh các lần hoàn thành với cùng điều kiện đã ghi. Kết quả chỉ mô tả việc luyện tập.",
+  "checkIn.empty":
+    "Chọn Kiểm tra bài tập trong bài Phân biệt hình ảnh, Phân biệt tương phản hoặc Nhận biết hình giữa để bắt đầu. Lần chưa hoàn thành hoặc thay đổi vùng màn hình vẫn có trong lịch sử, nhưng không đưa vào biểu đồ này.",
+  "checkIn.conditions": "Điều kiện kiểm tra",
+  "checkIn.records": "{count} lần kiểm tra",
+  "checkIn.chartNote":
+    "Độ chính xác của tối đa tám lần gần nhất cùng điều kiện; mỗi lần có {count} câu. Danh sách cũng hiển thị thời gian phản hồi trung vị, tính cả câu sai.",
+  "overview.week": "7 ngày gần nhất",
+  "overview.latest": "Lần gần nhất: {exercise} · {eye} · {time}",
+  "overview.filters": "Lọc kết quả",
+  "overview.filtered": "Đang lọc",
+  "rest.options": "Tùy chọn nghỉ",
+  "durability.checking": "Đang kiểm tra chế độ lưu…",
+  "durability.persistent": "Trình duyệt đã cấp chế độ lưu bền vững.",
+  "durability.best-effort": "Dữ liệu trình duyệt có thể bị giải phóng.",
+  "durability.unsupported": "Không kiểm tra được chế độ bảo vệ dữ liệu.",
+  "durability.request": "Yêu cầu bảo vệ dữ liệu",
+  "durability.reminder": "Nhắc sao lưu",
+  "durability.note":
+    "Nhắc khi có buổi tập mới và đã bảy ngày chưa tạo bản xuất. Chế độ lưu bền vững không ngăn việc xóa thủ công; vẫn nên giữ bản sao lưu.",
+  "durability.reminderNote":
+    "Có buổi tập mới kể từ lần sao lưu gần nhất. Hãy xuất bản sao khi thuận tiện.",
+  "durability.later": "Nhắc sau một tuần",
+  "durability.conflictTitle": "Thẻ khác đã lưu dữ liệu mới",
+  "durability.conflictNote":
+    "Thẻ này đã tạm dừng để bảo vệ dữ liệu mới hơn. Xuất bản sao của thẻ này để giữ phần tập chưa lưu, rồi tải lại. Có thể xem và nhập bản sao đó trong Cài đặt sau.",
+  "durability.exportCopy": "Xuất bản sao thẻ này",
+  "durability.reload": "Tải dữ liệu mới nhất",
+  "checkIn.timeLimit": "Giới hạn thời gian tập",
 } satisfies Record<MessageKey, string>;
