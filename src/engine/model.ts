@@ -9,15 +9,20 @@ export const exerciseKinds = [
   "tap",
   "follow",
   "crowding",
+  "alignment",
 ] as const;
 export type ExerciseKind = (typeof exerciseKinds)[number];
 export const isResponseExercise = (kind: ExerciseKind) =>
   kind === "visual" ||
   kind === "contrast" ||
   kind === "tap" ||
-  kind === "crowding";
+  kind === "crowding" ||
+  kind === "alignment";
 export const supportsCheckIn = (kind: ExerciseKind) =>
-  kind === "visual" || kind === "contrast" || kind === "crowding";
+  kind === "visual" ||
+  kind === "contrast" ||
+  kind === "crowding" ||
+  kind === "alignment";
 export const isTouchExercise = (kind: ExerciseKind) =>
   kind === "tap" || kind === "follow";
 export type Eye = "Left" | "Right" | "Both";
@@ -54,6 +59,9 @@ export interface Configuration {
   tapPaceSeconds: number;
   gentleMotion?: boolean;
   crowdingSpacing?: number;
+  alignmentOffset?: number;
+  alignmentGap?: number;
+  alignmentWidth?: number;
 }
 export const defaults: Configuration = {
   duration: 300,
@@ -76,6 +84,9 @@ export const defaults: Configuration = {
   hand: "Right",
   tapPaceSeconds: 2.5,
   crowdingSpacing: 1,
+  alignmentOffset: 12,
+  alignmentGap: 16,
+  alignmentWidth: 4,
 };
 export const names: Record<ExerciseKind, string> = {
   pursuit: "Smooth pursuit",
@@ -85,6 +96,7 @@ export const names: Record<ExerciseKind, string> = {
   tap: "Tap targets",
   follow: "Follow the target",
   crowding: "Crowded symbols",
+  alignment: "Fine alignment",
 };
 export function bounded(
   value: number,
@@ -121,6 +133,9 @@ export function validate(configuration: Configuration): Configuration {
     hand: configuration.hand === "Left" ? "Left" : "Right",
     tapPaceSeconds: bounded(configuration.tapPaceSeconds, 1, 10, 2.5),
     crowdingSpacing: bounded(configuration.crowdingSpacing ?? 1, 0.15, 3, 1),
+    alignmentOffset: bounded(configuration.alignmentOffset ?? 12, 1, 64, 12),
+    alignmentGap: bounded(configuration.alignmentGap ?? 16, 0, 80, 16),
+    alignmentWidth: bounded(configuration.alignmentWidth ?? 4, 1, 12, 4),
   };
 }
 export interface Slice {
@@ -142,6 +157,10 @@ export interface Trial {
   precisionRadius?: number;
   adaptiveLoad?: number;
   crowdingSpacing?: number;
+  alignmentOffset?: number;
+  alignmentGap?: number;
+  alignmentWidth?: number;
+  alignmentLength?: number;
 }
 export interface FollowMetrics {
   trackedMilliseconds: number;
@@ -317,6 +336,7 @@ export const initialData = (): Data => ({
     tap: 0,
     follow: 0,
     crowding: 0,
+    alignment: 0,
   },
   breakState: null,
 });

@@ -2,6 +2,7 @@ import type { Session, Trial } from "../engine/model";
 import { adapt } from "../engine/timer";
 import { crowdingGeometry, nextCrowdingDifficulty } from "./crowding";
 import { checkInComplete } from "../engine/check-in";
+import { alignmentGeometry, nextAlignmentDifficulty } from "./alignment";
 import {
   maximumVisualDifficulty,
   nextVisualDifficulty,
@@ -32,7 +33,7 @@ export function recordResponse(
 ) {
   if (
     session.status !== "running" ||
-    !["visual", "contrast", "crowding"].includes(session.kind) ||
+    !["visual", "contrast", "crowding", "alignment"].includes(session.kind) ||
     checkInComplete(session)
   )
     return null;
@@ -41,6 +42,30 @@ export function recordResponse(
     correct,
     responseMilliseconds: Math.max(0, responseMilliseconds),
     difficulty: previousDifficulty,
+    ...(session.kind === "alignment"
+      ? {
+          alignmentOffset: alignmentGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).offset,
+          alignmentGap: alignmentGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).gap,
+          alignmentWidth: alignmentGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).width,
+          alignmentLength: alignmentGeometry(
+            session.configuration,
+            previousDifficulty,
+            viewport,
+          ).length,
+        }
+      : {}),
     ...(session.kind === "crowding"
       ? {
           stimulusDiameter: crowdingGeometry(
@@ -68,7 +93,14 @@ export function recordResponse(
   });
   if (session.checkIn)
     return { ...responseScore(session.trials), enlarged: false };
-  if (session.kind === "crowding") {
+  if (session.kind === "alignment") {
+    session.difficulty = nextAlignmentDifficulty(
+      session.configuration,
+      previousDifficulty,
+      session.trials.map((trial) => trial.correct),
+      viewport,
+    );
+  } else if (session.kind === "crowding") {
     session.difficulty = nextCrowdingDifficulty(
       previousDifficulty,
       session.trials.map((trial) => trial.correct),

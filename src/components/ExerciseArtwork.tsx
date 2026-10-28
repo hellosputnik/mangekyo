@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import type { ExerciseKind } from "../engine/model";
 
 const artwork: Record<ExerciseKind, ReactNode> = {
+  alignment: (
+    <>
+      <path d="M13 3v11m6 4v11" />
+    </>
+  ),
   crowding: (
     <>
       <path d="M7 13a5 5 0 1 0 0 6M21 11a7 7 0 1 0 0 10M30 13a5 5 0 1 0 0 6" />

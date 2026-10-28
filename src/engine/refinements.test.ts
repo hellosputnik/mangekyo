@@ -75,7 +75,8 @@ it.each(exerciseKinds)(
       kind === "visual" ||
       kind === "contrast" ||
       kind === "tap" ||
-      kind === "crowding"
+      kind === "crowding" ||
+      kind === "alignment"
     )
       expect(result.accuracy).toBe(1);
     else expect(result.accuracy).toBeNull();

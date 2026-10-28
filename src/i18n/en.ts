@@ -576,7 +576,7 @@ export const english = {
   "checkIn.trendNote":
     "Compare completed check-ins with matching recorded conditions. Results describe practice performance.",
   "checkIn.empty":
-    "Complete a check-in from Visual discrimination, Contrast discrimination or Crowded symbols to begin. Changed screen layouts and partial check-ins stay in history but do not enter this chart.",
+    "Complete a check-in from Visual discrimination, Contrast discrimination, Crowded symbols or Fine alignment to begin. Changed screen layouts and partial check-ins stay in history but do not enter this chart.",
   "checkIn.conditions": "Check-in conditions",
   "checkIn.records": "{count} check-ins",
   "checkIn.chartNote":
@@ -603,5 +603,18 @@ export const english = {
   "durability.exportCopy": "Export this tab’s copy",
   "durability.reload": "Reload latest data",
   "checkIn.timeLimit": "Maximum active time",
+  "exercise.alignment": "Fine alignment",
+  "exercise.short.alignment": "Alignment",
+  "description.alignment":
+    "Decide whether the lower line sits to the left or right of the upper line.",
+  "rehearsal.alignment":
+    "Compare the two lines. Choose whether the lower line is left or right of the upper one.",
+  "alignment.offset": "Starting offset (CSS px)",
+  "alignment.length": "Line length (CSS px)",
+  "alignment.gap": "Gap between lines (CSS px)",
+  "alignment.width": "Line width (CSS px)",
+  "alignment.question": "Lower line: left or right?",
+  "alignment.recorded":
+    "Presented offset: {small}–{large} CSS px. Offsets are bounded by Canvas pixel resolution; this is not a calibrated acuity measurement.",
 } as const;
 export type MessageKey = keyof typeof english;

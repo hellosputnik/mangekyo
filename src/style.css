@@ -3865,21 +3865,6 @@ footer {
     --border: GrayText;
   }
 }
-.exercise-library {
-  container: exercise-library / inline-size;
-}
-@container exercise-library (min-width: 16.75em) and (max-width: 25em) {
-  .exercise-card:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    width: calc((100% - 0.75rem) / 2);
-    justify-self: center;
-  }
-}
-@container exercise-library (min-width: 25.5em) {
-  .exercise-card:last-child:nth-child(7) {
-    grid-column: 2;
-  }
-}
 .statistics-overview dl {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem 1rem;
@@ -3960,4 +3945,28 @@ footer {
   .custom-dialog-header > button {
     width: 100%;
   }
+}
+
+/* Eight choices use complete rows, with one column when large text needs it. */
+.exercise-library {
+  container: exercise-library / inline-size;
+}
+.exercise-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container exercise-library (min-width: 34.5em) {
+  .exercise-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@container exercise-library (max-width: 16.5em) {
+  .exercise-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.answers.alignment-answers {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto;
+  max-width: 32rem;
+  margin-inline: auto;
 }

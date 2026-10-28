@@ -19,6 +19,7 @@ export function practiceDefaults(kind: ExerciseKind): Configuration {
       : {}),
     ...(kind === "follow" ? { speed: 0.04 } : {}),
     ...(kind === "crowding" ? { size: 44 } : {}),
+    ...(kind === "alignment" ? { size: 64 } : {}),
   };
 }
 
@@ -31,6 +32,10 @@ export function initialPracticeSetups(): PracticeSetups {
     tap: { mode: "Default", configuration: practiceDefaults("tap") },
     follow: { mode: "Default", configuration: practiceDefaults("follow") },
     crowding: { mode: "Default", configuration: practiceDefaults("crowding") },
+    alignment: {
+      mode: "Default",
+      configuration: practiceDefaults("alignment"),
+    },
   };
 }
 
@@ -85,8 +90,9 @@ export function parsePracticePreferences(
   const setups = initialPracticeSetups();
   for (const kind of exerciseKinds) {
     const setup = (value.setups as Record<string, unknown>)[kind];
-    // Backups made before this exercise existed retain their six setups.
-    if (kind === "crowding" && setup === undefined) continue;
+    // Add newer exercises without discarding earlier saved choices.
+    if ((kind === "crowding" || kind === "alignment") && setup === undefined)
+      continue;
     if (!setup || typeof setup !== "object") return null;
     const entry = setup as Record<string, unknown>;
     if (
@@ -96,6 +102,21 @@ export function parsePracticePreferences(
     )
       return null;
     const settings = entry.configuration as Record<string, unknown>;
+    for (const [key, minimum, maximum] of [
+      ["alignmentOffset", 1, 64],
+      ["alignmentGap", 0, 80],
+      ["alignmentWidth", 1, 12],
+    ] as const) {
+      const value = settings[key];
+      if (
+        value !== undefined &&
+        (typeof value !== "number" ||
+          !Number.isFinite(value) ||
+          value < minimum ||
+          value > maximum)
+      )
+        return null;
+    }
     if (
       settings.crowdingSpacing !== undefined &&
       (typeof settings.crowdingSpacing !== "number" ||

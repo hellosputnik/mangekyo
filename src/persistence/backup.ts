@@ -10,6 +10,7 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { alignmentDifficultyLimit } from "../exercises/alignment";
 import { parsePracticePreferences } from "../engine/practice";
 import { parseSavedSetups } from "../engine/saved-setups";
 import { balanceRules, type AdaptiveBalance } from "../adaptive/balance";
@@ -19,13 +20,15 @@ import {
   highestTouchLevel,
 } from "../exercises/touch-challenge";
 const difficultyLimit = (kind: unknown) =>
-  kind === "crowding"
-    ? 24
-    : kind === "visual"
-      ? visualDifficultyLimit
-      : kind === "tap" || kind === "follow"
-        ? maximumTouchLevel
-        : 12;
+  kind === "alignment"
+    ? alignmentDifficultyLimit
+    : kind === "crowding"
+      ? 24
+      : kind === "visual"
+        ? visualDifficultyLimit
+        : kind === "tap" || kind === "follow"
+          ? maximumTouchLevel
+          : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -105,12 +108,22 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   const settings = value.configuration;
+  for (const [key, min, max] of [
+    ["alignmentOffset", 1, 64],
+    ["alignmentGap", 0, 80],
+    ["alignmentWidth", 1, 12],
+  ] as const) {
+    if (settings[key] !== undefined && !finite(settings[key], min, max))
+      return false;
+  }
   if (
     value.checkIn !== undefined &&
     (!record(value.checkIn) ||
       value.checkIn.version !== 1 ||
       value.checkIn.targetTrials !== 12 ||
-      !["visual", "contrast", "crowding"].includes(String(value.kind)) ||
+      !["visual", "contrast", "crowding", "alignment"].includes(
+        String(value.kind),
+      ) ||
       value.trials.length > 12 ||
       value.difficulty !== 0 ||
       (value.status === "completed" && value.trials.length !== 12))
@@ -309,6 +322,18 @@ function validSession(value: unknown): value is Session {
         finite(trial.adaptiveLoad, 0, balanceRules.maximumLoad)) &&
       (trial.crowdingSpacing === undefined ||
         finite(trial.crowdingSpacing, 0, 1000)) &&
+      (trial.alignmentOffset === undefined ||
+        finite(trial.alignmentOffset, 1 / 3, 64)) &&
+      (trial.alignmentGap === undefined || finite(trial.alignmentGap, 0, 80)) &&
+      (trial.alignmentWidth === undefined ||
+        finite(trial.alignmentWidth, 1 / 3, 12)) &&
+      (trial.alignmentLength === undefined ||
+        finite(trial.alignmentLength, 1 / 3, 120)) &&
+      (value.kind !== "alignment" ||
+        (finite(trial.alignmentOffset, 1 / 3, 64) &&
+          finite(trial.alignmentGap, 0, 80) &&
+          finite(trial.alignmentWidth, 1 / 3, 12) &&
+          finite(trial.alignmentLength, 1 / 3, 120))) &&
       (value.kind !== "crowding" ||
         (finite(trial.crowdingSpacing, 0, 1000) &&
           finite(trial.stimulusDiameter, 1, 120))) &&
@@ -341,7 +366,7 @@ function validStatisticsReset(value: unknown): value is StatisticsReset {
       (record(value.levels) &&
         Object.keys(names).every(
           (kind) =>
-            (["tap", "follow", "crowding"].includes(kind) &&
+            (["tap", "follow", "crowding", "alignment"].includes(kind) &&
               (value.levels as Record<string, unknown>)[kind] === undefined) ||
             finite(
               (value.levels as Record<string, unknown>)[kind],
@@ -380,8 +405,15 @@ export function mergeBackup(
   const sessions: Session[] = [...input.sessions];
   const importedTouchLevels = { tap: 0, follow: 0 };
   let importedCrowdingLevel = 0;
+  let importedAlignmentLevel = 0;
   if (input.levels !== undefined) {
     if (!record(input.levels)) throw Error("Invalid levels");
+    importedAlignmentLevel = Number(input.levels.alignment ?? 0);
+    if (
+      !finite(input.levels.alignment ?? 0, 0, alignmentDifficultyLimit) ||
+      !Number.isInteger(importedAlignmentLevel)
+    )
+      throw Error("Invalid alignment level");
     importedCrowdingLevel = Number(input.levels.crowding ?? 0);
     if (
       !finite(input.levels.crowding ?? 0, 0, 24) ||
@@ -509,6 +541,13 @@ export function mergeBackup(
     savedSetups: merge(savedSetups, current.savedSetups ?? []).slice(-30),
     levels: {
       ...current.levels,
+      alignment:
+        !current.levels.alignment &&
+        !current.sessions.some(
+          (session) => session.kind === "alignment" && !session.checkIn,
+        )
+          ? importedAlignmentLevel
+          : current.levels.alignment,
       crowding:
         !current.levels.crowding &&
         !current.sessions.some(
@@ -585,7 +624,7 @@ export function previewBackup(current: Data, input: unknown) {
           (existing) => existing.key === profile.key,
         ),
     ).length,
-    levelChanges: (["tap", "follow", "crowding"] as const).filter(
+    levelChanges: (["tap", "follow", "crowding", "alignment"] as const).filter(
       (kind) => merged.levels[kind] !== current.levels[kind],
     ),
     merged,

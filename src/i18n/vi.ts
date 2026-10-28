@@ -584,7 +584,7 @@ export const vietnamese = {
   "checkIn.trendNote":
     "So sánh các lần hoàn thành với cùng điều kiện đã ghi. Kết quả chỉ mô tả việc luyện tập.",
   "checkIn.empty":
-    "Chọn Kiểm tra bài tập trong bài Phân biệt hình ảnh, Phân biệt tương phản hoặc Nhận biết hình giữa để bắt đầu. Lần chưa hoàn thành hoặc thay đổi vùng màn hình vẫn có trong lịch sử, nhưng không đưa vào biểu đồ này.",
+    "Chọn Kiểm tra bài tập trong bài Phân biệt hình ảnh, Phân biệt tương phản, Nhận biết hình giữa hoặc Căn chỉnh để bắt đầu. Lần chưa hoàn thành hoặc thay đổi vùng màn hình vẫn có trong lịch sử, nhưng không đưa vào biểu đồ này.",
   "checkIn.conditions": "Điều kiện kiểm tra",
   "checkIn.records": "{count} lần kiểm tra",
   "checkIn.chartNote":
@@ -611,4 +611,17 @@ export const vietnamese = {
   "durability.exportCopy": "Xuất bản sao thẻ này",
   "durability.reload": "Tải dữ liệu mới nhất",
   "checkIn.timeLimit": "Giới hạn thời gian tập",
+  "exercise.alignment": "Căn chỉnh",
+  "exercise.short.alignment": "Căn chỉnh",
+  "description.alignment":
+    "Chọn đoạn thẳng bên dưới nằm lệch trái hay phải so với đoạn bên trên.",
+  "rehearsal.alignment":
+    "So sánh hai đoạn thẳng. Chọn đoạn bên dưới lệch trái hay phải so với đoạn bên trên.",
+  "alignment.offset": "Độ lệch ban đầu (px CSS)",
+  "alignment.length": "Chiều dài đoạn thẳng (px CSS)",
+  "alignment.gap": "Khoảng cách giữa hai đoạn (px CSS)",
+  "alignment.width": "Độ dày đoạn thẳng (px CSS)",
+  "alignment.question": "Đoạn dưới lệch về phía nào?",
+  "alignment.recorded":
+    "Độ lệch đã hiển thị: {small}–{large} px CSS. Giới hạn theo độ phân giải Canvas, không phải số đo thị lực đã hiệu chuẩn.",
 } satisfies Record<MessageKey, string>;

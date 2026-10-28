@@ -30,6 +30,13 @@ export function createRehearsal(
       ),
       contrast: Math.max(0.7, configuration.contrast),
       touchTolerance: Math.max(100, configuration.touchTolerance),
+      ...(kind === "alignment"
+        ? {
+            size: Math.max(64, configuration.size),
+            alignmentOffset: Math.max(12, configuration.alignmentOffset ?? 12),
+            alignmentWidth: Math.max(4, configuration.alignmentWidth ?? 4),
+          }
+        : {}),
     }),
     status: "paused",
     activeMilliseconds: 0,

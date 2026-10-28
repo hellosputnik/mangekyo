@@ -33,7 +33,11 @@ export function SessionRecap({ session }: { session: Session }) {
         value: time(summary.touch.bestRunMilliseconds),
       },
     );
-  else if (["visual", "contrast", "tap", "crowding"].includes(session.kind))
+  else if (
+    ["visual", "contrast", "tap", "crowding", "alignment"].includes(
+      session.kind,
+    )
+  )
     metrics.push(
       {
         label: t(
@@ -97,7 +101,9 @@ export function SessionRecap({ session }: { session: Session }) {
                 start: number(session.challenge.startingLevel + 1),
                 highest: number(session.challenge.highestLevel + 1),
               })
-            : ["visual", "contrast", "tap", "crowding"].includes(session.kind)
+            : ["visual", "contrast", "tap", "crowding", "alignment"].includes(
+                  session.kind,
+                )
               ? t("recap.points", { points: number(summary.points) })
               : t("recap.trackingNote")}
       </p>

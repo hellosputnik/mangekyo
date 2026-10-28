@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   isTouchExercise,
+  supportsCheckIn,
   type Configuration,
   type ExerciseKind,
 } from "../engine/model";
@@ -202,14 +203,21 @@ function RehearsalStage({
     drawOnce.current();
   };
   const choices =
-    kind === "contrast"
-      ? ([
-          "answer.topLeft",
-          "answer.topRight",
-          "answer.bottomLeft",
-          "answer.bottomRight",
-        ] as const)
-      : (["answer.right", "answer.down", "answer.left", "answer.up"] as const);
+    kind === "alignment"
+      ? (["answer.left", "answer.right"] as const)
+      : kind === "contrast"
+        ? ([
+            "answer.topLeft",
+            "answer.topRight",
+            "answer.bottomLeft",
+            "answer.bottomRight",
+          ] as const)
+        : ([
+            "answer.right",
+            "answer.down",
+            "answer.left",
+            "answer.up",
+          ] as const);
   return (
     <>
       <p className="rehearsal-instruction">{t(`rehearsal.${kind}`)}</p>
@@ -304,7 +312,7 @@ function RehearsalStage({
           {t(kind === "tap" ? "keyboard.tap" : "keyboard.follow")}
         </p>
       )}
-      {(kind === "visual" || kind === "contrast" || kind === "crowding") && (
+      {supportsCheckIn(kind) && (
         <div className="rehearsal-answers">
           {choices.map((key, index) => (
             <button

@@ -48,11 +48,13 @@ export function SessionDetails({
   const settings: { label: string; value: string }[] = [
     {
       label: t(
-        session.kind === "pursuit" ||
-          session.kind === "saccades" ||
-          isTouchExercise(session.kind)
-          ? "config.size"
-          : "config.patternSize",
+        session.kind === "alignment"
+          ? "alignment.length"
+          : session.kind === "pursuit" ||
+              session.kind === "saccades" ||
+              isTouchExercise(session.kind)
+            ? "config.size"
+            : "config.patternSize",
       ),
       value: number(configuration.size),
     },
@@ -89,6 +91,21 @@ export function SessionDetails({
       label: t("config.visualTask"),
       value: optionLabel(configuration.stimulus),
     });
+  if (session.kind === "alignment")
+    settings.push(
+      {
+        label: t("alignment.offset"),
+        value: number(configuration.alignmentOffset ?? 12),
+      },
+      {
+        label: t("alignment.gap"),
+        value: number(configuration.alignmentGap ?? 16),
+      },
+      {
+        label: t("alignment.width"),
+        value: number(configuration.alignmentWidth ?? 4),
+      },
+    );
   if (session.kind === "crowding")
     settings.push({
       label: t("crowding.spacing"),
@@ -439,6 +456,35 @@ export function SessionDetails({
         </section>
       )}
       <section className="session-configuration">
+        {session.kind === "alignment" &&
+          session.trials.some(
+            (trial) => trial.alignmentOffset !== undefined,
+          ) && (
+            <p className="fine">
+              {t("alignment.recorded", {
+                small: number(
+                  Math.min(
+                    ...session.trials.flatMap((trial) =>
+                      trial.alignmentOffset === undefined
+                        ? []
+                        : [trial.alignmentOffset],
+                    ),
+                  ),
+                  2,
+                ),
+                large: number(
+                  Math.max(
+                    ...session.trials.flatMap((trial) =>
+                      trial.alignmentOffset === undefined
+                        ? []
+                        : [trial.alignmentOffset],
+                    ),
+                  ),
+                  2,
+                ),
+              })}
+            </p>
+          )}
         {session.kind === "crowding" && session.trials.length > 0 && (
           <p className="fine">
             {t("crowding.recordedGap", {

@@ -20,6 +20,7 @@ export const emptyStatisticsFilter: StatisticsFilter = {
 };
 
 export function exerciseProtocol(kind: ExerciseKind) {
+  if (kind === "alignment") return "alignment-offset-1";
   return kind === "tap" || kind === "follow"
     ? "touch-balance-3"
     : kind === "crowding"
@@ -56,6 +57,12 @@ export function conditionSettings(kind: ExerciseKind, settings: Configuration) {
   if (kind === "visual") common.push(settings.stimulus);
   if (kind === "contrast") common.push(settings.contrastStimulus);
   if (kind === "crowding") common.push(settings.crowdingSpacing ?? 1);
+  if (kind === "alignment")
+    common.push(
+      settings.alignmentOffset ?? 12,
+      settings.alignmentGap ?? 16,
+      settings.alignmentWidth ?? 4,
+    );
   if (isTouchExercise(kind))
     common.push(settings.hand, settings.touchTolerance);
   if (kind === "tap") common.push(settings.tapPaceSeconds);
@@ -148,8 +155,17 @@ export function personalBest(sessions: Session[]): PersonalBest | null {
       trial.precisionRadius,
       trial.adaptiveLoad,
       trial.crowdingSpacing,
+      trial.alignmentOffset,
+      trial.alignmentLength,
+      trial.alignmentWidth,
+      trial.alignmentGap,
     ]);
   const validPresentation = (session: Session, trial: Trial) =>
+    (session.kind === "alignment" &&
+      trial.alignmentOffset !== undefined &&
+      trial.alignmentWidth !== undefined &&
+      trial.alignmentGap !== undefined &&
+      trial.alignmentLength !== undefined) ||
     session.kind === "contrast" ||
     ((session.kind === "visual" || session.kind === "crowding") &&
       trial.stimulusDiameter !== undefined) ||

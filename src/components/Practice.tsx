@@ -50,6 +50,29 @@ function AdvancedFields({
   return (
     <>
       <div className="settings-grid">
+        {kind === "alignment" && (
+          <>
+            {(
+              [
+                ["alignmentOffset", "alignment.offset", 1, 64],
+                ["alignmentGap", "alignment.gap", 0, 80],
+                ["alignmentWidth", "alignment.width", 1, 12],
+              ] as const
+            ).map(([key, label, min, max]) => (
+              <label key={key}>
+                {t(label)} · {number(configuration[key] ?? min)}
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step="1"
+                  value={configuration[key] ?? min}
+                  onChange={(event) => setting(key, Number(event.target.value))}
+                />
+              </label>
+            ))}
+          </>
+        )}
         {(kind === "pursuit" || kind === "follow") && (
           <label>
             {t("config.pattern")}
@@ -115,11 +138,13 @@ function AdvancedFields({
             [
               "size",
               t(
-                kind === "pursuit" ||
-                  kind === "saccades" ||
-                  isTouchExercise(kind)
-                  ? "config.size"
-                  : "config.patternSize",
+                kind === "alignment"
+                  ? "alignment.length"
+                  : kind === "pursuit" ||
+                      kind === "saccades" ||
+                      isTouchExercise(kind)
+                    ? "config.size"
+                    : "config.patternSize",
               ),
               8,
               120,

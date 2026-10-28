@@ -10,7 +10,10 @@ export function RecordedConditions({ session }: { session: Session }) {
       t(session.checkIn ? "checkIn.timeLimit" : "practice.duration"),
       duration(settings.duration),
     ],
-    [t("recap.target"), t("touch.pixels", { value: number(settings.size) })],
+    [
+      t(session.kind === "alignment" ? "alignment.length" : "recap.target"),
+      t("touch.pixels", { value: number(settings.size) }),
+    ],
     [t("config.contrast"), percent(settings.contrast)],
     [t("config.distance"), number(settings.distance)],
   ];
@@ -51,6 +54,12 @@ export function RecordedConditions({ session }: { session: Session }) {
     ]);
   if (session.kind === "visual")
     rows.push([t("config.visualTask"), optionLabel(settings.stimulus)]);
+  if (session.kind === "alignment")
+    rows.push(
+      [t("alignment.offset"), number(settings.alignmentOffset ?? 12)],
+      [t("alignment.gap"), number(settings.alignmentGap ?? 16)],
+      [t("alignment.width"), number(settings.alignmentWidth ?? 4)],
+    );
   if (session.kind === "contrast")
     rows.push([
       t("config.contrastTask"),

@@ -51,3 +51,7 @@ Sau khi làm quen, nhờ người dùng tự thực hiện bốn việc: bắt �
 - Mở Kiểm tra bài tập: 12 câu với thông số cố định. Tạm dừng, tải lại, xác nhận Tiếp tục rồi hoàn thành. Kiểm tra lịch sử và biểu đồ riêng; mức khó của bài tập thường không đổi.
 - Mở cùng ứng dụng trong hai thẻ thử. Thay đổi lựa chọn mắt ở một thẻ: thẻ cũ cần tạm dừng, cho xuất bản sao rồi tải dữ liệu mới. Không dùng dữ liệu thật cho thử nghiệm này.
 - Trong Cài đặt, thử yêu cầu bảo vệ dữ liệu. Ứng dụng cần nói rõ trình duyệt đã cấp hay vẫn lưu theo chế độ có thể bị giải phóng. Bật Nhắc sao lưu nếu muốn; không cần thông báo hệ thống.
+
+## Căn chỉnh
+
+Chọn Căn chỉnh trong tám bài tập. Tập thử cần có hai nút Trái/Phải, không lưu thời gian hay điểm. Trong Tùy chỉnh, đổi độ lệch, chiều dài, độ dày và khoảng cách giữa hai đoạn; lưu rồi mở lại cài đặt đó. Kiểm tra vị trí đoạn bên dưới phù hợp với nút trả lời đúng. Khi tập thường, độ lệch giảm theo các nhóm trả lời tốt và tăng lại khi sai nhiều; hình không được mất vì vượt giới hạn pixel. Kiểm tra bài tập cần giữ độ lệch cố định trong 12 câu, phục hồi sau tạm dừng/tải lại và lưu số liệu trong Thống kê. Thử riêng màn hình dọc/ngang và chữ lớn.

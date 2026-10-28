@@ -2,6 +2,7 @@ import { type Configuration, type ExerciseKind } from "../engine/model";
 import { pursuitPoint } from "./pursuit";
 import { visualTargetRadius } from "./visual";
 import { crowdingGeometry } from "./crowding";
+import { alignmentGeometry } from "./alignment";
 export interface Exercise {
   initialize(): void;
   update(seconds: number, level: number): void;
@@ -26,7 +27,9 @@ export class VisualExercise implements Exercise {
   ) {}
   initialize() {
     this.running = true;
-    this.target = Math.floor(this.random() * 4);
+    this.target = Math.floor(
+      this.random() * (this.kind === "alignment" ? 2 : 4),
+    );
     this.flankers = [
       Math.floor(this.random() * 4),
       Math.floor(this.random() * 4),
@@ -40,7 +43,9 @@ export class VisualExercise implements Exercise {
   }
   answer(choice: number) {
     const correct = choice === this.target;
-    this.target = Math.floor(this.random() * 4);
+    this.target = Math.floor(
+      this.random() * (this.kind === "alignment" ? 2 : 4),
+    );
     this.flankers = [
       Math.floor(this.random() * 4),
       Math.floor(this.random() * 4),
@@ -121,6 +126,29 @@ export class VisualExercise implements Exercise {
         context.fill();
       }
       context.restore();
+    }
+    if (this.kind === "alignment") {
+      const pixelRatio = Math.max(
+        1,
+        Math.min(3, context.getTransform?.().a ?? 1),
+      );
+      const geometry = alignmentGeometry(settings, this.level, {
+        width,
+        height,
+        pixelRatio,
+      });
+      context.fillRect(
+        geometry.upperX,
+        geometry.upperY,
+        geometry.width,
+        geometry.length,
+      );
+      context.fillRect(
+        geometry.upperX + (this.target === 0 ? -1 : 1) * geometry.offset,
+        geometry.lowerY,
+        geometry.width,
+        geometry.length,
+      );
     }
     if (this.kind === "crowding") {
       const pixelRatio = Math.max(

@@ -57,6 +57,7 @@ import {
 import { summarizeTouch } from "./analytics/touch";
 import { currentPursuitPath } from "./exercises/pursuit";
 import { maximumVisualDifficulty } from "./exercises/visual";
+import { alignmentGeometry } from "./exercises/alignment";
 import { recordResponse, responseScore } from "./exercises/responses";
 import { AnswerFeedback, type AnswerResult } from "./components/AnswerFeedback";
 import { advanceRoutine, advanceBreak } from "./engine/routines";
@@ -436,6 +437,15 @@ function App() {
                 pixelRatio: ratio,
               }),
             );
+          if (session.kind === "alignment")
+            session.difficulty = Math.min(
+              session.difficulty,
+              alignmentGeometry(session.configuration, session.difficulty, {
+                width: bounds.width,
+                height: bounds.height,
+                pixelRatio: ratio,
+              }).maximum,
+            );
           if (
             element.width !== Math.round(bounds.width * ratio) ||
             element.height !== Math.round(bounds.height * ratio)
@@ -602,6 +612,10 @@ function App() {
   };
   const resume = () => {
     if (!document.hidden) {
+      if (state.current.current && checkInComplete(state.current.current)) {
+        finish();
+        return;
+      }
       if (state.current.preferences.answerSound) unlockPracticeAudio();
       if (state.current.current?.kind === "follow") {
         state.current.current.status = "paused";
@@ -1201,30 +1215,34 @@ function App() {
                 aria-labelledby="response-question"
               >
                 <h3 id="response-question">
-                  {current.kind === "contrast"
-                    ? t("session.contrastQuestion")
-                    : current.kind === "crowding"
-                      ? t("crowding.question")
-                      : current.configuration.stimulus === "Opening"
-                        ? t("session.openingQuestion")
-                        : t("session.directionQuestion")}
+                  {current.kind === "alignment"
+                    ? t("alignment.question")
+                    : current.kind === "contrast"
+                      ? t("session.contrastQuestion")
+                      : current.kind === "crowding"
+                        ? t("crowding.question")
+                        : current.configuration.stimulus === "Opening"
+                          ? t("session.openingQuestion")
+                          : t("session.directionQuestion")}
                 </h3>
                 <div
-                  className={`answers ${current.kind !== "contrast" ? "direction-pad" : "quadrant-pad"}`}
+                  className={`answers ${current.kind === "alignment" ? "alignment-answers" : current.kind !== "contrast" ? "direction-pad" : "quadrant-pad"}`}
                 >
-                  {(current.kind !== "contrast"
-                    ? [
-                        t("answer.right"),
-                        t("answer.down"),
-                        t("answer.left"),
-                        t("answer.up"),
-                      ]
-                    : [
-                        t("answer.topLeft"),
-                        t("answer.topRight"),
-                        t("answer.bottomLeft"),
-                        t("answer.bottomRight"),
-                      ]
+                  {(current.kind === "alignment"
+                    ? [t("answer.left"), t("answer.right")]
+                    : current.kind !== "contrast"
+                      ? [
+                          t("answer.right"),
+                          t("answer.down"),
+                          t("answer.left"),
+                          t("answer.up"),
+                        ]
+                      : [
+                          t("answer.topLeft"),
+                          t("answer.topRight"),
+                          t("answer.bottomLeft"),
+                          t("answer.bottomRight"),
+                        ]
                   ).map((label, index) => (
                     <button
                       type="button"
