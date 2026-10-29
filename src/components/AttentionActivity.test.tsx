@@ -26,6 +26,22 @@ function setup(): Session {
     difficulty: 0,
   };
 }
+it("does not expose original tracking identities as visible answer numbers", () => {
+  const session = setup();
+  session.kind = "tracking";
+  const exercise = new AttentionExercise(session);
+  exercise.initialize();
+  session.activeMilliseconds = 6000;
+  const html = renderToStaticMarkup(
+    <LocalizationContext.Provider value={createLocalization("en")}>
+      <AttentionTargets session={session} onChoose={() => {}} />
+    </LocalizationContext.Provider>,
+  );
+  expect(html.match(/<button/g)).toHaveLength(3);
+  expect(html).toContain('aria-label="Select target 1"');
+  expect(html).not.toMatch(/>[123]<\/span>/);
+  expect(html.match(/<span aria-hidden="true"><\/span>/g)).toHaveLength(3);
+});
 it.each(["en", "vi"] as const)(
   "keeps %s answer choices hidden until recall, then exposes accessible choices",
   (language) => {

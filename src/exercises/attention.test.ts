@@ -270,8 +270,8 @@ describe("attention rounds", () => {
     },
   );
 
-  it("requires sustained correct rounds, slows progression, and returns to manageable conditions after errors", () => {
-    const session = attentionSession("tracking");
+  it("retains sustained progression and error support for the other attention activities", () => {
+    const session = attentionSession("search", { searchTask: "Count" });
     const exercise = new AttentionExercise(session);
     exercise.initialize();
     for (let index = 0; index < 4; index++) complete(session, exercise);

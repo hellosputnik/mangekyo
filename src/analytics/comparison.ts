@@ -9,6 +9,7 @@ import {
   type Trial,
 } from "../engine/model";
 import { tapProtocol } from "../exercises/touch-challenge";
+import { trackingProtocol } from "../exercises/tracking";
 
 export interface StatisticsFilter {
   exercise: ExerciseKind | "All";
@@ -26,6 +27,7 @@ export function exerciseProtocol(
   checkIn = false,
   configuration?: Configuration,
 ) {
+  if (kind === "tracking") return trackingProtocol;
   if (isAttentionExercise(kind)) return `attention-${kind}-1`;
   if (kind === "pursuit" && configuration?.pursuitVariableSpeed)
     return "pursuit-variable-1";

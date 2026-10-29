@@ -9,6 +9,15 @@ import {
 import type { Exercise } from "./exercise";
 import { responseScore } from "./responses";
 import { renderAttention } from "./attention-renderer";
+import {
+  trackingParameters,
+  trackingPositions,
+  trackingProgress,
+  nextTrackingDifficulty,
+  trackingProtocol,
+  trackingTransitionProtocol,
+  trackingCueMilliseconds,
+} from "./tracking";
 
 export const maximumAttentionDifficulty = 24;
 export type AttentionPhase = "cue" | "present" | "delay" | "answer";
@@ -23,13 +32,6 @@ function shuffled(values: number[], random: () => number) {
 }
 const range = (count: number) =>
   Array.from({ length: count }, (_, index) => index);
-export function seededRandom(seed: number) {
-  let value = seed >>> 0;
-  return () => {
-    value = (Math.imul(value, 1664525) + 1013904223) >>> 0;
-    return value / 4294967296;
-  };
-}
 
 function taskFor(session: Session, index: number): AttentionTask {
   if (session.kind === "tracking") return "Track";
@@ -86,22 +88,13 @@ export function createAttentionRound(
   };
   const presentation = round.presentation;
   if (task === "Track") {
-    round.items = range(
-      Math.min(
-        6,
-        (settings.trackingObjects ?? 3) + Math.floor(difficulty / 10),
-      ),
-    );
+    const parameters = trackingParameters(settings, difficulty);
+    round.items = range(parameters.objects);
     round.cue = integer(random, round.items.length);
     round.answers = [round.cue];
-    presentation.trackingMilliseconds = Math.min(
-      12000,
-      ((settings.trackingSeconds ?? 4) + Math.floor(difficulty / 3) * 0.5) *
-        1000,
-    );
-    presentation.speed *= 1 + difficulty * 0.025;
-    if (settings.gentleMotion)
-      presentation.speed = Math.min(0.08, presentation.speed);
+    presentation.trackingVersion = 2;
+    presentation.trackingMilliseconds = parameters.milliseconds;
+    presentation.speed = parameters.speed;
   } else if (["Count", "Match", "Moving"].includes(task)) {
     const count =
       task === "Match"
@@ -193,7 +186,7 @@ export function createAttentionRound(
 }
 
 export const cueMilliseconds = (round: AttentionRound) =>
-  round.presentation.task === "Track" ? 1400 : 1000;
+  round.presentation.task === "Track" ? trackingCueMilliseconds : 1000;
 export function attentionPhase(session: Session): AttentionPhase {
   const round = session.attentionRound;
   if (!round) return "cue";
@@ -256,58 +249,11 @@ export function attentionPositions(
       };
     });
   }
-  const points = range(count).map((index) => ({
-    x: ((index + 0.5) * width) / count,
-    y: height / 2,
-  }));
-  const random = seededRandom(round.seed);
-  const objects = range(count);
-  const elapsed = Math.min(
-    round.presentation.trackingMilliseconds,
-    Math.max(
-      0,
-      milliseconds - round.startedAtMilliseconds - cueMilliseconds(round),
-    ),
-  );
-  const legMilliseconds = Math.max(
-    900,
-    (1800 * 0.16) / round.presentation.speed,
-  );
-  const leg = Math.floor(elapsed / legMilliseconds);
-  const progress = (elapsed % legMilliseconds) / legMilliseconds;
-  let first = 0;
-  let second = 1;
-  for (let step = 0; step <= leg; step++) {
-    first = integer(random, count - 1);
-    second = first + 1;
-    if (step < leg)
-      [objects[first], objects[second]] = [objects[second], objects[first]];
-  }
-  const result = points.map((point) => ({ ...point }));
-  objects.forEach((object, slot) => {
-    result[object] = { ...points[slot] };
-  });
-  const left = points[first];
-  const right = points[second];
-  const horizontal = (left.x - right.x) / 2;
-  // Adjacent objects swap on opposite arcs, with zero velocity at each end.
-  const angle = Math.PI * (0.5 - Math.cos(progress * Math.PI) / 2);
-  const offsetX = horizontal * Math.cos(angle);
-  const offsetY =
-    Math.min(Math.abs(horizontal), Math.max(12, height / 2 - 34)) *
-    Math.sin(angle);
-  result[objects[first]] = {
-    x: (left.x + right.x) / 2 + offsetX,
-    y: (left.y + right.y) / 2 + offsetY,
-  };
-  result[objects[second]] = {
-    x: (left.x + right.x) / 2 - offsetX,
-    y: (left.y + right.y) / 2 - offsetY,
-  };
-  return result;
+  return trackingPositions(round, milliseconds, width, height);
 }
 
 export function attentionProgress(session: Session) {
+  if (session.kind === "tracking") return trackingProgress(session);
   const required = session.difficulty < 2 ? 5 : 8;
   const recent = [];
   for (let index = session.trials.length - 1; index >= 0; index--) {
@@ -323,6 +269,10 @@ export function attentionProgress(session: Session) {
   };
 }
 function advanceDifficulty(session: Session) {
+  if (session.kind === "tracking") {
+    session.difficulty = nextTrackingDifficulty(session);
+    return;
+  }
   if (session.trials.at(-1)?.attention?.replays) return;
   const recent = session.trials
     .filter((trial) => trial.attention?.replays === 0)
@@ -354,6 +304,20 @@ export class AttentionExercise implements Exercise {
   ) {}
   initialize() {
     this.running = true;
+    if (this.session.kind === "tracking") {
+      const previous = this.session.attentionRound;
+      this.session.protocol = this.session.trials.some(
+        (trial) => trial.attention?.trackingVersion !== 2,
+      )
+        ? trackingTransitionProtocol
+        : trackingProtocol;
+      if (previous && previous.presentation.trackingVersion !== 2) {
+        const replacement = createAttentionRound(this.session, this.random);
+        replacement.index = previous.index;
+        replacement.presentation.replays = previous.presentation.replays + 1;
+        this.session.attentionRound = replacement;
+      }
+    }
     if (!this.session.attentionRound)
       this.session.attentionRound = createAttentionRound(
         this.session,

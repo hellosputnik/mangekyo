@@ -65,6 +65,8 @@ export function validAttentionPresentation(value: unknown) {
     finite(value.delayMilliseconds, 0, 3000) &&
     finite(value.trackingMilliseconds, 0, 12000) &&
     finite(value.speed, 0.02, 2) &&
+    (value.trackingVersion === undefined ||
+      (value.task === "Track" && value.trackingVersion === 2)) &&
     integer(value.replays, 0, 100000)
   );
 }

@@ -261,6 +261,7 @@ export interface AttentionPresentation {
   trackingMilliseconds: number;
   speed: number;
   replays: number;
+  trackingVersion?: 2;
 }
 export interface AttentionRound {
   version: 1;

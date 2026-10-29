@@ -9,6 +9,7 @@ import {
 } from "../exercises/attention";
 import { useI18n } from "../i18n/react";
 import { Icon } from "./Icon";
+import { trackingChoices, trackingCalibrating } from "../exercises/tracking";
 
 const directionKeys = [
   "answer.right",
@@ -59,7 +60,13 @@ export function AttentionStatus({
         <strong>
           {t("attention.level", { level: number(session.difficulty + 1) })}
         </strong>
-        <span>{copy ? t(`attention.task.${copy.task}`) : ""}</span>
+        <span>
+          {session.kind === "tracking" && trackingCalibrating(session)
+            ? t("challenge.calibrating")
+            : copy
+              ? t(`attention.task.${copy.task}`)
+              : ""}
+        </span>
         {onSound && (
           <button
             type="button"
@@ -129,15 +136,23 @@ export function AttentionTargets({
         size.height,
       )
     : [];
+  const targets =
+    round?.presentation.task === "Track"
+      ? trackingChoices(positions)
+      : positions.map((point, index) => ({
+          ...point,
+          index,
+          position: index + 1,
+        }));
   return (
     <div className="attention-targets" ref={container}>
       {available &&
-        positions.map(({ x, y }, index) => {
+        targets.map(({ x, y, index, position }) => {
           const selected = round.selected.includes(index);
           const value =
             round.presentation.task === "Numbers"
               ? round.items[index]
-              : index + 1;
+              : position;
           return (
             <button
               type="button"
@@ -169,7 +184,11 @@ export function AttentionTargets({
                     : undefined
                 }
               >
-                {selected ? "✓" : number(value)}
+                {round.presentation.task === "Track"
+                  ? ""
+                  : selected
+                    ? "✓"
+                    : number(value)}
               </span>
             </button>
           );
