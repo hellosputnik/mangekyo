@@ -29,7 +29,10 @@ export function StatisticsResetControls({
   const restoreFocus = useRef<"reset" | "undo" | null>(null);
   const identifier = useId();
   const busy = Boolean(data.current || data.run);
-  const hasLevels = Object.values(data.levels).some((level) => level > 0);
+  const hasLevels =
+    Object.values(data.levels).some((level) => level > 0) ||
+    Boolean(data.touchProfiles?.length) ||
+    Boolean(data.practiceProfiles?.length);
   const hasData =
     data.sessions.length > 0 || data.measurements.length > 0 || hasLevels;
   const canReset =

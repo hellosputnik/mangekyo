@@ -1,4 +1,6 @@
-# Adaptive touch balancing
+# Adaptive touch balancing: earlier protocols
+
+For the all-mode audit, proposed common controller and reproducible mathematical study, see [Balancing all Mangekyo exercises](balancing-policy.md). The rules below describe earlier protocols. New sessions use [adaptive practice](adaptive-practice.md); earlier records and interrupted sessions remain compatible.
 
 Implemented October 26, 2026; tap pacing revised October 28, 2026. The objective is a welcoming start, quick calibration, then a challenge that follows the individual. These are product rules for finger-control activities, not a treatment protocol, a measurement of eyesight or a guaranteed learning optimum.
 
@@ -42,7 +44,6 @@ Clearing session history retains profiles unless difficulty reset is selected. R
 Automated checks exercise exact ten-second timing, foreground-only integration, short-slip exclusion, calibration limits, small reversal steps, the hold band, hysteresis, easier settings, stored profiles, pause/reload, reset/Undo, malformed imports and continued levels past 30. Deterministic capability curves and seeded noisy five-tap simulations check that difficulty settles rather than escalating forever. They validate controller behavior under the stated simulated observers, not real users or therapeutic benefit.
 
 The first practical evaluation should use comfortable, short sessions and inspect recent success, failure clusters, time to settle and the user's stated comfort. A real person's tracking may not follow a stationary curve; fatigue, finger occlusion, screen geometry, hand choice and Safari input latency can change results. Physical iPhone Safari, audio/haptics and interruption checks remain necessary. No cloud telemetry is added.
-
 
 ## Visual discrimination pacing
 

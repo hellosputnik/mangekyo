@@ -13,6 +13,14 @@ import {
   type StatisticsReset,
 } from "../engine/model";
 import { visualDifficultyLimit } from "../exercises/visual";
+import { activitiesFor } from "../adaptive/rules";
+import {
+  validPracticeAdaptation,
+  validPracticeProfiles,
+  validPresentationQuality,
+  validTrialAdaptation,
+  validTrialQuality,
+} from "../adaptive/validation";
 import { alignmentDifficultyLimit } from "../exercises/alignment";
 import { parsePracticePreferences } from "../engine/practice";
 import { parseSavedSetups } from "../engine/saved-setups";
@@ -28,18 +36,20 @@ import {
   followLevelGoalMilliseconds,
   highestTouchLevel,
 } from "../exercises/touch-challenge";
-const difficultyLimit = (kind: unknown) =>
-  isAttentionExercise(kind as ExerciseKind)
-    ? 24
-    : kind === "alignment"
-      ? alignmentDifficultyLimit
-      : kind === "crowding"
-        ? 24
-        : kind === "visual"
-          ? visualDifficultyLimit
-          : kind === "tap" || kind === "follow"
-            ? maximumTouchLevel
-            : 12;
+const difficultyLimit = (kind: unknown, adaptive = false) =>
+  kind === "contrast" && adaptive
+    ? 64
+    : isAttentionExercise(kind as ExerciseKind)
+      ? 24
+      : kind === "alignment"
+        ? alignmentDifficultyLimit
+        : kind === "crowding"
+          ? 24
+          : kind === "visual"
+            ? visualDifficultyLimit
+            : kind === "tap" || kind === "follow"
+              ? maximumTouchLevel
+              : 12;
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
 const finite = (value: unknown, min: number, max: number): value is number =>
@@ -104,7 +114,11 @@ function validSession(value: unknown): value is Session {
     typeof value.startedAt !== "string" ||
     !Number.isFinite(Date.parse(value.startedAt)) ||
     !finite(value.activeMilliseconds, 0, 3600000) ||
-    !finite(value.difficulty, 0, difficultyLimit(value.kind)) ||
+    !finite(
+      value.difficulty,
+      0,
+      difficultyLimit(value.kind, value.adaptation !== undefined),
+    ) ||
     (["tap", "follow"].includes(String(value.kind)) &&
       !Number.isInteger(value.difficulty)) ||
     !Array.isArray(value.slices) ||
@@ -119,6 +133,38 @@ function validSession(value: unknown): value is Session {
   )
     return false;
   const settings = value.configuration;
+  const allowedActivities = activitiesFor({ kind: value.kind as ExerciseKind });
+  if (
+    value.adaptation !== undefined &&
+    (!allowedActivities.length || value.checkIn !== undefined)
+  )
+    return false;
+  if (
+    value.adaptation !== undefined &&
+    record(value.adaptation) &&
+    record(value.adaptation.channels) &&
+    Object.keys(value.adaptation.channels).some(
+      (activity) =>
+        !allowedActivities.includes(
+          activity as (typeof allowedActivities)[number],
+        ),
+    )
+  )
+    return false;
+  if (
+    (value.adaptation !== undefined &&
+      !validPracticeAdaptation(
+        value.adaptation,
+        value.activeMilliseconds,
+        value.trials.length,
+      )) ||
+    (value.presentationQuality !== undefined &&
+      !validPresentationQuality(
+        value.presentationQuality,
+        value.activeMilliseconds,
+      ))
+  )
+    return false;
   if (
     !validAttentionConfiguration(settings) ||
     (isAttentionExercise(value.kind as ExerciseKind) &&
@@ -170,7 +216,11 @@ function validSession(value: unknown): value is Session {
     return false;
   if (
     (value.initialDifficulty !== undefined &&
-      !finite(value.initialDifficulty, 0, difficultyLimit(value.kind))) ||
+      !finite(
+        value.initialDifficulty,
+        0,
+        difficultyLimit(value.kind, value.adaptation !== undefined),
+      )) ||
     (value.protocol !== undefined &&
       (typeof value.protocol !== "string" || value.protocol.length > 100)) ||
     (value.viewport !== undefined &&
@@ -341,6 +391,17 @@ function validSession(value: unknown): value is Session {
   return value.trials.every(
     (trial) =>
       record(trial) &&
+      (trial.adaptation === undefined ||
+        (validTrialAdaptation(trial.adaptation) &&
+          record(trial.adaptation) &&
+          allowedActivities.includes(
+            trial.adaptation.activity as (typeof allowedActivities)[number],
+          ) &&
+          trial.adaptation.activity ===
+            (record(trial.attention) ? trial.attention.task : value.kind))) &&
+      (trial.quality === undefined || validTrialQuality(trial.quality)) &&
+      (trial.stimulusContrast === undefined ||
+        finite(trial.stimulusContrast, 0.03, 1)) &&
       (trial.attention === undefined ||
         validAttentionPresentation(trial.attention)) &&
       (!isAttentionExercise(value.kind as ExerciseKind) ||
@@ -350,7 +411,11 @@ function validSession(value: unknown): value is Session {
         )) &&
       typeof trial.correct === "boolean" &&
       finite(trial.responseMilliseconds, 0, 3600000) &&
-      finite(trial.difficulty, 0, difficultyLimit(value.kind)) &&
+      finite(
+        trial.difficulty,
+        0,
+        difficultyLimit(value.kind, value.adaptation !== undefined),
+      ) &&
       (trial.stimulusDiameter === undefined ||
         finite(trial.stimulusDiameter, 0.1, 1000)) &&
       (trial.touchDistance === undefined ||
@@ -403,6 +468,8 @@ function validMeasurement(value: unknown): value is Measurement {
 function validStatisticsReset(value: unknown): value is StatisticsReset {
   return (
     record(value) &&
+    (value.practiceProfiles === undefined ||
+      validPracticeProfiles(value.practiceProfiles)) &&
     typeof value.resetAt === "string" &&
     Number.isFinite(Date.parse(value.resetAt)) &&
     Array.isArray(value.sessions) &&
@@ -447,6 +514,11 @@ export function mergeBackup(
     record(input) && input.practice !== undefined
       ? parsePracticePreferences(input.practice)
       : null;
+  if (
+    input.practiceProfiles !== undefined &&
+    !validPracticeProfiles(input.practiceProfiles)
+  )
+    throw Error("Invalid practice profiles");
   if (input.practice !== undefined && !practice)
     throw Error("Invalid practice settings");
   const savedSetups =
@@ -606,6 +678,16 @@ export function mergeBackup(
   ];
   return {
     ...current,
+    practiceProfiles: [
+      ...new Map(
+        [
+          ...((input.practiceProfiles as NonNullable<
+            Data["practiceProfiles"]
+          >) ?? []),
+          ...(current.practiceProfiles ?? []),
+        ].map((profile) => [profile.key, profile]),
+      ).values(),
+    ].slice(-200),
     savedSetups: merge(savedSetups, current.savedSetups ?? []).slice(-30),
     levels: {
       ...current.levels,
@@ -695,11 +777,15 @@ export function previewBackup(current: Data, input: unknown) {
     practiceChanged:
       JSON.stringify(current.practice) !== JSON.stringify(merged.practice),
     hasUndo: Boolean(!current.statisticsReset && merged.statisticsReset),
-    adaptiveProfiles: (merged.touchProfiles ?? []).filter(
+    adaptiveProfiles: [
+      ...(merged.touchProfiles ?? []),
+      ...(merged.practiceProfiles ?? []),
+    ].filter(
       (profile) =>
-        !(current.touchProfiles ?? []).some(
-          (existing) => existing.key === profile.key,
-        ),
+        ![
+          ...(current.touchProfiles ?? []),
+          ...(current.practiceProfiles ?? []),
+        ].some((existing) => existing.key === profile.key),
     ).length,
     levelChanges: (
       ["tap", "follow", "crowding", "alignment", ...attentionKinds] as const

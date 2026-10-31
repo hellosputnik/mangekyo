@@ -80,7 +80,7 @@ export function RecordedConditions({ session }: { session: Session }) {
   if (session.kind === "tap")
     rows.push([
       t(
-        session.protocol === "tap-paced-4"
+        session.protocol === "tap-paced-4" || session.adaptation
           ? "tap.targetTiming"
           : "challenge.basePace",
       ),

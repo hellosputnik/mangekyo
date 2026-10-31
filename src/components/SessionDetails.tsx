@@ -16,6 +16,7 @@ import { summarizePractice } from "../analytics/statistics";
 import { responseScore } from "../exercises/responses";
 import { useI18n } from "../i18n/react";
 import { AttentionReport } from "./AttentionReport";
+import { AdaptationSummary } from "./AdaptationSummary";
 import { attentionConditionRows } from "./attention-conditions";
 
 export function SessionDetails({
@@ -156,7 +157,7 @@ export function SessionDetails({
   if (session.kind === "tap")
     settings.push({
       label: t(
-        session.protocol === "tap-paced-4"
+        session.protocol === "tap-paced-4" || session.adaptation
           ? "tap.targetTiming"
           : "challenge.basePace",
       ),
@@ -189,6 +190,7 @@ export function SessionDetails({
   const dayEntries = activityEntries({ sessions: [session], current: null });
   return (
     <div className="session-details">
+      <AdaptationSummary session={session} />
       {session.checkIn && (
         <p className="inline-notice">
           {t("checkIn.record", {
@@ -228,12 +230,13 @@ export function SessionDetails({
           <dt>{t("sessionDetails.status")}</dt>
           <dd>{statusLabel(session.status)}</dd>
         </div>
-        {session.initialDifficulty !== undefined && (
-          <div>
-            <dt>{t("challenge.startLevel")}</dt>
-            <dd>{number(session.initialDifficulty + 1)}</dd>
-          </div>
-        )}
+        {session.initialDifficulty !== undefined &&
+          (!session.adaptation || isTouchExercise(session.kind)) && (
+            <div>
+              <dt>{t("challenge.startLevel")}</dt>
+              <dd>{number(session.initialDifficulty + 1)}</dd>
+            </div>
+          )}
         {session.viewport && (
           <div>
             <dt>{t("filters.screen")}</dt>

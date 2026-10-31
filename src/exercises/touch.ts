@@ -4,6 +4,12 @@ import { pursuitPoint } from "./pursuit";
 import { responseScore } from "./responses";
 import { easeBalance, recordBalanceWindow } from "../adaptive/balance";
 import {
+  completePresentation,
+  flagPresentation,
+  maximumFrameGapMilliseconds,
+} from "../adaptive/quality";
+import { practiceChannel, recordFollowingWindow } from "../adaptive/practice";
+import {
   changeTouchLevel,
   ensureTouchChallenge,
   failTouchChallenge,
@@ -89,6 +95,7 @@ export class TouchExercise implements Exercise {
         this.targetTimeLimit()
     ) {
       this.session.trials.push({
+        ...completePresentation(this.session),
         correct: false,
         qualified: false,
         timedOut: true,
@@ -109,7 +116,7 @@ export class TouchExercise implements Exercise {
       this.session.tapState?.timeLimitMilliseconds ??
       tapTimeLimit(
         this.session.configuration,
-        touchDifficultyLoad(this.session),
+        this.session.adaptation ? 0 : touchDifficultyLoad(this.session),
       )
     );
   }
@@ -172,7 +179,8 @@ export class TouchExercise implements Exercise {
     const configured = Math.max(
       22,
       (this.session.configuration.touchTolerance / 2) *
-        0.97 ** touchDifficultyLoad(this.session),
+        0.97 **
+          (this.session.adaptation ? 0 : touchDifficultyLoad(this.session)),
     );
     return Math.max(22, Math.min(configured, this.baseToleranceRadius()));
   }
@@ -251,6 +259,7 @@ export class TouchExercise implements Exercise {
       this.press = point;
     } else {
       if (distance(point, this.handlePoint()) > 30) return false;
+      this.excludeDisruptedFollowingInterval();
       this.grabOffset = {
         x: this.cursor.x - point.x,
         y: this.cursor.y - point.y,
@@ -301,6 +310,7 @@ export class TouchExercise implements Exercise {
       (this.session.configuration.tapTimed === false ||
         responseMilliseconds <= timeLimitMilliseconds);
     this.session.trials.push({
+      ...completePresentation(this.session),
       correct,
       responseMilliseconds,
       difficulty: this.session.difficulty,
@@ -327,9 +337,14 @@ export class TouchExercise implements Exercise {
     const spanX = area.right - area.left,
       spanY = area.bottom - area.top;
     const separation = Math.min(
-      this.toleranceRadius() * (3 + touchDifficultyLoad(this.session) * 0.04),
+      this.toleranceRadius() *
+        (3 +
+          (this.session.adaptation ? 0 : touchDifficultyLoad(this.session)) *
+            0.04),
       Math.hypot(spanX, spanY) *
-        (0.45 + touchDifficultyLoad(this.session) * 0.005),
+        (0.45 +
+          (this.session.adaptation ? 0 : touchDifficultyLoad(this.session)) *
+            0.005),
     );
     let x = 0.5,
       y = 0.5;
@@ -355,18 +370,53 @@ export class TouchExercise implements Exercise {
         ? {
             timeLimitMilliseconds: tapTimeLimit(
               this.session.configuration,
-              touchDifficultyLoad(this.session),
+              this.session.adaptation ? 0 : touchDifficultyLoad(this.session),
             ),
           }
         : {}),
     };
   }
   /** Integrate active milliseconds, not pointer-event counts or animation frames. */
+  private excludeDisruptedFollowingInterval() {
+    if (
+      this.session.adaptation &&
+      this.session.presentationQuality?.pending.length
+    )
+      recordFollowingWindow(this.session, 0, {
+        speed:
+          this.session.configuration.speed *
+          followMotionFactor(
+            this.session.configuration,
+            touchDifficultyLoad(this.session),
+          ),
+        diameter: touchTargetDiameter(this.session),
+        tolerance: this.toleranceRadius() * 2,
+      });
+  }
   sample() {
     const metrics = this.session.follow;
     if (!this.grabOffset || this.lastSample === null || !metrics) return;
     const end = this.session.activeMilliseconds;
     const challenge = ensureTouchChallenge(this.session);
+    if (
+      this.session.adaptation &&
+      end - this.lastSample > maximumFrameGapMilliseconds
+    ) {
+      flagPresentation(this.session, "frame-stall", end - this.lastSample);
+      this.excludeDisruptedFollowingInterval();
+      challenge.motionSeconds +=
+        ((end - this.lastSample) / 1000) *
+        followMotionFactor(
+          this.session.configuration,
+          touchDifficultyLoad(this.session),
+        );
+      metrics.currentRunMilliseconds = 0;
+      metrics.windowMilliseconds = 0;
+      metrics.windowOnTargetMilliseconds = 0;
+      challenge.progressMilliseconds = 0;
+      this.lastSample = end;
+      return;
+    }
     let cursor = this.lastSample;
     while (cursor < end) {
       if (metrics.windowMilliseconds >= 10000) {
@@ -433,7 +483,7 @@ export class TouchExercise implements Exercise {
         challenge.outsideMilliseconds += amount;
         if (challenge.outsideMilliseconds > followGraceMilliseconds)
           challenge.progressMilliseconds = 0;
-        if (challenge.outsideMilliseconds >= 5000) {
+        if (challenge.outsideMilliseconds >= 5000 && !this.session.adaptation) {
           const adjustment = easeBalance(challenge.balance!, cursor + amount);
           metrics.windowMilliseconds = 0;
           metrics.windowOnTargetMilliseconds = 0;
@@ -446,11 +496,29 @@ export class TouchExercise implements Exercise {
         }
       }
       if (metrics.windowMilliseconds >= 10000) {
-        const adjustment = recordBalanceWindow(
-          challenge.balance!,
-          metrics.windowOnTargetMilliseconds / metrics.windowMilliseconds,
-          cursor + amount,
-        );
+        const previousLoad = touchDifficultyLoad(this.session);
+        if (this.session.adaptation)
+          recordFollowingWindow(
+            this.session,
+            metrics.windowOnTargetMilliseconds / metrics.windowMilliseconds,
+            {
+              speed:
+                this.session.configuration.speed *
+                followMotionFactor(this.session.configuration, previousLoad),
+              diameter: touchTargetDiameter(this.session),
+              tolerance: this.toleranceRadius() * 2,
+            },
+          );
+        const adjustment = this.session.adaptation
+          ? Math.sign(
+              (practiceChannel(this.session, "follow")?.challenge ??
+                previousLoad) - previousLoad,
+            )
+          : recordBalanceWindow(
+              challenge.balance!,
+              metrics.windowOnTargetMilliseconds / metrics.windowMilliseconds,
+              cursor + amount,
+            );
         if (adjustment < 0)
           this.cues.push({
             kind: "level-down",

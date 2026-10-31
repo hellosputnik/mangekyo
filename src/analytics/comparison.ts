@@ -10,6 +10,7 @@ import {
 } from "../engine/model";
 import { tapProtocol } from "../exercises/touch-challenge";
 import { trackingProtocol } from "../exercises/tracking";
+import { reliableTrial } from "./adaptation";
 
 export interface StatisticsFilter {
   exercise: ExerciseKind | "All";
@@ -190,7 +191,9 @@ export function personalBest(sessions: Session[]): PersonalBest | null {
   const candidates: PersonalBest[] = [];
   const presentationKey = (trial: Trial) =>
     JSON.stringify([
-      trial.difficulty,
+      eligible[0]?.kind === "tap" && trial.adaptiveLoad !== undefined
+        ? null
+        : trial.difficulty,
       trial.stimulusDiameter,
       trial.touchTolerance,
       trial.timeLimitMilliseconds,
@@ -204,28 +207,44 @@ export function personalBest(sessions: Session[]): PersonalBest | null {
       trial.attention,
     ]);
   const validPresentation = (session: Session, trial: Trial) =>
-    (isAttentionExercise(session.kind) &&
+    reliableTrial(trial) &&
+    ((isAttentionExercise(session.kind) &&
       trial.attention !== undefined &&
       trial.attention.replays === 0) ||
-    (session.kind === "alignment" &&
-      trial.alignmentOffset !== undefined &&
-      trial.alignmentWidth !== undefined &&
-      trial.alignmentGap !== undefined &&
-      trial.alignmentLength !== undefined) ||
-    session.kind === "contrast" ||
-    ((session.kind === "visual" || session.kind === "crowding") &&
-      trial.stimulusDiameter !== undefined) ||
-    (session.kind === "tap" &&
-      trial.adaptiveLoad !== undefined &&
-      trial.touchTolerance !== undefined &&
-      trial.stimulusDiameter !== undefined);
+      (session.kind === "alignment" &&
+        trial.alignmentOffset !== undefined &&
+        trial.alignmentWidth !== undefined &&
+        trial.alignmentGap !== undefined &&
+        trial.alignmentLength !== undefined) ||
+      session.kind === "contrast" ||
+      ((session.kind === "visual" || session.kind === "crowding") &&
+        trial.stimulusDiameter !== undefined) ||
+      (session.kind === "tap" &&
+        trial.adaptiveLoad !== undefined &&
+        trial.touchTolerance !== undefined &&
+        trial.stimulusDiameter !== undefined));
   if (eligible[0]?.kind === "follow") {
     const windows = eligible.flatMap((session) =>
-      session.challenge?.version === 3
-        ? (session.challenge.balance?.history ?? [])
-            .filter((window) => window.performance !== null)
-            .map((window) => ({ session, window }))
-        : [],
+      session.adaptation
+        ? session.adaptation.decisions
+            .filter(
+              (window) =>
+                window.activity === "follow" &&
+                window.performance !== null &&
+                window.reason !== "quality",
+            )
+            .map((window) => ({
+              session,
+              window: {
+                fromLoad: window.before,
+                performance: window.performance,
+              },
+            }))
+        : session.challenge?.version === 3
+          ? (session.challenge.balance?.history ?? [])
+              .filter((window) => window.performance !== null)
+              .map((window) => ({ session, window }))
+          : [],
     );
     const latest = windows.at(-1);
     if (!latest) return null;

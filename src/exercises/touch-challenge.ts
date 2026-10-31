@@ -10,6 +10,7 @@ import {
   recordBalanceTap,
   resetBalanceWindow,
 } from "../adaptive/balance";
+import { recordAdaptiveTrial } from "../adaptive/practice";
 
 /** Storage guard; earned levels have no 30-level gameplay ceiling. */
 export const maximumTouchLevel = 1000000;
@@ -66,6 +67,8 @@ export function tapTimeLimit(configuration: Configuration, load: number) {
   );
 }
 export function touchTargetDiameter(session: Session) {
+  if (session.adaptation && session.kind === "follow")
+    return session.configuration.size;
   const tapping = session.kind === "tap";
   return Math.max(
     Math.min(tapping ? 8 : 16, session.configuration.size),
@@ -122,9 +125,20 @@ export function changeTouchLevel(
 }
 export function failTouchChallenge(session: Session): TouchCue | null {
   const state = ensureTouchChallenge(session);
+  if (session.adaptation && session.trials.at(-1)?.quality?.reasons.length) {
+    recordAdaptiveTrial(session);
+    return null;
+  }
   state.streak = 0;
   state.chain = 0;
   state.misses++;
+  if (session.adaptation) {
+    const before = state.balance!.load;
+    recordAdaptiveTrial(session);
+    return state.balance!.load < before
+      ? { kind: "level-down", level: session.difficulty }
+      : null;
+  }
   const adjustment = recordBalanceTap(
     state.balance!,
     false,
@@ -145,12 +159,16 @@ export function recordTapChallenge(
   qualified: boolean,
 ): TouchCue | null {
   const state = ensureTouchChallenge(session);
+  if (session.adaptation && session.trials.at(-1)?.quality?.reasons.length) {
+    recordAdaptiveTrial(session);
+    return null;
+  }
   if (!qualified) return failTouchChallenge(session);
-  const adjustment = recordBalanceTap(
-    state.balance!,
-    true,
-    session.activeMilliseconds,
-  );
+  const previousLoad = state.balance!.load;
+  if (session.adaptation) recordAdaptiveTrial(session);
+  const adjustment = session.adaptation
+    ? Math.sign(state.balance!.load - previousLoad)
+    : recordBalanceTap(state.balance!, true, session.activeMilliseconds);
   state.misses = 0;
   state.chain++;
   state.streak++;

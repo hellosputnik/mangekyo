@@ -1,5 +1,10 @@
 import type { Session, Trial } from "../engine/model";
 import { adapt } from "../engine/timer";
+import { completePresentation } from "../adaptive/quality";
+import {
+  prepareAdaptivePresentation,
+  recordAdaptiveTrial,
+} from "../adaptive/practice";
 import { crowdingGeometry, nextCrowdingDifficulty } from "./crowding";
 import { checkInComplete } from "../engine/check-in";
 import { alignmentGeometry, nextAlignmentDifficulty } from "./alignment";
@@ -39,9 +44,18 @@ export function recordResponse(
     return null;
   const previousDifficulty = session.difficulty;
   session.trials.push({
+    ...completePresentation(session),
     correct,
     responseMilliseconds: Math.max(0, responseMilliseconds),
     difficulty: previousDifficulty,
+    ...(session.kind === "contrast"
+      ? {
+          stimulusContrast: Math.max(
+            0.03,
+            session.configuration.contrast * 0.84 ** previousDifficulty,
+          ),
+        }
+      : {}),
     ...(session.kind === "alignment"
       ? {
           alignmentOffset: alignmentGeometry(
@@ -93,6 +107,18 @@ export function recordResponse(
   });
   if (session.checkIn)
     return { ...responseScore(session.trials), enlarged: false };
+  if (session.adaptation) {
+    recordAdaptiveTrial(session);
+    prepareAdaptivePresentation(
+      session,
+      session.kind as "visual" | "contrast" | "crowding" | "alignment",
+    );
+    return {
+      ...responseScore(session.trials),
+      enlarged:
+        session.kind === "visual" && session.difficulty < previousDifficulty,
+    };
+  }
   if (session.kind === "alignment") {
     session.difficulty = nextAlignmentDifficulty(
       session.configuration,

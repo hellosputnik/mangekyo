@@ -12,7 +12,8 @@ export function checkInGroups(sessions: Session[]) {
       session.trials.length !== session.checkIn.targetTrials ||
       !session.viewport ||
       session.viewport.changed ||
-      !session.protocol
+      !session.protocol ||
+      session.trials.some((trial) => trial.quality?.reasons.length)
     )
       continue;
     const key = comparisonKey(session);

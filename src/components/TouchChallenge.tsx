@@ -7,6 +7,7 @@ import {
   type TouchCue,
 } from "../exercises/touch-challenge";
 import { balanceRules } from "../adaptive/balance";
+import { activityRules } from "../adaptive/rules";
 import { useI18n } from "../i18n/react";
 import { Icon } from "./Icon";
 
@@ -43,7 +44,7 @@ export function TouchChallenge({
               (session.tapState?.timeLimitMilliseconds ??
                 tapTimeLimit(
                   session.configuration,
-                  touchDifficultyLoad(session),
+                  session.adaptation ? 0 : touchDifficultyLoad(session),
                 )) / 1000,
               1,
             ),
@@ -88,7 +89,14 @@ export function TouchChallenge({
         <div className="challenge-balance">
           <span>
             {t(
-              state.balance.load >= balanceRules.maximumLoad
+              state.balance.load >=
+                (session.adaptation
+                  ? activityRules(
+                      session,
+                      session.kind === "tap" ? "tap" : "follow",
+                    ).maximum
+                  : balanceRules.maximumLoad) -
+                  1e-6
                 ? "challenge.settingsLimit"
                 : state.balance.phase === "calibrating"
                   ? "challenge.calibrating"
@@ -170,8 +178,10 @@ export function TouchChallengeNotice({
         {
           level: number(cue.level + 1),
           seconds: number(
-            tapTimeLimit(session.configuration, touchDifficultyLoad(session)) /
-              1000,
+            tapTimeLimit(
+              session.configuration,
+              session.adaptation ? 0 : touchDifficultyLoad(session),
+            ) / 1000,
             1,
           ),
         },

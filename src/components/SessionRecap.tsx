@@ -1,4 +1,6 @@
-import type { Session } from "../engine/model";
+import { isResponseExercise, type Session } from "../engine/model";
+import { AdaptationSummary } from "./AdaptationSummary";
+import { practiceAchievement } from "../analytics/adaptation";
 import { sessionRecap } from "../analytics/recap";
 import { useI18n } from "../i18n/react";
 import { ExerciseArtwork } from "./ExerciseArtwork";
@@ -7,6 +9,7 @@ export function SessionRecap({ session }: { session: Session }) {
   const { t, time, percent, number, exerciseName, eyeLabel, patternLabel } =
     useI18n();
   const summary = sessionRecap(session);
+  const hasAchievement = Boolean(practiceAchievement(session));
   const metrics: { label: string; value: string }[] = [
     {
       label: t("statistics.activeTime"),
@@ -33,11 +36,7 @@ export function SessionRecap({ session }: { session: Session }) {
         value: time(summary.touch.bestRunMilliseconds),
       },
     );
-  else if (
-    ["visual", "contrast", "tap", "crowding", "alignment"].includes(
-      session.kind,
-    )
-  )
+  else if (isResponseExercise(session.kind))
     metrics.push(
       {
         label: t(
@@ -47,7 +46,7 @@ export function SessionRecap({ session }: { session: Session }) {
         ),
         value: summary.accuracy === null ? "—" : percent(summary.accuracy),
       },
-      { label: t("sessionDetails.bestRun"), value: number(summary.bestRun) },
+      { label: t("recap.bestRun"), value: number(summary.bestRun) },
     );
   else
     metrics.push(
@@ -90,23 +89,24 @@ export function SessionRecap({ session }: { session: Session }) {
           </div>
         ))}
       </dl>
-      <p className="recap-achievement">
-        {session.checkIn
-          ? t("checkIn.record", {
-              count: number(session.trials.length),
-              total: number(session.checkIn.targetTrials),
-            })
-          : session.challenge
-            ? t("challenge.summary", {
-                start: number(session.challenge.startingLevel + 1),
-                highest: number(session.challenge.highestLevel + 1),
+      {(!hasAchievement || session.challenge || session.checkIn) && (
+        <p className="recap-achievement">
+          {session.checkIn
+            ? t("checkIn.record", {
+                count: number(session.trials.length),
+                total: number(session.checkIn.targetTrials),
               })
-            : ["visual", "contrast", "tap", "crowding", "alignment"].includes(
-                  session.kind,
-                )
-              ? t("recap.points", { points: number(summary.points) })
-              : t("recap.trackingNote")}
-      </p>
+            : session.challenge
+              ? t("challenge.summary", {
+                  start: number(session.challenge.startingLevel + 1),
+                  highest: number(session.challenge.highestLevel + 1),
+                })
+              : isResponseExercise(session.kind)
+                ? t("recap.points", { points: number(summary.points) })
+                : t("recap.trackingNote")}
+        </p>
+      )}
+      <AdaptationSummary session={session} compact />
     </section>
   );
 }

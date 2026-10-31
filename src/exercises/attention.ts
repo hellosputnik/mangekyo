@@ -9,6 +9,13 @@ import {
 import type { Exercise } from "./exercise";
 import { responseScore } from "./responses";
 import { renderAttention } from "./attention-renderer";
+import { adaptiveAttentionSettings } from "../adaptive/rules";
+import {
+  practiceChannel,
+  prepareAdaptivePresentation,
+  recordAdaptiveTrial,
+} from "../adaptive/practice";
+import { completePresentation } from "../adaptive/quality";
 import {
   trackingParameters,
   trackingPositions,
@@ -34,17 +41,22 @@ const range = (count: number) =>
   Array.from({ length: count }, (_, index) => index);
 
 function taskFor(session: Session, index: number): AttentionTask {
+  const activityIndex = session.adaptation
+    ? Math.floor(index / 5) + (session.adaptation.activityOffset ?? 0)
+    : index;
   if (session.kind === "tracking") return "Track";
   if (session.kind === "sequence") return "Numbers";
   if (session.kind === "search") {
     const task = session.configuration.searchTask ?? "Mixed";
     return task === "Mixed"
-      ? (["Count", "Match", "Moving"] as const)[index % 3]
+      ? (["Count", "Match", "Moving"] as const)[activityIndex % 3]
       : task;
   }
   const task = session.configuration.recallTask ?? "Mixed";
   return task === "Mixed"
-    ? (["Locations", "Digits", "Directions", "Compare"] as const)[index % 4]
+    ? (["Locations", "Digits", "Directions", "Compare"] as const)[
+        activityIndex % 4
+      ]
     : task;
 }
 
@@ -53,15 +65,20 @@ export function createAttentionRound(
   random: () => number = Math.random,
 ): AttentionRound {
   const settings = validate(session.configuration);
+  const index = session.attentionRound ? session.attentionRound.index + 1 : 0;
+  const task = taskFor(session, index);
+  const challenge = session.adaptation
+    ? prepareAdaptivePresentation(session, task)
+    : session.difficulty;
   const difficulty = Math.floor(
     bounded(session.difficulty, 0, maximumAttentionDifficulty, 0),
   );
-  const index = session.attentionRound ? session.attentionRound.index + 1 : 0;
-  const task = taskFor(session, index);
-  const load = Math.min(
-    4,
-    (settings.recallItems ?? 1) + Math.floor(difficulty / 6),
-  );
+  const adaptive = session.adaptation
+    ? adaptiveAttentionSettings(settings, task, challenge)
+    : null;
+  const load =
+    adaptive?.load ??
+    Math.min(4, (settings.recallItems ?? 1) + Math.floor(difficulty / 6));
   const round: AttentionRound = {
     version: 1,
     index,
@@ -88,7 +105,13 @@ export function createAttentionRound(
   };
   const presentation = round.presentation;
   if (task === "Track") {
-    const parameters = trackingParameters(settings, difficulty);
+    const parameters = adaptive
+      ? {
+          objects: adaptive.objects,
+          speed: adaptive.speed,
+          milliseconds: (settings.trackingSeconds ?? 4) * 1000,
+        }
+      : trackingParameters(settings, difficulty);
     round.items = range(parameters.objects);
     round.cue = integer(random, round.items.length);
     round.answers = [round.cue];
@@ -97,12 +120,13 @@ export function createAttentionRound(
     presentation.speed = parameters.speed;
   } else if (["Count", "Match", "Moving"].includes(task)) {
     const count =
-      task === "Match"
+      adaptive?.items ??
+      (task === "Match"
         ? Math.min(12, (settings.searchItems ?? 6) + Math.floor(difficulty / 4))
         : Math.min(
             12,
             (settings.searchItems ?? 6) + Math.floor(difficulty / 3),
-          );
+          ));
     const matches =
       task === "Match" ? 1 : 1 + integer(random, Math.min(4, count - 1));
     round.items = shuffled(
@@ -117,6 +141,7 @@ export function createAttentionRound(
     ];
     if (task === "Moving") {
       presentation.speed =
+        adaptive?.speed ??
         Math.max(0.06, presentation.speed) * (1 + difficulty * 0.02);
       if (settings.gentleMotion)
         presentation.speed = Math.min(0.08, presentation.speed);
@@ -129,7 +154,8 @@ export function createAttentionRound(
       range(
         Math.min(
           12,
-          (settings.sequenceItems ?? 6) + Math.floor(difficulty / 4),
+          adaptive?.items ??
+            (settings.sequenceItems ?? 6) + Math.floor(difficulty / 4),
         ),
       ).map((index) => index + 1),
       random,
@@ -140,10 +166,12 @@ export function createAttentionRound(
     presentation.load = round.items.length;
   } else {
     presentation.load = load;
-    presentation.exposureMilliseconds = Math.max(
-      800,
-      (settings.recallExposure ?? 1.8) * 1000 * Math.pow(0.99, difficulty),
-    );
+    presentation.exposureMilliseconds =
+      adaptive?.exposure ??
+      Math.max(
+        800,
+        (settings.recallExposure ?? 1.8) * 1000 * Math.pow(0.99, difficulty),
+      );
     presentation.delayMilliseconds = (settings.recallDelay ?? 0.6) * 1000;
     if (task === "Locations") {
       round.items = range(6);
@@ -253,6 +281,15 @@ export function attentionPositions(
 }
 
 export function attentionProgress(session: Session) {
+  if (session.adaptation) {
+    const activity = session.attentionRound?.presentation.task;
+    const channel = activity ? practiceChannel(session, activity) : null;
+    return {
+      required: 5,
+      correct:
+        channel?.pending.filter((item) => item.success === 1).length ?? 0,
+    };
+  }
   if (session.kind === "tracking") return trackingProgress(session);
   const required = session.difficulty < 2 ? 5 : 8;
   const recent = [];
@@ -269,6 +306,10 @@ export function attentionProgress(session: Session) {
   };
 }
 function advanceDifficulty(session: Session) {
+  if (session.adaptation) {
+    recordAdaptiveTrial(session);
+    return;
+  }
   if (session.kind === "tracking") {
     session.difficulty = nextTrackingDifficulty(session);
     return;
@@ -304,7 +345,7 @@ export class AttentionExercise implements Exercise {
   ) {}
   initialize() {
     this.running = true;
-    if (this.session.kind === "tracking") {
+    if (this.session.kind === "tracking" && !this.session.adaptation) {
       const previous = this.session.attentionRound;
       this.session.protocol = this.session.trials.some(
         (trial) => trial.attention?.trackingVersion !== 2,
@@ -369,6 +410,7 @@ export class AttentionExercise implements Exercise {
     const previousDifficulty = session.difficulty;
     if (complete) {
       session.trials.push({
+        ...completePresentation(session),
         correct,
         difficulty: round.difficulty,
         responseMilliseconds: Math.max(
@@ -388,7 +430,7 @@ export class AttentionExercise implements Exercise {
     return {
       correct,
       complete,
-      levelUp: session.difficulty > previousDifficulty,
+      levelUp: !session.adaptation && session.difficulty > previousDifficulty,
       ...responseScore(session.trials),
     };
   }

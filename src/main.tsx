@@ -34,6 +34,7 @@ import {
 import { exerciseProtocol, recordViewport } from "./analytics/comparison";
 import { RestScreen } from "./components/RestScreen";
 import { DataSettings } from "./components/DataSettings";
+import { DeveloperTools } from "./components/DeveloperTools";
 import { useAppAvailability } from "./pwa/useAppAvailability";
 import {
   load,
@@ -46,7 +47,16 @@ import { Modal } from "./components/Modal";
 import { totalForDate } from "./analytics/totals";
 import type { Exercise } from "./exercises/exercise";
 import { createExercise } from "./exercises/factory";
-import { AttentionExercise } from "./exercises/attention";
+import { AttentionExercise, createAttentionRound } from "./exercises/attention";
+import {
+  initializeAdaptation,
+  clearPendingEvidence,
+} from "./adaptive/practice";
+import {
+  bindPracticeProfiles,
+  rememberPracticeProfiles,
+} from "./adaptive/profiles";
+import { flagPresentation, recordFrameGap } from "./adaptive/quality";
 import {
   AttentionStatus,
   AttentionTargets,
@@ -296,6 +306,14 @@ function App() {
   const pause = (interrupted = false, awaitingTouch = false) => {
     timer.current?.pause(interrupted);
     releaseTouch();
+    const session = state.current.current;
+    if (session) {
+      if (interrupted) {
+        flagPresentation(session, "interruption");
+        clearPendingEvidence(session);
+      }
+      rememberPracticeProfiles(state.current, session);
+    }
     if (state.current.current?.kind === "follow")
       state.current.current.awaitingTouch = awaitingTouch && !interrupted;
     setAnswerResult(null);
@@ -372,8 +390,13 @@ function App() {
       ...latest.sessions.filter((item) => item.id !== session.id),
       structuredClone(session),
     ];
-    if (!session.checkIn) latest.levels[session.kind] = session.difficulty;
-    rememberTouchProfile(latest, session);
+    if (
+      !session.checkIn &&
+      (!session.adaptation || isTouchExercise(session.kind))
+    )
+      latest.levels[session.kind] = session.difficulty;
+    if (!session.adaptation) rememberTouchProfile(latest, session);
+    rememberPracticeProfiles(latest, session);
     latest.current = null;
     setAnswerResult(null);
     setFeedback("");
@@ -390,6 +413,7 @@ function App() {
     if (!current) return;
     let frame = 0;
     let lastInterfaceUpdate = 0;
+    let previousFrame: number | null = null;
     const draw = (now: number) => {
       const session = state.current.current;
       if (session) {
@@ -398,6 +422,9 @@ function App() {
             pause(true);
           } else {
             timer.current?.checkpoint();
+            if (previousFrame !== null)
+              recordFrameGap(session, now - previousFrame);
+            previousFrame = now;
             if (exercise.current instanceof TouchExercise)
               exercise.current.sample();
             consumeTouchCues();
@@ -432,6 +459,35 @@ function App() {
           const ratio = Math.min(window.devicePixelRatio || 1, 3);
           const firstPresentation = !session.viewport;
           recordViewport(session, bounds.width, bounds.height, ratio);
+          if (session.adaptation && bounds.width > 40 && bounds.height > 40) {
+            const previous = session.adaptation.viewport;
+            const changed =
+              previous &&
+              (Math.abs(previous.width - bounds.width) > 2 ||
+                Math.abs(previous.height - bounds.height) > 2 ||
+                previous.pixelRatio !== ratio);
+            if (!previous || changed) {
+              if (changed) {
+                rememberPracticeProfiles(state.current, session);
+                flagPresentation(session, "conditions");
+                clearPendingEvidence(session);
+              }
+              session.adaptation.viewport = {
+                width: bounds.width,
+                height: bounds.height,
+                pixelRatio: ratio,
+              };
+              bindPracticeProfiles(session, state.current.practiceProfiles);
+              if (
+                firstPresentation &&
+                session.attentionRound &&
+                !session.trials.length
+              ) {
+                delete session.attentionRound;
+                session.attentionRound = createAttentionRound(session);
+              }
+            }
+          }
           if (exercise.current instanceof TouchExercise) {
             const resized = exercise.current.setViewport(
               bounds.width,
@@ -482,6 +538,8 @@ function App() {
               session.difficulty,
             );
             exercise.current.render(context, bounds.width, bounds.height);
+            if (session.presentationQuality)
+              session.presentationQuality.presented = true;
             consumeTouchCues();
           }
         }
@@ -636,10 +694,12 @@ function App() {
       session.configuration.duration = 600;
       configureCheckIn(session);
     }
+    initializeAdaptation(session);
     initializePursuitMotion(session);
     keyboardPosition.current = null;
     setKeyboardCursor(null);
-    restoreTouchProfile(session, state.current.touchProfiles);
+    if (!session.adaptation)
+      restoreTouchProfile(session, state.current.touchProfiles);
     timer.current = new ActiveTimer(session);
     if (selected !== "follow") timer.current.resume();
     if (state.current.preferences.answerSound) unlockPracticeAudio();
@@ -663,6 +723,21 @@ function App() {
       persist(state.current);
     }
   };
+  const recordPracticeInput = (
+    session: Session,
+    method: "pointer" | "keyboard",
+  ) => {
+    const previous = session.inputMethod ?? "pointer";
+    const next =
+      session.inputMethod && session.inputMethod !== method ? "mixed" : method;
+    if (previous !== next && session.adaptation) {
+      rememberPracticeProfiles(state.current, session);
+      flagPresentation(session, "conditions");
+      clearPendingEvidence(session);
+      session.inputMethod = next;
+      bindPracticeProfiles(session, state.current.practiceProfiles);
+    } else session.inputMethod = next;
+  };
   const answer = (choice: number, inputMethod?: "pointer" | "keyboard") => {
     if (
       !current ||
@@ -676,14 +751,10 @@ function App() {
       finish();
       return;
     }
+    if (inputMethod) recordPracticeInput(current, inputMethod);
     if (exercise.current instanceof AttentionExercise) {
       const result = exercise.current.choose(choice);
       if (!result) return;
-      if (inputMethod)
-        current.inputMethod =
-          current.inputMethod && current.inputMethod !== inputMethod
-            ? "mixed"
-            : inputMethod;
       setAnswerResult({
         choice,
         correct: result.correct,
@@ -770,10 +841,7 @@ function App() {
     const bounds = event.currentTarget.getBoundingClientRect();
     renderer.setViewport(bounds.width, bounds.height);
     if (!renderer.pointerDown(touchPoint(event))) return;
-    session.inputMethod =
-      session.inputMethod && session.inputMethod !== "pointer"
-        ? "mixed"
-        : "pointer";
+    recordPracticeInput(session, "pointer");
     setKeyboardCursor(null);
     if (state.current.preferences.answerSound) unlockPracticeAudio();
     event.preventDefault();
@@ -916,10 +984,7 @@ function App() {
     if (!renderer.pointerDown(press)) return;
     keyboardPosition.current = press;
     keyboardPress.current = session.kind === "follow" ? "follow" : "tap";
-    session.inputMethod =
-      session.inputMethod && session.inputMethod !== "keyboard"
-        ? "mixed"
-        : "keyboard";
+    recordPracticeInput(session, "keyboard");
     if (session.kind === "follow") {
       session.awaitingTouch = false;
       timer.current?.resume();
@@ -1734,6 +1799,7 @@ function App() {
                     <p>{t("settings.limitsTracking")}</p>
                     <p>{t("settings.limitsComfort")}</p>
                   </section>
+                  <DeveloperTools data={data} />
                 </div>
               )}
             </main>

@@ -10,6 +10,7 @@ import {
 import { useI18n } from "../i18n/react";
 import { Icon } from "./Icon";
 import { trackingChoices, trackingCalibrating } from "../exercises/tracking";
+import { activityRules } from "../adaptive/rules";
 
 const directionKeys = [
   "answer.right",
@@ -54,14 +55,32 @@ export function AttentionStatus({
   const { t, number } = useI18n();
   const copy = useRoundCopy(session);
   const progress = attentionProgress(session);
+  const channel = copy ? session.adaptation?.channels[copy.task] : null;
+  const progressValue = channel ? channel.pending.length : progress.correct;
+  const progressText = channel
+    ? channel.checking
+      ? t("balance.checking")
+      : t("balance.review", { count: number(progressValue), total: number(5) })
+    : t("attention.progress", {
+        correct: number(Math.min(progress.correct, progress.required)),
+        total: number(progress.required),
+      });
   return (
     <div className="attention-status">
       <div className="attention-status-row">
         <strong>
-          {t("attention.level", { level: number(session.difficulty + 1) })}
+          {channel
+            ? t("balance.round", {
+                number: number((session.attentionRound?.index ?? 0) + 1),
+              })
+            : t("attention.level", { level: number(session.difficulty + 1) })}
         </strong>
         <span>
-          {session.kind === "tracking" && trackingCalibrating(session)
+          {(
+            channel
+              ? channel.phase === "finding"
+              : session.kind === "tracking" && trackingCalibrating(session)
+          )
             ? t("challenge.calibrating")
             : copy
               ? t(`attention.task.${copy.task}`)
@@ -81,20 +100,19 @@ export function AttentionStatus({
         )}
       </div>
       <progress
-        value={Math.min(progress.correct, progress.required)}
+        value={Math.min(progressValue, progress.required)}
         max={progress.required}
-        aria-label={t("attention.progress", {
-          correct: number(Math.min(progress.correct, progress.required)),
-          total: number(progress.required),
-        })}
+        aria-label={progressText}
       />
       <small>
-        {session.difficulty === maximumAttentionDifficulty
+        {(
+          channel
+            ? channel.challenge >=
+              activityRules(session, channel.activity).maximum - 1e-6
+            : session.difficulty === maximumAttentionDifficulty
+        )
           ? t("attention.maximum")
-          : t("attention.progress", {
-              correct: number(Math.min(progress.correct, progress.required)),
-              total: number(progress.required),
-            })}
+          : progressText}
       </small>
     </div>
   );

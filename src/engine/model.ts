@@ -1,5 +1,12 @@
 import type { LanguagePreference } from "../i18n/locale";
 import type { AdaptiveBalance } from "../adaptive/balance";
+import type {
+  AdaptiveTrial,
+  PracticeAdaptation,
+  PracticeProfile,
+  PresentationQuality,
+  TrialQuality,
+} from "../adaptive/types";
 
 export const exerciseKinds = [
   "pursuit",
@@ -221,11 +228,14 @@ export interface Slice {
   milliseconds: number;
 }
 export interface Trial {
+  adaptation?: AdaptiveTrial;
+  quality?: TrialQuality;
   correct: boolean;
   responseMilliseconds: number;
   difficulty: number;
   /** Presented visual target diameter in CSS pixels; absent in legacy records. */
   stimulusDiameter?: number;
+  stimulusContrast?: number;
   touchDistance?: number;
   touchTolerance?: number;
   qualified?: boolean;
@@ -314,6 +324,8 @@ export interface TouchChallengeState {
   achievements: ChallengeAchievement[];
 }
 export interface Session {
+  adaptation?: PracticeAdaptation;
+  presentationQuality?: PresentationQuality;
   id: string;
   kind: ExerciseKind;
   eye: Eye;
@@ -380,6 +392,7 @@ export interface Measurement {
   value: string;
 }
 export interface StatisticsReset {
+  practiceProfiles?: PracticeProfile[];
   resetAt: string;
   sessions: Session[];
   measurements?: Measurement[];
@@ -403,6 +416,7 @@ export interface PracticePreferences {
   setups: PracticeSetups;
 }
 export interface Data {
+  practiceProfiles?: PracticeProfile[];
   sessions: Session[];
   current: Session | null;
   routines: Routine[];
@@ -444,6 +458,7 @@ export const initialData = (): Data => ({
   },
   measurements: [],
   touchProfiles: [],
+  practiceProfiles: [],
   savedSetups: [],
   levels: {
     pursuit: 0,

@@ -1,4 +1,6 @@
+import { balanceEnglish } from "./balance.en";
 export const english = {
+  ...balanceEnglish,
   "app.title": "Mangekyo · Visual practice",
   "orientation.landscapeHint":
     "Turn your phone sideways for more horizontal room. Portrait works too.",

@@ -4,6 +4,9 @@ import { resetTouchRun } from "../exercises/touch-challenge";
 import { parsePracticePreferences } from "../engine/practice";
 import { validAttentionRound } from "../exercises/attention-validation";
 import { parseSavedSetups } from "../engine/saved-setups";
+import { validPracticeProfiles } from "../adaptive/validation";
+import { flagPresentation } from "../adaptive/quality";
+import { clearPendingEvidence } from "../adaptive/practice";
 const open = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open("mangekyo", 1);
@@ -32,6 +35,8 @@ async function readData(): Promise<{ data: Data; revision: number }> {
       data.levels = { ...initialData().levels, ...data.levels };
       data.practice = parsePracticePreferences(data.practice) ?? undefined;
       data.savedSetups = parseSavedSetups(data.savedSetups ?? []) ?? [];
+      if (!validPracticeProfiles(data.practiceProfiles ?? []))
+        data.practiceProfiles = [];
       if (
         data.lastExportedAt !== undefined &&
         (typeof data.lastExportedAt !== "string" ||
@@ -55,6 +60,10 @@ async function readData(): Promise<{ data: Data; revision: number }> {
       }
       if (data.current) {
         data.current.status = "interrupted";
+        flagPresentation(data.current, "interruption");
+        clearPendingEvidence(data.current);
+        if (data.current.presentationQuality)
+          data.current.presentationQuality.presented = false;
         if (
           data.current.attentionRound &&
           !validAttentionRound(

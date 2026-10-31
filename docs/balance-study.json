@@ -1,0 +1,172 @@
+{
+  "scope": "Mathematical design study; no change to shipped gameplay",
+  "configuration": {
+    "version": 1,
+    "auditedApplicationRevision": "06b33aef78f3878d5feabd9c72081f2d168a0bae",
+    "seedCount": 32,
+    "windowsPerSeed": 2000,
+    "trialsPerWindow": 5,
+    "targetSuccess": 0.85,
+    "minimumLoad": 0,
+    "maximumLoad": 40,
+    "calibrationGain": 6,
+    "calibrationWindows": 3,
+    "practiceGain": 1.5
+  },
+  "assumptions": [
+    "Binary first-attempt outcomes, independent given current difficulty",
+    "Five trials at one setting in each window",
+    "Monotonic synthetic observer curves, except the explicit constant observers",
+    "No display quantization, response-time effects, input latency or variant pooling",
+    "The early 30 trials are not a timed five-minute session",
+    "Long-run checks use 10000 trials per seed, not evidence of human learning",
+    "Neither the synthetic observer nor the 85% target is clinically validated"
+  ],
+  "historicalFiveAnswerRule": {
+    "harderAtCorrect": [4, 5],
+    "holdAtCorrect": [3],
+    "easierAtCorrect": [0, 1, 2],
+    "zeroDriftSuccess": 0.5943448344987126,
+    "at80PercentSuccess": {
+      "probabilityOfHarder": 0.7372800000000002,
+      "probabilityOfEasier": 0.05791999999999997
+    }
+  },
+  "symmetricStaircaseTargets": [
+    {
+      "consecutiveCorrect": 3,
+      "oneIncorrectMakesEasier": true,
+      "idealizedTargetSuccess": 0.7937005259840998
+    },
+    {
+      "consecutiveCorrect": 4,
+      "oneIncorrectMakesEasier": true,
+      "idealizedTargetSuccess": 0.8408964152537145
+    },
+    {
+      "consecutiveCorrect": 5,
+      "oneIncorrectMakesEasier": true,
+      "idealizedTargetSuccess": 0.8705505632961241
+    }
+  ],
+  "weightedBlockRule": {
+    "equation": "change = gain * (correct / 5 - 0.85)",
+    "zeroDriftSuccess": 0.8499999999999999,
+    "changesAtUnitGain": [
+      {
+        "correct": 0,
+        "change": -0.85
+      },
+      {
+        "correct": 1,
+        "change": -0.6499999999999999
+      },
+      {
+        "correct": 2,
+        "change": -0.44999999999999996
+      },
+      {
+        "correct": 3,
+        "change": -0.25
+      },
+      {
+        "correct": 4,
+        "change": -0.04999999999999993
+      },
+      {
+        "correct": 5,
+        "change": 0.15000000000000002
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "lower working range",
+      "first30TrialsSuccess": 0.9479166666666666,
+      "last1000TrialsSuccess": 0.8501875,
+      "last200WindowsMeanLoad": 4.933406249999644,
+      "minimumLoad": 0,
+      "maximumLoad": 7.3499999999998185
+    },
+    {
+      "name": "middle working range",
+      "first30TrialsSuccess": 0.9739583333333334,
+      "last1000TrialsSuccess": 0.85015625,
+      "last200WindowsMeanLoad": 16.934671875001786,
+      "minimumLoad": 0,
+      "maximumLoad": 19.350000000000882
+    },
+    {
+      "name": "higher working range",
+      "first30TrialsSuccess": 0.9739583333333334,
+      "last1000TrialsSuccess": 0.85015625,
+      "last200WindowsMeanLoad": 28.934671875001527,
+      "minimumLoad": 0,
+      "maximumLoad": 31.35000000000103
+    },
+    {
+      "name": "two-choice task",
+      "first30TrialsSuccess": 0.9739583333333334,
+      "last1000TrialsSuccess": 0.85028125,
+      "last200WindowsMeanLoad": 18.0249843750021,
+      "minimumLoad": 0,
+      "maximumLoad": 20.77500000000043
+    },
+    {
+      "name": "six-choice task",
+      "first30TrialsSuccess": 0.9739583333333334,
+      "last1000TrialsSuccess": 0.85,
+      "last200WindowsMeanLoad": 16.669828125001132,
+      "minimumLoad": 0,
+      "maximumLoad": 19.050000000000775
+    },
+    {
+      "name": "occasional lapses",
+      "first30TrialsSuccess": 0.9322916666666666,
+      "last1000TrialsSuccess": 0.85053125,
+      "last200WindowsMeanLoad": 15.933328125000639,
+      "minimumLoad": 0,
+      "maximumLoad": 18.67500000000019
+    },
+    {
+      "name": "capability falls halfway",
+      "first30TrialsSuccess": 0.9739583333333334,
+      "last1000TrialsSuccess": 0.85015625,
+      "last200WindowsMeanLoad": 10.934671875001055,
+      "minimumLoad": 0,
+      "maximumLoad": 19.275000000000396
+    },
+    {
+      "name": "capability rises halfway",
+      "first30TrialsSuccess": 0.9729166666666667,
+      "last1000TrialsSuccess": 0.85015625,
+      "last200WindowsMeanLoad": 16.9346718750006,
+      "minimumLoad": 0,
+      "maximumLoad": 19.35000000000025
+    },
+    {
+      "name": "random four-choice guesses",
+      "first30TrialsSuccess": 0.2520833333333333,
+      "last1000TrialsSuccess": 0.25209375,
+      "last200WindowsMeanLoad": 0.0002812500000000001,
+      "minimumLoad": 0,
+      "maximumLoad": 0.22500000000000003
+    },
+    {
+      "name": "always correct: upper boundary",
+      "first30TrialsSuccess": 1,
+      "last1000TrialsSuccess": 1,
+      "last200WindowsMeanLoad": 40,
+      "minimumLoad": 0.9000000000000001,
+      "maximumLoad": 40
+    },
+    {
+      "name": "always incorrect: lower boundary",
+      "first30TrialsSuccess": 0,
+      "last1000TrialsSuccess": 0,
+      "last200WindowsMeanLoad": 0,
+      "minimumLoad": 0,
+      "maximumLoad": 0
+    }
+  ]
+}

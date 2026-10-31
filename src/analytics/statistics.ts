@@ -1,7 +1,9 @@
+import { reliableTrial } from "./adaptation";
 import {
   localDate,
   names,
   isResponseExercise,
+  isTouchExercise,
   type Data,
   type ExerciseKind,
   type Eye,
@@ -57,7 +59,7 @@ export function summarizePractice(sessions: Session[]): PracticeSummary {
   }
   const trials = sessions
     .filter((session) => isResponseExercise(session.kind))
-    .flatMap((session) => session.trials);
+    .flatMap((session) => session.trials.filter(reliableTrial));
   const correctCount = trials.filter((trial) => trial.correct).length;
   const responseTimes = trials
     .filter((trial) => !trial.timedOut)
@@ -109,23 +111,31 @@ export function buildStatistics(data: Data, today = new Date()) {
       ...summarizePractice(records),
       kind,
       latestLevel:
-        responseRecords.length ||
-        (kind === "follow" &&
-          records.some(
-            (session) => (session.follow?.trackedMilliseconds ?? 0) > 0,
-          ))
-          ? (records.filter((record) => !record.checkIn).at(-1)?.difficulty ??
-              0) + 1
-          : null,
-      recentResults: responseRecords.slice(-6).map((session) => ({
-        id: session.id,
-        date: sessionDate(session),
-        accuracy:
-          session.trials.filter((trial) => trial.correct).length /
-          session.trials.length,
-        responseCount: session.trials.length,
-        eye: session.eye,
-      })),
+        records.filter((record) => !record.checkIn).at(-1)?.adaptation &&
+        !isTouchExercise(kind)
+          ? null
+          : responseRecords.length ||
+              (kind === "follow" &&
+                records.some(
+                  (session) => (session.follow?.trackedMilliseconds ?? 0) > 0,
+                ))
+            ? (records.filter((record) => !record.checkIn).at(-1)?.difficulty ??
+                0) + 1
+            : null,
+      recentResults: responseRecords
+        .filter((session) => session.trials.some(reliableTrial))
+        .slice(-6)
+        .map((session) => ({
+          id: session.id,
+          date: sessionDate(session),
+          accuracy:
+            session.trials
+              .filter(reliableTrial)
+              .filter((trial) => trial.correct).length /
+            session.trials.filter(reliableTrial).length,
+          responseCount: session.trials.filter(reliableTrial).length,
+          eye: session.eye,
+        })),
     };
   });
   const eyes = (["Left", "Right", "Both"] as const).map((eye) => ({

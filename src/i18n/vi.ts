@@ -1,5 +1,7 @@
 import type { MessageKey } from "./en";
+import { balanceVietnamese } from "./balance.vi";
 export const vietnamese = {
+  ...balanceVietnamese,
   "app.title": "Mangekyo · Luyện tập thị giác",
   "orientation.landscapeHint":
     "Xoay ngang điện thoại để có thêm không gian. Bạn vẫn có thể tập theo chiều dọc.",
